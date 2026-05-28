@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/EmailService.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use Etudiant;
 use Scolarite;
@@ -192,6 +193,16 @@ class GestionCandidaturesService
         // Enregistrer le résumé
         $this->etudiant->saveResumeCandidature($idCandidature, $numEtu, $resume, $decision);
 
+        // Si la candidature est validée, mettre le rapport en attente de la commission
+        if ($decision === 'Validée' && $idCandidature) {
+            try {
+                $stmt = $this->db->prepare("UPDATE rapport_etudiants SET etape_validation = 'en_attente_commission' WHERE id_candidature = ?");
+                $stmt->execute([$idCandidature]);
+            } catch (\PDOException $e) {
+                error_log("Erreur lors de la transition vers commission : " . $e->getMessage());
+            }
+        }
+
         // Envoyer l'email
         $this->envoyerEmailResultat($numEtu, $resume, $decision);
     }
@@ -322,6 +333,90 @@ class GestionCandidaturesService
         }
 
         $studentName = $etudiant['prenom_etu'] . ' ' . $etudiant['nom_etu'];
-        $this->emailService->sendResultEmail($etudiant['email_etu'], $studentName, $resume, $decision);
+
+        $statusIcon = ($decision === 'Validée') ? '&#x1F389;' : '&#x274C;';
+        $statusBgColor = ($decision === 'Validée') ? '#f0fdf4' : '#fef2f2';
+        $statusBorderColor = ($decision === 'Validée') ? '#bbf7d0' : '#fecaca';
+
+        $details_html = '';
+        foreach ($resume as $etape => $data) {
+            $etapeName = ucfirst($etape);
+            $validation = $data['validation'];
+            $badgeColor = ($validation === 'validé') ? '#10b981' : '#ef4444';
+
+            $details_html .= "
+                <div class='box' style='border-left: 4px solid {$badgeColor};'>
+                    <h4 style='margin-top: 0;'>{$etapeName}</h4>
+                    <p><strong>Validation :</strong> <span style='background-color: {$badgeColor}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;'>" . strtoupper($validation) . "</span></p>
+            ";
+
+            if ($etape === 'scolarite') {
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Statut :</strong> {$data['statut']}</p>";
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Montant total :</strong> {$data['montant_total']}</p>";
+                $details_html .= "<p style='margin-bottom: 0;'><strong>Montant payé :</strong> {$data['montant_paye']}</p>";
+            } elseif ($etape === 'stage') {
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Entreprise :</strong> {$data['entreprise']}</p>";
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Sujet :</strong> {$data['sujet']}</p>";
+                $details_html .= "<p style='margin-bottom: 0;'><strong>Période :</strong> {$data['periode']}</p>";
+            } elseif ($etape === 'semestre') {
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Semestre :</strong> {$data['semestre']}</p>";
+                $details_html .= "<p style='margin-bottom: 5px;'><strong>Moyenne :</strong> {$data['moyenne']}</p>";
+                $details_html .= "<p style='margin-bottom: 0;'><strong>Unités validées :</strong> {$data['unites']}</p>";
+            }
+            $details_html .= "</div>";
+        }
+
+        $action_message = '';
+        if ($decision === 'Validée') {
+            $action_message = '
+                <div class="box text-center" style="background-color: #f0fdf4; border: 1px dashed #10b981;">
+                    <p style="margin: 0; color: #065f46;"><strong>Félicitations !</strong> Votre candidature a été validée. Vous pouvez maintenant procéder à la rédaction de votre rapport.</p>
+                </div>
+            ';
+        } else {
+            $action_message = '
+                <div class="box text-center" style="background-color: #fef2f2; border: 1px dashed #ef4444;">
+                    <p style="margin-bottom: 10px; color: #991b1b;"><strong>Votre candidature a été rejetée.</strong></p>
+                    <p style="margin: 0; font-size: 14px;">Veuillez corriger les problèmes identifiés et soumettre une nouvelle candidature.</p>
+                </div>
+            ';
+        }
+
+        $this->emailService->sendTemplate('CANDIDATURE_RESULT', $etudiant['email_etu'], [
+            'nom' => htmlspecialchars($studentName),
+            'decision' => htmlspecialchars($decision),
+            'status_icon' => $statusIcon,
+            'status_text_color' => ($decision === 'Validée') ? '#10b981' : '#ef4444',
+            'status_bg_color' => $statusBgColor,
+            'status_border_color' => $statusBorderColor,
+            'details_html' => $details_html,
+            'action_message' => $action_message,
+        ]);
+    }
+
+    public function notifierSoumissionCandidature(string $numEtu, int $idCandidature, string $dateCandidature): void
+    {
+        $etudiant = $this->etudiant->getEtudiantByNumEtu($numEtu);
+        if (!$etudiant || empty($etudiant['email_etu'])) {
+            error_log("Email non trouve pour l'etudiant: $numEtu");
+            return;
+        }
+
+        $studentName = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+
+        $this->emailService->sendTemplate('CANDIDATURE_SOUMISE_ETUDIANT', $etudiant['email_etu'], [
+            'nom' => htmlspecialchars(trim($studentName)),
+            'id_candidature' => $idCandidature,
+            'date_candidature' => $dateCandidature,
+        ]);
+
+        $notifService = new \NotificationService();
+        $notifService->sendToUserGroups([5, 6, 7, 8], 'CANDIDATURE_SOUMISE_ADMIN', [
+            'nom' => htmlspecialchars(trim($studentName)),
+            'num_etu' => htmlspecialchars($numEtu),
+            'date_candidature' => $dateCandidature,
+            'id_candidature' => $idCandidature,
+            'admin_url' => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/checkmaster/?page=gestion_dossiers_candidatures',
+        ]);
     }
 }

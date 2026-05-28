@@ -13,6 +13,11 @@ $selectable = !empty($selectable);
 $row_key = (string) ($row_key ?? 'id');
 $actions = is_array($actions ?? null) ? $actions : [];
 
+// Clickable rows support
+$clickable = !empty($clickable);
+$row_link = (string) ($row_link ?? ''); // URL pattern avec {key} pour interpolation
+$row_link_type = (string) ($row_link_type ?? 'href'); // 'href' ou 'dialog'
+
 if (empty($columns) && !empty($headers)) {
     $columns = [];
     foreach ($headers as $idx => $header) {
@@ -63,7 +68,28 @@ if (empty($columns) && !empty($headers)) {
             <?php else: ?>
                 <?php foreach ($rows as $row): ?>
                 <?php $rowData = is_array($row) ? $row : (array) $row; ?>
-                <tr class="cm-data-table__row">
+                <?php
+                    // Build clickable row href
+                    $rowHref = '';
+                    if ($clickable && $row_link !== '') {
+                        $rowHref = $row_link;
+                        foreach ($rowData as $k => $v) {
+                            $rowHref = str_replace('{' . $k . '}', urlencode((string) $v), $rowHref);
+                        }
+                    }
+                    $hasResolvedRowHref = $clickable
+                        && $rowHref !== ''
+                        && !preg_match('/\{[^}]+\}/', $rowHref);
+                    $rowClass = 'cm-data-table__row';
+                    if ($hasResolvedRowHref) {
+                        $rowClass .= ' cm-clickable-row';
+                    }
+                ?>
+                <tr class="<?= $rowClass ?>"
+                    <?php if ($hasResolvedRowHref): ?>
+                    data-href="<?= htmlspecialchars($rowHref, ENT_QUOTES, 'UTF-8') ?>"
+                    data-link-type="<?= htmlspecialchars($row_link_type, ENT_QUOTES, 'UTF-8') ?>"
+                    <?php endif; ?>>
                     <?php if ($selectable): ?>
                     <?php $rowId = (string) ($rowData[$row_key] ?? ''); ?>
                     <td class="cm-data-table__td cm-data-table__td--check">

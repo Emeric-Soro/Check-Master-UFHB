@@ -34,7 +34,7 @@ final class RecuGeneratorService
      *
      * @param string|int $versementId ID composite du versement
      * @param int $userId ID de l'utilisateur générant le document
-     * @return array{success: bool, reference?: string, path?: string, error?: string}
+     * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, error?: string}
      */
     public function generate(string|int $versementId, int $userId): array
     {
@@ -108,6 +108,7 @@ final class RecuGeneratorService
             $documentId = $this->recuDataUtils->saveDocumentRecord([
                 'reference_document' => $reference,
                 'type_document' => self::TYPE_DOCUMENT,
+                'id_source' => (string) $versementId,
                 'nom_fichier' => $filename . '.pdf',
                 'chemin_fichier' => $fullPath,
                 'taille_fichier' => $fileSize !== false ? (int) $fileSize : null,
@@ -126,6 +127,8 @@ final class RecuGeneratorService
                 'success' => true,
                 'reference' => $reference,
                 'path' => $fullPath,
+                'filename' => basename($fullPath),
+                'size' => $fileSize !== false ? (int) $fileSize : null,
             ];
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -152,7 +155,7 @@ final class RecuGeneratorService
         $montantFmt = number_format((float) $montant, 0, ',', ' ');
         $montantLettres = ucfirst(RecuDataUtils::intToWords($montant));
         
-        $dateVersement = (new DateTimeImmutable($versement['date_versement']))->format('d/m/Y');
+        $dateVersement = $this->formatReceiptDate($versement['date_versement'] ?? null);
         
         $nomEtudiant = strtoupper($etudiant['nom_etudiant'] . ' ' . $etudiant['prenom_etudiant']);
         
@@ -169,7 +172,7 @@ final class RecuGeneratorService
         
         $reglement = match ($versement['type_versement']) {
             'inscription' => 'DROIT D\'INSCRIPTION',
-            'scolarite' => 'FRAIS DE SCOLARITE',
+            'scolarite' => 'FRAIS DE SCOLARITÉ',
             default => strtoupper($versement['type_versement']),
         };
 
@@ -187,7 +190,16 @@ final class RecuGeneratorService
             ? '<img src="' . htmlspecialchars($logos['logo_filiere']) . '" style="max-height: 42px; width: auto;" />'
             : '<div style="border: 1px solid #000; padding: 5px; width: 60px; margin: 5px auto;">M & I</div>';
 
-        $resteAPayer = (float)($inscription['reste_a_payer'] ?? 0.0) <= 0 ? 'SOLDE' : number_format((float)($inscription['reste_a_payer']), 0, ',', ' ') . ' F CFA';
+        $resteNumeric = max(0.0, (float) ($inscription['reste_a_payer'] ?? 0.0));
+        $resteAPayer = $resteNumeric > 0
+            ? number_format($resteNumeric, 0, ',', ' ') . ' F CFA'
+            : 'SOLDE (0 F CFA)';
+        $prochainVersement = number_format($resteNumeric, 0, ',', ' ') . ' F CFA';
+        $prochaineDate = $resteNumeric > 0
+            ? $this->estimateNextVersementDate(
+                $versement['date_versement'] ?? ($inscription['date_inscription'] ?? null)
+            )
+            : '—';
 
         $html = <<<HTML
 <style>
@@ -307,8 +319,8 @@ final class RecuGeneratorService
         </td>
         <td class="situation-box" valign="top">
             Reste à payer : <strong>{$resteAPayer}</strong><br>
-            Montant prochain versement : ....................<br>
-            Date prochain versement : ........................
+            Montant prochain versement : <strong>{$prochainVersement}</strong><br>
+            Date prochain versement : <strong>{$prochaineDate}</strong>
         </td>
     </tr>
 </table>
@@ -317,5 +329,33 @@ final class RecuGeneratorService
 HTML;
 
         return $html;
+    }
+
+    private function formatReceiptDate(?string $value): string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '' || $raw === '0000-00-00' || $raw === '0000-00-00 00:00:00') {
+            return '—';
+        }
+
+        try {
+            return (new DateTimeImmutable($raw))->format('d/m/Y');
+        } catch (Throwable) {
+            return '—';
+        }
+    }
+
+    private function estimateNextVersementDate(?string $value): string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '' || $raw === '0000-00-00' || $raw === '0000-00-00 00:00:00') {
+            return '—';
+        }
+
+        try {
+            return (new DateTimeImmutable($raw))->modify('+3 months')->format('d/m/Y');
+        } catch (Throwable) {
+            return '—';
+        }
     }
 }

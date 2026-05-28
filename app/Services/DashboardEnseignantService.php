@@ -75,11 +75,56 @@ class DashboardEnseignantService
         // Construire la liste des niveaux avec statistiques
         $mesNiveaux = $this->buildMesNiveauxStats($niveaux, $etudiantsSuivantCours);
 
+        // Ajouter les stats des étudiants supervisés (directeur/encadrant)
+        $etudiantsSuivis = $this->getEtudiantsSuivisStats($enseignantId);
+
         return [
             'total_etudiants' => count($etudiantsSuivantCours),
             'total_niveaux' => count($niveaux),
             'mes_cours' => $mesNiveaux, // Garder le nom pour compatibilité vue
+            'etudiants_suivis' => $etudiantsSuivis,
         ];
+    }
+
+    /**
+     * Récupère les statistiques des étudiants supervisés par l'enseignant
+     * (dont il est le directeur de mémoire ou l'encadrant pédagogique)
+     *
+     * Utilise la table `affecter` qui lie un enseignant à un rapport
+     * avec un rôle (directeur ou encadrant).
+     *
+     * @param int|string $enseignantId ID de l'enseignant
+     * @return array{total_etudiants_suivis: int, etudiants_encadres: int, etudiants_diriges: int}
+     */
+    private function getEtudiantsSuivisStats($enseignantId): array
+    {
+        try {
+            $sql = "SELECT
+                        COUNT(DISTINCT r.num_etu) AS total,
+                        SUM(CASE WHEN LOWER(a.role) LIKE 'encadr%' THEN 1 ELSE 0 END) AS encadres,
+                        SUM(CASE WHEN a.role = 'directeur' THEN 1 ELSE 0 END) AS diriges
+                    FROM affecter a
+                    JOIN rapport_etudiants r ON a.id_rapport = r.id_rapport
+                    WHERE a.id_enseignant = ?
+                      AND a.role IN ('encadrant', 'directeur')";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$enseignantId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return [
+                'total_etudiants_suivis' => (int)($row['total'] ?? 0),
+                'etudiants_encadres' => (int)($row['encadres'] ?? 0),
+                'etudiants_diriges' => (int)($row['diriges'] ?? 0),
+            ];
+        } catch (\Exception $e) {
+            error_log("Erreur getEtudiantsSuivisStats: " . $e->getMessage());
+            return [
+                'total_etudiants_suivis' => 0,
+                'etudiants_encadres' => 0,
+                'etudiants_diriges' => 0,
+            ];
+        }
     }
 
     /**
@@ -125,7 +170,7 @@ class DashboardEnseignantService
         $etudiantsSuivantCours = [];
         foreach ($etudiants as $etudiant) {
             if (in_array($etudiant->id_niv_etude, $niveauIds)) {
-                $studentKey = (string) ($etudiant->num_carte_etud ?? $etudiant->num_etu ?? '');
+                $studentKey = (string) ($etudiant->num_ident_etud ?? $etudiant->num_carte_etud ?? $etudiant->num_etu ?? '');
                 if ($studentKey === '') {
                     continue;
                 }
@@ -150,5 +195,10 @@ class DashboardEnseignantService
         $GLOBALS['total_ues'] = (int) ($stats['total_ues'] ?? ($stats['total_niveaux'] ?? 0));
         $GLOBALS['total_ecues'] = (int) ($stats['total_ecues'] ?? 0);
         $GLOBALS['mes_cours'] = $stats['mes_cours'] ?? ($stats['mes_niveaux'] ?? []);
+        $GLOBALS['etudiants_suivis'] = $stats['etudiants_suivis'] ?? [
+            'total_etudiants_suivis' => 0,
+            'etudiants_encadres' => 0,
+            'etudiants_diriges' => 0,
+        ];
     }
 }

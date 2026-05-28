@@ -1,0 +1,1414 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.3
+-- https://www.phpmyadmin.net/
+--
+-- Hôte : 127.0.0.1:3306
+-- Généré le : mar. 19 mai 2026 à 12:02
+-- Version du serveur : 8.4.7
+-- Version de PHP : 8.4.15
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Base de données : `ufrmi1802974_2q2mpf`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `action`
+--
+
+DROP TABLE IF EXISTS `action`;
+CREATE TABLE IF NOT EXISTS `action` (
+  `id_action` int NOT NULL AUTO_INCREMENT,
+  `lib_action` varchar(120) NOT NULL,
+  PRIMARY KEY (`id_action`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `affecter`
+--
+
+DROP TABLE IF EXISTS `affecter`;
+CREATE TABLE IF NOT EXISTS `affecter` (
+  `id_enseignant` varchar(20) NOT NULL,
+  `role` enum('encadrant','directeur') NOT NULL,
+  `id_rapport` int NOT NULL,
+  `id_jury` int DEFAULT NULL,
+  PRIMARY KEY (`id_enseignant`,`id_rapport`),
+  KEY `Key_affecter_enseignant` (`id_enseignant`),
+  KEY `Key_affecter_rappetu` (`id_rapport`),
+  KEY `Key_affecter_jury` (`id_jury`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `annee_academique`
+--
+
+DROP TABLE IF EXISTS `annee_academique`;
+CREATE TABLE IF NOT EXISTS `annee_academique` (
+  `id_annee_acad` int NOT NULL,
+  `date_deb` date NOT NULL,
+  `date_fin` date NOT NULL,
+  PRIMARY KEY (`id_annee_acad`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `app_settings`
+--
+
+DROP TABLE IF EXISTS `app_settings`;
+CREATE TABLE IF NOT EXISTS `app_settings` (
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` text NOT NULL,
+  `is_sensitive` tinyint(1) NOT NULL DEFAULT '0',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `auth_rate_limits`
+--
+
+DROP TABLE IF EXISTS `auth_rate_limits`;
+CREATE TABLE IF NOT EXISTS `auth_rate_limits` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `action` varchar(16) NOT NULL,
+  `ip` varchar(45) NOT NULL,
+  `identifier` varchar(128) NOT NULL,
+  `attempts` int NOT NULL DEFAULT '0',
+  `window_start` datetime NOT NULL,
+  `last_attempt` datetime NOT NULL,
+  `blocked_until` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_action_ip_identifier` (`action`,`ip`,`identifier`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `avoir`
+--
+
+DROP TABLE IF EXISTS `avoir`;
+CREATE TABLE IF NOT EXISTS `avoir` (
+  `id_grade` varchar(2) NOT NULL,
+  `id_enseignant` varchar(20) NOT NULL,
+  `date_grade` date NOT NULL,
+  PRIMARY KEY (`id_grade`,`id_enseignant`),
+  KEY `Key_avoir_grade` (`id_grade`),
+  KEY `Key_avoir_enseignant` (`id_enseignant`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `bareme_critere`
+--
+
+DROP TABLE IF EXISTS `bareme_critere`;
+CREATE TABLE IF NOT EXISTS `bareme_critere` (
+  `id_annee_acad` int NOT NULL,
+  `id_critere` varchar(2) NOT NULL,
+  `bareme` int NOT NULL,
+  PRIMARY KEY (`id_annee_acad`,`id_critere`),
+  KEY `id_critere` (`id_critere`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `candidature_soutenance`
+--
+
+DROP TABLE IF EXISTS `candidature_soutenance`;
+CREATE TABLE IF NOT EXISTS `candidature_soutenance` (
+  `id_candidature` int NOT NULL AUTO_INCREMENT,
+  `num_etu` varchar(25) NOT NULL,
+  `date_candidature` datetime NOT NULL,
+  `statut_candidature` enum('En attente','Validée','Rejetée') NOT NULL DEFAULT 'En attente',
+  `date_traitement` datetime DEFAULT NULL,
+  `id_pers_admin` int DEFAULT NULL,
+  `commentaire_admin` text,
+  PRIMARY KEY (`id_candidature`),
+  KEY `num_etu` (`num_etu`),
+  KEY `id_pers_admin` (`id_pers_admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `categories_fonctionnalites`
+--
+
+DROP TABLE IF EXISTS `categories_fonctionnalites`;
+CREATE TABLE IF NOT EXISTS `categories_fonctionnalites` (
+  `id_categorie` int NOT NULL AUTO_INCREMENT,
+  `code_categorie` varchar(50) NOT NULL,
+  `lib_categorie` varchar(100) NOT NULL,
+  `description_categorie` text,
+  `icone_categorie` varchar(100) DEFAULT NULL,
+  `ordre_categorie` int DEFAULT '0',
+  `actif` tinyint(1) DEFAULT '1',
+  `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_categorie`),
+  UNIQUE KEY `code_categorie` (`code_categorie`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `compte_rendu`
+--
+
+DROP TABLE IF EXISTS `compte_rendu`;
+CREATE TABLE IF NOT EXISTS `compte_rendu` (
+  `id_CR` int NOT NULL AUTO_INCREMENT,
+  `num_etu` varchar(25) NOT NULL,
+  `nom_CR` varchar(70) NOT NULL,
+  `contenu_CR` longtext,
+  `chemin_fichier_pdf` varchar(255) DEFAULT NULL,
+  `date_CR` datetime NOT NULL,
+  PRIMARY KEY (`id_CR`),
+  KEY `fk_etudiant` (`num_etu`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `compte_rendu_rapport`
+--
+
+DROP TABLE IF EXISTS `compte_rendu_rapport`;
+CREATE TABLE IF NOT EXISTS `compte_rendu_rapport` (
+  `id_CR` int NOT NULL,
+  `id_rapport` int NOT NULL,
+  PRIMARY KEY (`id_CR`,`id_rapport`),
+  KEY `id_rapport` (`id_rapport`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `critere_evaluation`
+--
+
+DROP TABLE IF EXISTS `critere_evaluation`;
+CREATE TABLE IF NOT EXISTS `critere_evaluation` (
+  `id_critere` varchar(2) NOT NULL,
+  `lib_critere` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_critere`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `decisions_jury`
+--
+
+DROP TABLE IF EXISTS `decisions_jury`;
+CREATE TABLE IF NOT EXISTS `decisions_jury` (
+  `id_decision` int NOT NULL AUTO_INCREMENT,
+  `lib_decision` varchar(120) NOT NULL,
+  `description` text,
+  `actif` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id_decision`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `deposer`
+--
+
+DROP TABLE IF EXISTS `deposer`;
+CREATE TABLE IF NOT EXISTS `deposer` (
+  `num_etu` varchar(25) NOT NULL,
+  `id_rapport` int NOT NULL,
+  `date_depot` datetime NOT NULL,
+  PRIMARY KEY (`num_etu`,`id_rapport`),
+  KEY `fk_deposer_rapport` (`id_rapport`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `document`
+--
+
+DROP TABLE IF EXISTS `document`;
+CREATE TABLE IF NOT EXISTS `document` (
+  `id_document` int NOT NULL AUTO_INCREMENT,
+  `lien_document` varchar(255) NOT NULL,
+  PRIMARY KEY (`id_document`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `documents`
+--
+
+DROP TABLE IF EXISTS `documents`;
+CREATE TABLE IF NOT EXISTS `documents` (
+  `id_document` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `type_document` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sous_type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reference` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `nom_fichier` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `extension` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type_mime` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entite_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `entite_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contenu` longblob NOT NULL,
+  `taille_fichier` bigint UNSIGNED NOT NULL DEFAULT '0',
+  `version` int UNSIGNED NOT NULL DEFAULT '1',
+  `id_utilisateur` int DEFAULT NULL,
+  `date_creation` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `date_modification` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `nb_consultations` int UNSIGNED NOT NULL DEFAULT '0',
+  `chemin_original` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `statut` enum('actif','archive','supprime') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'actif',
+  PRIMARY KEY (`id_document`),
+  UNIQUE KEY `uq_documents_reference` (`reference`),
+  KEY `idx_documents_type` (`type_document`),
+  KEY `idx_documents_entite` (`entite_type`,`entite_id`),
+  KEY `idx_documents_utilisateur` (`id_utilisateur`),
+  KEY `idx_documents_date_creation` (`date_creation`),
+  KEY `idx_documents_statut` (`statut`),
+  KEY `idx_documents_type_statut` (`type_document`,`statut`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `documents_consultations`
+--
+
+DROP TABLE IF EXISTS `documents_consultations`;
+CREATE TABLE IF NOT EXISTS `documents_consultations` (
+  `id_consultation` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id_document` bigint UNSIGNED NOT NULL,
+  `id_utilisateur` int DEFAULT NULL,
+  `ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `date_consultation` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_consultation`),
+  KEY `idx_documents_consultations_document` (`id_document`),
+  KEY `idx_documents_consultations_date` (`date_consultation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `document_genere`
+--
+
+DROP TABLE IF EXISTS `document_genere`;
+CREATE TABLE IF NOT EXISTS `document_genere` (
+  `id_document` int NOT NULL AUTO_INCREMENT,
+  `reference` varchar(20) NOT NULL,
+  `type_document` varchar(10) NOT NULL,
+  `id_utilisateur` int NOT NULL,
+  `id_source` varchar(50) DEFAULT NULL,
+  `chemin_fichier` varchar(500) NOT NULL,
+  `nom_fichier` varchar(255) NOT NULL,
+  `taille_fichier` bigint DEFAULT '0',
+  `date_generation` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `nb_consultations` int DEFAULT '0',
+  PRIMARY KEY (`id_document`),
+  UNIQUE KEY `uq_document_genere_reference` (`reference`),
+  KEY `idx_type_document` (`type_document`),
+  KEY `idx_id_source` (`id_source`),
+  KEY `idx_date_generation` (`date_generation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `domaine`
+--
+
+DROP TABLE IF EXISTS `domaine`;
+CREATE TABLE IF NOT EXISTS `domaine` (
+  `id_domaine` int NOT NULL,
+  `lib_domaine` varchar(150) NOT NULL,
+  PRIMARY KEY (`id_domaine`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `enseignants`
+--
+
+DROP TABLE IF EXISTS `enseignants`;
+CREATE TABLE IF NOT EXISTS `enseignants` (
+  `id_enseignant` varchar(20) NOT NULL,
+  `nom_enseignant` varchar(50) NOT NULL,
+  `prenom_enseignant` varchar(100) NOT NULL,
+  `tel_enseignant` varchar(20) DEFAULT NULL,
+  `mail_enseignant` varchar(100) DEFAULT NULL,
+  `id_specialite` int DEFAULT NULL,
+  `id_genre` char(1) DEFAULT NULL,
+  `type_enseignant` int DEFAULT NULL,
+  `id_etablissement_origin` int DEFAULT NULL,
+  PRIMARY KEY (`id_enseignant`),
+  KEY `Key_enseign_specialite` (`id_specialite`),
+  KEY `type_enseignant` (`type_enseignant`),
+  KEY `id_etablissement_origin` (`id_etablissement_origin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `enseignant_jury`
+--
+
+DROP TABLE IF EXISTS `enseignant_jury`;
+CREATE TABLE IF NOT EXISTS `enseignant_jury` (
+  `num_soutenance` varchar(20) NOT NULL,
+  `id_enseignant` varchar(20) NOT NULL,
+  `id_qualite_jury` varchar(2) NOT NULL,
+  `date_composer_jury` datetime DEFAULT NULL,
+  PRIMARY KEY (`num_soutenance`,`id_enseignant`,`id_qualite_jury`),
+  KEY `fk_composer_enseignant` (`id_enseignant`),
+  KEY `fk_composer_role` (`id_qualite_jury`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `entreprises`
+--
+
+DROP TABLE IF EXISTS `entreprises`;
+CREATE TABLE IF NOT EXISTS `entreprises` (
+  `id_entreprise` int NOT NULL AUTO_INCREMENT,
+  `lib_long_entreprise` varchar(100) NOT NULL,
+  `lib_court_en` varchar(50) NOT NULL,
+  `logo` varchar(256) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`id_entreprise`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `etablissement_origine`
+--
+
+DROP TABLE IF EXISTS `etablissement_origine`;
+CREATE TABLE IF NOT EXISTS `etablissement_origine` (
+  `id_etablissement` int NOT NULL,
+  `libelle_long` varchar(120) NOT NULL,
+  `libelle_court` varchar(30) NOT NULL,
+  PRIMARY KEY (`id_etablissement`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `etudiants`
+--
+
+DROP TABLE IF EXISTS `etudiants`;
+CREATE TABLE IF NOT EXISTS `etudiants` (
+  `num_ident_etud` varchar(25) DEFAULT NULL,
+  `num_carte_etud` varchar(25) NOT NULL,
+  `nom_etu` varchar(50) NOT NULL,
+  `prenom_etu` varchar(100) NOT NULL,
+  `date_naiss_etu` date DEFAULT NULL,
+  `id_genre` char(1) DEFAULT NULL,
+  `email_etu` varchar(100) DEFAULT NULL,
+  `promotion_etu` varchar(30) DEFAULT NULL,
+  PRIMARY KEY (`num_carte_etud`),
+  UNIQUE KEY `uq_etudiants_num_carte` (`num_carte_etud`),
+  UNIQUE KEY `uq_etudiants_num_ident` (`num_ident_etud`),
+  KEY `genre_etu` (`id_genre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `evaluations_rapports`
+--
+
+DROP TABLE IF EXISTS `evaluations_rapports`;
+CREATE TABLE IF NOT EXISTS `evaluations_rapports` (
+  `id_evaluation` int NOT NULL AUTO_INCREMENT,
+  `id_rapport` int NOT NULL,
+  `id_evaluateur` int NOT NULL,
+  `decision_evaluation` enum('valider','rejeter') DEFAULT NULL,
+  `commentaire` text,
+  `date_evaluation` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `date_modification` datetime DEFAULT NULL,
+  PRIMARY KEY (`id_evaluation`),
+  KEY `id_evaluateur` (`id_evaluateur`),
+  KEY `id_rapport` (`id_rapport`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `evaluer`
+--
+
+DROP TABLE IF EXISTS `evaluer`;
+CREATE TABLE IF NOT EXISTS `evaluer` (
+  `num_etudiant` varchar(25) NOT NULL,
+  `num_jury` int NOT NULL,
+  `id_critere` varchar(2) NOT NULL,
+  `date_eval` date NOT NULL,
+  `note` double NOT NULL,
+  PRIMARY KEY (`num_etudiant`,`num_jury`,`id_critere`),
+  KEY `id_critere` (`id_critere`),
+  KEY `num_jury` (`num_jury`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `filiere`
+--
+
+DROP TABLE IF EXISTS `filiere`;
+CREATE TABLE IF NOT EXISTS `filiere` (
+  `id_filiere` int NOT NULL AUTO_INCREMENT,
+  `lib_filiere` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_filiere`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fonction`
+--
+
+DROP TABLE IF EXISTS `fonction`;
+CREATE TABLE IF NOT EXISTS `fonction` (
+  `id_fonction` varchar(2) NOT NULL,
+  `lib_fonction` varchar(100) NOT NULL,
+  `origine_entreprise` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`id_fonction`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fonctionnalites`
+--
+
+DROP TABLE IF EXISTS `fonctionnalites`;
+CREATE TABLE IF NOT EXISTS `fonctionnalites` (
+  `id_fonctionnalite` int NOT NULL AUTO_INCREMENT,
+  `id_categorie` int NOT NULL,
+  `code_fonctionnalite` varchar(50) NOT NULL,
+  `slug_permission` varchar(100) NOT NULL,
+  `lib_fonctionnalite` varchar(100) NOT NULL,
+  `label_fonctionnalite` varchar(150) DEFAULT NULL,
+  `description_fonctionnalite` text,
+  `url_fonctionnalite` varchar(255) NOT NULL,
+  `icone_fonctionnalite` varchar(100) DEFAULT NULL,
+  `ordre_fonctionnalite` int DEFAULT '0',
+  `est_sous_page` tinyint(1) DEFAULT '0',
+  `page_parente` varchar(50) DEFAULT NULL,
+  `actif` tinyint(1) DEFAULT '1',
+  `date_creation` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_fonctionnalite`),
+  UNIQUE KEY `code_fonctionnalite` (`code_fonctionnalite`),
+  UNIQUE KEY `uq_fonctionnalites_slug_permission` (`slug_permission`),
+  KEY `id_categorie` (`id_categorie`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `frais_inscription`
+--
+
+DROP TABLE IF EXISTS `frais_inscription`;
+CREATE TABLE IF NOT EXISTS `frais_inscription` (
+  `id_niv_etude` varchar(2) NOT NULL,
+  `id_annee_acad` int NOT NULL,
+  `montant` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`id_niv_etude`,`id_annee_acad`),
+  KEY `idx_frais_inscription_annee` (`id_annee_acad`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `genre`
+--
+
+DROP TABLE IF EXISTS `genre`;
+CREATE TABLE IF NOT EXISTS `genre` (
+  `id_genre` char(1) NOT NULL,
+  `libelle_genre` varchar(20) NOT NULL,
+  PRIMARY KEY (`id_genre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `grade`
+--
+
+DROP TABLE IF EXISTS `grade`;
+CREATE TABLE IF NOT EXISTS `grade` (
+  `id_grade` varchar(2) NOT NULL,
+  `lib_grade` varchar(50) NOT NULL,
+  PRIMARY KEY (`id_grade`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `groupe_utilisateur`
+--
+
+DROP TABLE IF EXISTS `groupe_utilisateur`;
+CREATE TABLE IF NOT EXISTS `groupe_utilisateur` (
+  `id_GU` int NOT NULL AUTO_INCREMENT,
+  `lib_GU` varchar(100) NOT NULL,
+  `id_type_utilisateur` int DEFAULT NULL,
+  PRIMARY KEY (`id_GU`),
+  KEY `idx_groupe_utilisateur_type` (`id_type_utilisateur`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `informations_stage`
+--
+
+DROP TABLE IF EXISTS `informations_stage`;
+CREATE TABLE IF NOT EXISTS `informations_stage` (
+  `id_info_stage` int NOT NULL AUTO_INCREMENT,
+  `num_etu` varchar(25) NOT NULL,
+  `id_entreprise` int NOT NULL,
+  `date_debut_stage` date NOT NULL,
+  `date_fin_stage` date NOT NULL,
+  `sujet_stage` text NOT NULL,
+  `id_maitre_stage` varchar(15) NOT NULL,
+  PRIMARY KEY (`id_info_stage`),
+  KEY `num_etu` (`num_etu`),
+  KEY `id_entreprise` (`id_entreprise`),
+  KEY `id_maitre_stage` (`id_maitre_stage`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `inscriptions`
+--
+
+DROP TABLE IF EXISTS `inscriptions`;
+CREATE TABLE IF NOT EXISTS `inscriptions` (
+  `num_carte_etud` varchar(25) NOT NULL,
+  `id_annee_acad` int NOT NULL,
+  `num_versement` int NOT NULL DEFAULT '1',
+  `date_inscription` datetime DEFAULT NULL,
+  `date_versement` datetime DEFAULT CURRENT_TIMESTAMP,
+  `id_niv_etude` varchar(2) DEFAULT NULL,
+  `montant_verser` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `methode_paiement` varchar(2) DEFAULT NULL,
+  `num_piece_mp` varchar(100) DEFAULT NULL,
+  `solde` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `fiche_inscription` varchar(255) DEFAULT NULL COMMENT 'Chemin vers le fichier de la fiche d''inscription (PDF ou image)',
+  PRIMARY KEY (`num_carte_etud`,`id_annee_acad`,`num_versement`),
+  KEY `idx_inscriptions_annee` (`id_annee_acad`),
+  KEY `idx_inscriptions_niveau` (`id_niv_etude`),
+  KEY `idx_inscriptions_mode_paiement` (`methode_paiement`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `maitre_de_stage`
+--
+
+DROP TABLE IF EXISTS `maitre_de_stage`;
+CREATE TABLE IF NOT EXISTS `maitre_de_stage` (
+  `id_maitre_stage` varchar(15) NOT NULL,
+  `Nom` varchar(50) DEFAULT NULL,
+  `prenom` varchar(100) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  `id_entreprise` int NOT NULL,
+  `id_fonction` varchar(2) DEFAULT NULL,
+  PRIMARY KEY (`id_maitre_stage`),
+  KEY `id_entreprise` (`id_entreprise`),
+  KEY `id_fonction` (`id_fonction`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `mentions`
+--
+
+DROP TABLE IF EXISTS `mentions`;
+CREATE TABLE IF NOT EXISTS `mentions` (
+  `id_mention` int NOT NULL AUTO_INCREMENT,
+  `lib_mention` varchar(100) NOT NULL,
+  `actif` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id_mention`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `messages`
+--
+
+DROP TABLE IF EXISTS `messages`;
+CREATE TABLE IF NOT EXISTS `messages` (
+  `id_message` int NOT NULL AUTO_INCREMENT,
+  `contenu_message` text NOT NULL,
+  `lib_message` varchar(60) NOT NULL,
+  `type_message` varchar(60) NOT NULL,
+  PRIMARY KEY (`id_message`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `mode_paiement`
+--
+
+DROP TABLE IF EXISTS `mode_paiement`;
+CREATE TABLE IF NOT EXISTS `mode_paiement` (
+  `id_mode_paiement` varchar(2) NOT NULL,
+  `libelle_mode_paement` varchar(25) NOT NULL,
+  PRIMARY KEY (`id_mode_paiement`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `niveau_acces_donnees`
+--
+
+DROP TABLE IF EXISTS `niveau_acces_donnees`;
+CREATE TABLE IF NOT EXISTS `niveau_acces_donnees` (
+  `id_niveau_acces_donnees` int NOT NULL AUTO_INCREMENT,
+  `lib_niveau_acces_donnees` varchar(70) NOT NULL,
+  PRIMARY KEY (`id_niveau_acces_donnees`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `niveau_approbation`
+--
+
+DROP TABLE IF EXISTS `niveau_approbation`;
+CREATE TABLE IF NOT EXISTS `niveau_approbation` (
+  `id_approb` int NOT NULL AUTO_INCREMENT,
+  `lib_approb` varchar(50) NOT NULL,
+  PRIMARY KEY (`id_approb`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `niveau_etude`
+--
+
+DROP TABLE IF EXISTS `niveau_etude`;
+CREATE TABLE IF NOT EXISTS `niveau_etude` (
+  `id_niv_etude` varchar(2) NOT NULL,
+  `lib_niv_etude` varchar(50) NOT NULL,
+  PRIMARY KEY (`id_niv_etude`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `notes`
+--
+
+DROP TABLE IF EXISTS `notes`;
+CREATE TABLE IF NOT EXISTS `notes` (
+  `num_etu` varchar(25) NOT NULL,
+  `id_annee_acad` int DEFAULT NULL,
+  `moyenne_M1` decimal(4,2) NOT NULL,
+  `moyenne_M2` decimal(4,2) NOT NULL,
+  `date_creation` datetime DEFAULT CURRENT_TIMESTAMP,
+  `date_modification` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`num_etu`),
+  KEY `notes_ibfk_1` (`num_etu`),
+  KEY `fk_notes_annee_acad` (`id_annee_acad`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `occuper`
+--
+
+DROP TABLE IF EXISTS `occuper`;
+CREATE TABLE IF NOT EXISTS `occuper` (
+  `id_fonction` varchar(2) NOT NULL,
+  `id_enseignant` varchar(20) NOT NULL,
+  `date_occupation` date NOT NULL,
+  PRIMARY KEY (`id_fonction`,`id_enseignant`),
+  KEY `id_enseignant` (`id_enseignant`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `password_resets`
+--
+
+DROP TABLE IF EXISTS `password_resets`;
+CREATE TABLE IF NOT EXISTS `password_resets` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(255) NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `used` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token` (`token`),
+  KEY `email` (`email`),
+  KEY `expires_at` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `permissions`
+--
+
+DROP TABLE IF EXISTS `permissions`;
+CREATE TABLE IF NOT EXISTS `permissions` (
+  `id_permission` int NOT NULL AUTO_INCREMENT,
+  `id_GU` int NOT NULL,
+  `id_fonctionnalite` int NOT NULL,
+  `peut_voir` tinyint(1) NOT NULL DEFAULT '0',
+  `peut_creer` tinyint(1) NOT NULL DEFAULT '0',
+  `peut_modifier` tinyint(1) NOT NULL DEFAULT '0',
+  `peut_supprimer` tinyint(1) NOT NULL DEFAULT '0',
+  `date_attribution` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_permission`),
+  UNIQUE KEY `uq_permissions_group_feature` (`id_GU`,`id_fonctionnalite`),
+  KEY `id_GU` (`id_GU`),
+  KEY `id_fonctionnalite` (`id_fonctionnalite`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `personnel_admin`
+--
+
+DROP TABLE IF EXISTS `personnel_admin`;
+CREATE TABLE IF NOT EXISTS `personnel_admin` (
+  `id_pers_admin` int NOT NULL AUTO_INCREMENT,
+  `nom_pers_admin` varchar(50) NOT NULL,
+  `prenom_pers_admin` varchar(100) NOT NULL,
+  `id_genre` char(1) DEFAULT NULL,
+  `email_pers_admin` varchar(100) NOT NULL,
+  `tel_pers_admin` varchar(20) NOT NULL,
+  `poste` varchar(60) NOT NULL,
+  `date_embauche` date NOT NULL,
+  PRIMARY KEY (`id_pers_admin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `pister`
+--
+
+DROP TABLE IF EXISTS `pister`;
+CREATE TABLE IF NOT EXISTS `pister` (
+  `id_piste` int NOT NULL AUTO_INCREMENT,
+  `id_utilisateur` int NOT NULL,
+  `action` varchar(60) NOT NULL COMMENT 'Type d''action (CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc.)',
+  `statut_action` enum('Erreur','Succès') NOT NULL,
+  `nom_table` varchar(50) DEFAULT NULL COMMENT 'Nom de la table concernee',
+  `date_creation` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_piste`),
+  KEY `idx_utilisateur` (`id_utilisateur`),
+  KEY `idx_action` (`action`),
+  KEY `idx_table` (`nom_table`),
+  KEY `idx_created_at` (`date_creation`),
+  KEY `idx_utilisateur_action` (`id_utilisateur`,`action`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `programmer_soutenance`
+--
+
+DROP TABLE IF EXISTS `programmer_soutenance`;
+CREATE TABLE IF NOT EXISTS `programmer_soutenance` (
+  `num_soutenance` varchar(20) NOT NULL,
+  `num_etud` varchar(25) NOT NULL,
+  `theme_soutenance` varchar(255) NOT NULL,
+  `id_domaine` int DEFAULT NULL,
+  `id_session` int NOT NULL,
+  `id_salle` int DEFAULT NULL,
+  `date_soutenance` date DEFAULT NULL,
+  `heure_soutenance` time DEFAULT NULL,
+  `id_annee_acad` int DEFAULT NULL,
+  PRIMARY KEY (`num_soutenance`),
+  KEY `num_etud` (`num_etud`),
+  KEY `id_salle` (`id_salle`),
+  KEY `id_domaine` (`id_domaine`),
+  KEY `id_session` (`id_session`),
+  KEY `id_annee_acad` (`id_annee_acad`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `qualite_jury`
+--
+
+DROP TABLE IF EXISTS `qualite_jury`;
+CREATE TABLE IF NOT EXISTS `qualite_jury` (
+  `id_role_jury` varchar(2) NOT NULL,
+  `lib_role` varchar(50) NOT NULL,
+  PRIMARY KEY (`id_role_jury`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `rapport_etudiants`
+--
+
+DROP TABLE IF EXISTS `rapport_etudiants`;
+CREATE TABLE IF NOT EXISTS `rapport_etudiants` (
+  `id_rapport` int NOT NULL AUTO_INCREMENT,
+  `num_etu` varchar(25) NOT NULL,
+  `date_redaction_rapport` datetime NOT NULL,
+  `theme_rapport` varchar(255) NOT NULL,
+  `nom_rapport` varchar(255) DEFAULT NULL,
+  `chemin_fichier` varchar(255) DEFAULT NULL,
+  `statut_rapport` enum('en_cours','valider','rejeter','en_attente') NOT NULL DEFAULT 'en_cours',
+  `id_candidature` int DEFAULT NULL,
+  `date_modification` datetime DEFAULT NULL,
+  `taille_fichier` int DEFAULT NULL,
+  `version` int NOT NULL DEFAULT '1',
+  PRIMARY KEY (`id_rapport`),
+  KEY `num_etu` (`num_etu`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `reclamations`
+--
+
+DROP TABLE IF EXISTS `reclamations`;
+CREATE TABLE IF NOT EXISTS `reclamations` (
+  `id_reclamation` int NOT NULL AUTO_INCREMENT,
+  `num_carte_etud` varchar(25) DEFAULT NULL,
+  `objet_reclamation` varchar(150) NOT NULL,
+  `description_reclamation` text NOT NULL,
+  `statut_reclamation` int NOT NULL,
+  `date_creation` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `date_mise_a_jour` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_reclamation`),
+  KEY `idx_num_etu` (`num_carte_etud`),
+  KEY `idx_statut` (`statut_reclamation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `rendre`
+--
+
+DROP TABLE IF EXISTS `rendre`;
+CREATE TABLE IF NOT EXISTS `rendre` (
+  `id_CR` int NOT NULL,
+  `id_enseignant` varchar(20) NOT NULL,
+  `date_env` datetime NOT NULL,
+  PRIMARY KEY (`id_CR`,`id_enseignant`),
+  KEY `Key_rendre_enseignant` (`id_enseignant`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `resume_candidature`
+--
+
+DROP TABLE IF EXISTS `resume_candidature`;
+CREATE TABLE IF NOT EXISTS `resume_candidature` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `num_etu` varchar(25) NOT NULL,
+  `id_candidature` int NOT NULL,
+  `resume_json` longtext NOT NULL,
+  `decision` varchar(20) NOT NULL,
+  `date_enregistrement` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `num_etu` (`num_etu`),
+  KEY `fk_candidature` (`id_candidature`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `route_actions`
+--
+
+DROP TABLE IF EXISTS `route_actions`;
+CREATE TABLE IF NOT EXISTS `route_actions` (
+  `id_route_action` int NOT NULL AUTO_INCREMENT,
+  `route_pattern` varchar(255) NOT NULL,
+  `http_method` enum('GET','POST','PUT','PATCH','DELETE','*') NOT NULL DEFAULT '*',
+  `action_crud` enum('voir','creer','modifier','supprimer') NOT NULL,
+  `id_fonctionnalite` int NOT NULL,
+  `is_public` tinyint(1) NOT NULL DEFAULT '0',
+  `description` text,
+  `notes_admin` text,
+  `actif` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_route_action`),
+  UNIQUE KEY `uq_route_actions_pattern_method` (`route_pattern`,`http_method`),
+  KEY `idx_route_pattern` (`route_pattern`),
+  KEY `idx_actif` (`actif`),
+  KEY `idx_route_actions_fonctionnalite` (`id_fonctionnalite`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `salles`
+--
+
+DROP TABLE IF EXISTS `salles`;
+CREATE TABLE IF NOT EXISTS `salles` (
+  `id_salle` int NOT NULL,
+  `lib_salle` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_salle`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `semestre`
+--
+
+DROP TABLE IF EXISTS `semestre`;
+CREATE TABLE IF NOT EXISTS `semestre` (
+  `id_semestre` int NOT NULL AUTO_INCREMENT,
+  `lib_semestre` varchar(15) NOT NULL,
+  `id_niv_etude` varchar(2) NOT NULL,
+  PRIMARY KEY (`id_semestre`),
+  KEY `id_niv_etude` (`id_niv_etude`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `session`
+--
+
+DROP TABLE IF EXISTS `session`;
+CREATE TABLE IF NOT EXISTS `session` (
+  `id_session` int NOT NULL,
+  `lib_session` varchar(30) NOT NULL,
+  PRIMARY KEY (`id_session`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `programmation_sessions_soutenance`
+--
+
+DROP TABLE IF EXISTS `programmation_sessions_soutenance`;
+CREATE TABLE IF NOT EXISTS `programmation_sessions_soutenance` (
+  `id_programmation` int NOT NULL AUTO_INCREMENT,
+  `id_annee_acad` int NOT NULL,
+  `num_session` tinyint NOT NULL,
+  `date_debut` date DEFAULT NULL,
+  `date_fin` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_programmation`),
+  UNIQUE KEY `uniq_annee_session` (`id_annee_acad`,`num_session`),
+  KEY `idx_programmation_sessions_annee` (`id_annee_acad`),
+  CONSTRAINT `programmation_sessions_soutenance_ibfk_1` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `specialite`
+--
+
+DROP TABLE IF EXISTS `specialite`;
+CREATE TABLE IF NOT EXISTS `specialite` (
+  `id_specialite` int NOT NULL AUTO_INCREMENT,
+  `lib_specialite` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_specialite`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `statut_jury`
+--
+
+DROP TABLE IF EXISTS `statut_jury`;
+CREATE TABLE IF NOT EXISTS `statut_jury` (
+  `id_jury` int NOT NULL AUTO_INCREMENT,
+  `lib_jury` varchar(50) NOT NULL,
+  PRIMARY KEY (`id_jury`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `statut_reclamation`
+--
+
+DROP TABLE IF EXISTS `statut_reclamation`;
+CREATE TABLE IF NOT EXISTS `statut_reclamation` (
+  `id_statut_reclamation` int NOT NULL AUTO_INCREMENT,
+  `libelle_statut_reclamation` varchar(50) NOT NULL,
+  PRIMARY KEY (`id_statut_reclamation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `type_enseignant`
+--
+
+DROP TABLE IF EXISTS `type_enseignant`;
+CREATE TABLE IF NOT EXISTS `type_enseignant` (
+  `id_type_enseignant` int NOT NULL AUTO_INCREMENT,
+  `libelle` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_type_enseignant`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `type_utilisateur`
+--
+
+DROP TABLE IF EXISTS `type_utilisateur`;
+CREATE TABLE IF NOT EXISTS `type_utilisateur` (
+  `id_type_utilisateur` int NOT NULL AUTO_INCREMENT,
+  `lib_type_utilisateur` varchar(100) NOT NULL,
+  PRIMARY KEY (`id_type_utilisateur`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `utilisateur`
+--
+
+DROP TABLE IF EXISTS `utilisateur`;
+CREATE TABLE IF NOT EXISTS `utilisateur` (
+  `id_utilisateur` int NOT NULL AUTO_INCREMENT,
+  `nom_utilisateur` varchar(200) NOT NULL,
+  `id_type_utilisateur` int NOT NULL,
+  `id_GU` int NOT NULL,
+  `id_niv_acces_donnee` int NOT NULL,
+  `statut_utilisateur` enum('Actif','Inactif') NOT NULL,
+  `login_utilisateur` varchar(60) NOT NULL,
+  `mdp_utilisateur` varchar(255) NOT NULL,
+  PRIMARY KEY (`id_utilisateur`),
+  UNIQUE KEY `login_utilisateur` (`login_utilisateur`),
+  KEY `id_groupe_utilisateur` (`id_GU`),
+  KEY `id_niv_acces_donnee` (`id_niv_acces_donnee`),
+  KEY `id_type_utilisateur` (`id_type_utilisateur`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `valider`
+--
+
+DROP TABLE IF EXISTS `valider`;
+CREATE TABLE IF NOT EXISTS `valider` (
+  `id_enseignant` varchar(20) NOT NULL,
+  `id_rapport` int NOT NULL,
+  `date_validation` datetime NOT NULL,
+  `commentaire_validation` varchar(1000) NOT NULL,
+  `decision_validation` enum('valider','rejeter') NOT NULL DEFAULT 'valider',
+  PRIMARY KEY (`id_enseignant`,`id_rapport`),
+  KEY `Key_valider_rapport` (`id_rapport`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+--
+-- Contraintes pour les tables déchargées
+--
+
+--
+-- Contraintes pour la table `affecter`
+--
+ALTER TABLE `affecter`
+  ADD CONSTRAINT `fk_affecter_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_affecter_jury` FOREIGN KEY (`id_jury`) REFERENCES `statut_jury` (`id_jury`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_affecter_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `avoir`
+--
+ALTER TABLE `avoir`
+  ADD CONSTRAINT `avoir_ibfk_1` FOREIGN KEY (`id_grade`) REFERENCES `grade` (`id_grade`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `avoir_ibfk_2` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `bareme_critere`
+--
+ALTER TABLE `bareme_critere`
+  ADD CONSTRAINT `bareme_critere_ibfk_1` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `bareme_critere_ibfk_2` FOREIGN KEY (`id_critere`) REFERENCES `critere_evaluation` (`id_critere`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `candidature_soutenance`
+--
+ALTER TABLE `candidature_soutenance`
+  ADD CONSTRAINT `candidature_soutenance_ibfk_2` FOREIGN KEY (`id_pers_admin`) REFERENCES `personnel_admin` (`id_pers_admin`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `candidature_soutenance_ibfk_3` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `compte_rendu`
+--
+ALTER TABLE `compte_rendu`
+  ADD CONSTRAINT `compte_rendu_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_compterendu_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `compte_rendu_rapport`
+--
+ALTER TABLE `compte_rendu_rapport`
+  ADD CONSTRAINT `compte_rendu_rapport_ibfk_1` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `compte_rendu_rapport_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_cr_rapport_compterendu` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_cr_rapport_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `deposer`
+--
+ALTER TABLE `deposer`
+  ADD CONSTRAINT `fk2_deposer_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_deposer_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_deposer_etudiant` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_deposer_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `documents_consultations`
+--
+ALTER TABLE `documents_consultations`
+  ADD CONSTRAINT `fk_documents_consultations_document` FOREIGN KEY (`id_document`) REFERENCES `documents` (`id_document`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `enseignants`
+--
+ALTER TABLE `enseignants`
+  ADD CONSTRAINT `enseignants_ibfk_1` FOREIGN KEY (`type_enseignant`) REFERENCES `type_enseignant` (`id_type_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `enseignants_ibfk_2` FOREIGN KEY (`id_etablissement_origin`) REFERENCES `etablissement_origine` (`id_etablissement`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_enseignant_specialite` FOREIGN KEY (`id_specialite`) REFERENCES `specialite` (`id_specialite`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_enseignant_type` FOREIGN KEY (`type_enseignant`) REFERENCES `type_enseignant` (`id_type_enseignant`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_enseignants_specialite` FOREIGN KEY (`id_specialite`) REFERENCES `specialite` (`id_specialite`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `enseignant_jury`
+--
+ALTER TABLE `enseignant_jury`
+  ADD CONSTRAINT `fk2_enseignant_jury_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_composer_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_composer_role` FOREIGN KEY (`id_qualite_jury`) REFERENCES `qualite_jury` (`id_role_jury`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_composer_soutenance` FOREIGN KEY (`num_soutenance`) REFERENCES `programmer_soutenance` (`num_soutenance`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `etudiants`
+--
+ALTER TABLE `etudiants`
+  ADD CONSTRAINT `etudiants_ibfk_1` FOREIGN KEY (`id_genre`) REFERENCES `genre` (`id_genre`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `evaluations_rapports`
+--
+ALTER TABLE `evaluations_rapports`
+  ADD CONSTRAINT `evaluations_rapports_ibfk_2` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_evaluations_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk2_evaluations_utilisateur` FOREIGN KEY (`id_evaluateur`) REFERENCES `utilisateur` (`id_utilisateur`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `evaluer`
+--
+ALTER TABLE `evaluer`
+  ADD CONSTRAINT `evaluer_ibfk_1` FOREIGN KEY (`id_critere`) REFERENCES `critere_evaluation` (`id_critere`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `evaluer_ibfk_2` FOREIGN KEY (`num_etudiant`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `fonctionnalites`
+--
+ALTER TABLE `fonctionnalites`
+  ADD CONSTRAINT `fk2_fonctionnalites_categorie` FOREIGN KEY (`id_categorie`) REFERENCES `categories_fonctionnalites` (`id_categorie`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `fonctionnalites_ibfk_1` FOREIGN KEY (`id_categorie`) REFERENCES `categories_fonctionnalites` (`id_categorie`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `frais_inscription`
+--
+ALTER TABLE `frais_inscription`
+  ADD CONSTRAINT `fk_frais_inscription_annee` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_frais_inscription_niveau` FOREIGN KEY (`id_niv_etude`) REFERENCES `niveau_etude` (`id_niv_etude`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `groupe_utilisateur`
+--
+ALTER TABLE `groupe_utilisateur`
+  ADD CONSTRAINT `fk_groupe_utilisateur_type` FOREIGN KEY (`id_type_utilisateur`) REFERENCES `type_utilisateur` (`id_type_utilisateur`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `informations_stage`
+--
+ALTER TABLE `informations_stage`
+  ADD CONSTRAINT `informations_stage_ibfk_2` FOREIGN KEY (`id_entreprise`) REFERENCES `entreprises` (`id_entreprise`),
+  ADD CONSTRAINT `informations_stage_ibfk_3` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `informations_stage_ibfk_4` FOREIGN KEY (`id_maitre_stage`) REFERENCES `maitre_de_stage` (`id_maitre_stage`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `inscriptions`
+--
+ALTER TABLE `inscriptions`
+  ADD CONSTRAINT `fk_inscriptions_annee` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_inscriptions_etudiant` FOREIGN KEY (`num_carte_etud`) REFERENCES `etudiants` (`num_ident_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_inscriptions_mode_paiement` FOREIGN KEY (`methode_paiement`) REFERENCES `mode_paiement` (`id_mode_paiement`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_inscriptions_niveau` FOREIGN KEY (`id_niv_etude`) REFERENCES `niveau_etude` (`id_niv_etude`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `maitre_de_stage`
+--
+ALTER TABLE `maitre_de_stage`
+  ADD CONSTRAINT `fk2_ms_fonction` FOREIGN KEY (`id_fonction`) REFERENCES `fonction` (`id_fonction`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `maitre_de_stage_ibfk_1` FOREIGN KEY (`id_entreprise`) REFERENCES `entreprises` (`id_entreprise`),
+  ADD CONSTRAINT `maitre_de_stage_ibfk_2` FOREIGN KEY (`id_fonction`) REFERENCES `fonction` (`id_fonction`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `notes`
+--
+ALTER TABLE `notes`
+  ADD CONSTRAINT `fk_notes_annee_acad` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `notes_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `occuper`
+--
+ALTER TABLE `occuper`
+  ADD CONSTRAINT `occuper_ibfk_1` FOREIGN KEY (`id_fonction`) REFERENCES `fonction` (`id_fonction`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `occuper_ibfk_2` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `permissions`
+--
+ALTER TABLE `permissions`
+  ADD CONSTRAINT `permissions_ibfk_1` FOREIGN KEY (`id_GU`) REFERENCES `groupe_utilisateur` (`id_GU`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `permissions_ibfk_2` FOREIGN KEY (`id_fonctionnalite`) REFERENCES `fonctionnalites` (`id_fonctionnalite`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `pister`
+--
+ALTER TABLE `pister`
+  ADD CONSTRAINT `fk_pister_utilisateur` FOREIGN KEY (`id_utilisateur`) REFERENCES `utilisateur` (`id_utilisateur`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `programmer_soutenance`
+--
+ALTER TABLE `programmer_soutenance`
+  ADD CONSTRAINT `programmer_soutenance_ibfk_1` FOREIGN KEY (`num_etud`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `programmer_soutenance_ibfk_2` FOREIGN KEY (`id_domaine`) REFERENCES `domaine` (`id_domaine`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `programmer_soutenance_ibfk_3` FOREIGN KEY (`id_session`) REFERENCES `session` (`id_session`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `programmer_soutenance_ibfk_4` FOREIGN KEY (`id_salle`) REFERENCES `salles` (`id_salle`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `programmer_soutenance_ibfk_5` FOREIGN KEY (`id_annee_acad`) REFERENCES `annee_academique` (`id_annee_acad`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `rapport_etudiants`
+--
+ALTER TABLE `rapport_etudiants`
+  ADD CONSTRAINT `rapport_etudiants_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `reclamations`
+--
+ALTER TABLE `reclamations`
+  ADD CONSTRAINT `reclamations_ibfk_1` FOREIGN KEY (`num_carte_etud`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `reclamations_ibfk_2` FOREIGN KEY (`statut_reclamation`) REFERENCES `statut_reclamation` (`id_statut_reclamation`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `rendre`
+--
+ALTER TABLE `rendre`
+  ADD CONSTRAINT `fk_rendre_cr` FOREIGN KEY (`id_CR`) REFERENCES `compte_rendu` (`id_CR`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_rendre_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `resume_candidature`
+--
+ALTER TABLE `resume_candidature`
+  ADD CONSTRAINT `resume_ibfk_1` FOREIGN KEY (`num_etu`) REFERENCES `etudiants` (`num_carte_etud`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `resume_ibfk_2` FOREIGN KEY (`id_candidature`) REFERENCES `candidature_soutenance` (`id_candidature`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `route_actions`
+--
+ALTER TABLE `route_actions`
+  ADD CONSTRAINT `fk_route_actions_fonctionnalite` FOREIGN KEY (`id_fonctionnalite`) REFERENCES `fonctionnalites` (`id_fonctionnalite`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `semestre`
+--
+ALTER TABLE `semestre`
+  ADD CONSTRAINT `fk_semestre_niveau` FOREIGN KEY (`id_niv_etude`) REFERENCES `niveau_etude` (`id_niv_etude`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `utilisateur`
+--
+ALTER TABLE `utilisateur`
+  ADD CONSTRAINT `utilisateur_ibfk_2` FOREIGN KEY (`id_GU`) REFERENCES `groupe_utilisateur` (`id_GU`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `utilisateur_ibfk_3` FOREIGN KEY (`id_niv_acces_donnee`) REFERENCES `niveau_acces_donnees` (`id_niveau_acces_donnees`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `utilisateur_ibfk_4` FOREIGN KEY (`id_type_utilisateur`) REFERENCES `type_utilisateur` (`id_type_utilisateur`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `valider`
+--
+ALTER TABLE `valider`
+  ADD CONSTRAINT `fk_valider_enseignant` FOREIGN KEY (`id_enseignant`) REFERENCES `enseignants` (`id_enseignant`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_valider_rapport` FOREIGN KEY (`id_rapport`) REFERENCES `rapport_etudiants` (`id_rapport`) ON DELETE CASCADE ON UPDATE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

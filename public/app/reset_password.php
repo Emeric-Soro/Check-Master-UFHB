@@ -74,9 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
 
                 $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://';
                 $resetLink = $scheme . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token=$token";
-                $subject = "Réinitialisation de votre mot de passe";
-                $message = "<p>Bonjour,<br>Pour réinitialiser votre mot de passe, cliquez sur le lien ci-dessous :<br><a href='$resetLink'>$resetLink</a><br>Ce lien expirera dans 1 heure.</p>";
-                $emailService->sendEmail($email, $subject, $message, true);
+                $emailService->sendTemplate('PASSWORD_RESET', $email, ['reset_link' => $resetLink]);
             }
         }
     }
@@ -168,7 +166,7 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
     <link rel="stylesheet" href="../assets/css/components.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="shortcut icon" href="../image/logo_cm_sbg.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/vendor/font-awesome/css/all.min.css">
 </head>
 
 <body class="cm-login-page">

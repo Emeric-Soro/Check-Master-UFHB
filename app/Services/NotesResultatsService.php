@@ -171,7 +171,7 @@ class NotesResultatsService
         require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
         $pdfGen = new \App\Services\Document\PdfGeneratorService(
             __DIR__ . '/../../storage',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
         $pdf = $pdfGen->createDocument('P', 'A4', 'Relevé de notes');
         $pdf->AddPage();

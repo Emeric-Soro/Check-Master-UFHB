@@ -126,6 +126,15 @@ final class AuthorizationService
         }
 
         if (!is_int($featureId) || $featureId <= 0) {
+            $identifier = (string) ($resolved['slug_permission'] ?? '');
+            if ($identifier === '') {
+                $identifier = isset($get['page']) && is_string($get['page']) ? (string) $get['page'] : '';
+            }
+
+            if ($identifier !== '') {
+                return $this->checkFeaturePermission($groupId, $identifier, (string) $resolved['action']);
+            }
+
             error_log(sprintf(
                 '[AuthorizationService] canAccessLegacyRequest denied: group=%d method=%s page=%s action=%s reason=%s pattern=%s slug=%s',
                 $groupId,
@@ -169,11 +178,23 @@ final class AuthorizationService
             }
         }
 
-        if ($feature === null || !isset($feature->id_fonctionnalite)) {
+        if ($feature === null) {
             return false;
         }
 
-        return $this->checkPermissionByFeatureId($groupId, (int) $feature->id_fonctionnalite, $action);
+        if (isset($feature->id_fonctionnalite) && (int) $feature->id_fonctionnalite > 0) {
+            return $this->checkPermissionByFeatureId($groupId, (int) $feature->id_fonctionnalite, $action);
+        }
+
+        $slug = '';
+        if (isset($feature->slug_permission) && is_string($feature->slug_permission)) {
+            $slug = $feature->slug_permission;
+        }
+        if ($slug === '' && $identifier !== null) {
+            $slug = $identifier;
+        }
+
+        return $slug !== '' && $this->checkPermissionBySlugOrRegistry($groupId, $slug, $action);
     }
 
     private function findFeature(string $identifier): ?object
@@ -195,6 +216,16 @@ final class AuthorizationService
         $feature = $model->getFonctionnaliteByIdentifier($canonical);
         if (!$feature && $canonical !== $identifier) {
             $feature = $model->getFonctionnaliteByIdentifier($identifier);
+        }
+
+        if (!$feature) {
+            $staticFeature = PermissionRegistry::findFeatureByIdentifier($canonical);
+            if ($staticFeature === [] && $canonical !== $identifier) {
+                $staticFeature = PermissionRegistry::findFeatureByIdentifier($identifier);
+            }
+            if ($staticFeature !== []) {
+                $feature = $this->staticFeatureAsObject($staticFeature);
+            }
         }
 
         self::$featureCache[$cacheKey] = $feature ?: null;
@@ -232,9 +263,93 @@ final class AuthorizationService
 
         $permission = self::$permissionCache[$cacheKey];
         if ($permission === null) {
+            $feature = $this->findFeatureById($featureId);
+            $slug = '';
+            if ($feature !== null && isset($feature->slug_permission) && is_string($feature->slug_permission)) {
+                $slug = $feature->slug_permission;
+            }
+
+            return $slug !== '' && $this->checkStaticPermission($groupId, $slug, $action);
+        }
+
+        return $this->permissionAllows($permission, $action);
+    }
+
+    private function checkPermissionBySlugOrRegistry(int $groupId, string $identifier, string $action): bool
+    {
+        $slug = PermissionRegistry::canonicalSlug($identifier);
+        if ($slug === '') {
             return false;
         }
 
+        $cacheKey = 'slug:' . $groupId . ':' . strtolower($slug);
+        if (!array_key_exists($cacheKey, self::$permissionCache)) {
+            require_once __DIR__ . '/../models/Permission.php';
+            $permissionModel = new \Permission($this->pdo);
+            $permission = $permissionModel->getPermissionsBySlug($groupId, $slug);
+            self::$permissionCache[$cacheKey] = $permission ?: null;
+        }
+
+        $permission = self::$permissionCache[$cacheKey];
+        if ($permission !== null) {
+            return $this->permissionAllows($permission, $action);
+        }
+
+        return $this->checkStaticPermission($groupId, $slug, $action);
+    }
+
+    private function checkStaticPermission(int $groupId, string $identifier, string $action): bool
+    {
+        $feature = PermissionRegistry::findFeatureByIdentifier($identifier);
+        if ($feature === []) {
+            return false;
+        }
+
+        $permissions = $this->resolveStaticPermissions($feature);
+        $caps = $permissions[$groupId] ?? null;
+        if (!is_array($caps)) {
+            return false;
+        }
+
+        return (bool) ($caps[$action] ?? false);
+    }
+
+    /**
+     * @param array<string,mixed> $feature
+     * @return array<int,array<string,bool>>
+     */
+    private function resolveStaticPermissions(array $feature): array
+    {
+        $permissions = $feature['permissions'] ?? [];
+        if (is_array($permissions) && $permissions !== []) {
+            return $permissions;
+        }
+
+        $categoryCode = (string) ($feature['category_code'] ?? '');
+        if ($categoryCode === '') {
+            return [];
+        }
+
+        return PermissionRegistry::categoryDefaults()[$categoryCode] ?? [];
+    }
+
+    /**
+     * @param array<string,mixed> $feature
+     */
+    private function staticFeatureAsObject(array $feature): object
+    {
+        return (object) [
+            'id_fonctionnalite' => isset($feature['id_fonctionnalite']) ? (int) $feature['id_fonctionnalite'] : null,
+            'slug_permission' => (string) ($feature['slug'] ?? ''),
+            'code_fonctionnalite' => (string) ($feature['code'] ?? ''),
+            'lib_fonctionnalite' => (string) ($feature['label'] ?? ''),
+            'url_fonctionnalite' => (string) ($feature['menu_url'] ?? ''),
+            'category_code' => (string) ($feature['category_code'] ?? ''),
+        ];
+    }
+
+    private function permissionAllows(object $permission, string $action): bool
+    {
         switch ($action) {
             case 'creer':
                 return (bool) ($permission->peut_creer ?? false);

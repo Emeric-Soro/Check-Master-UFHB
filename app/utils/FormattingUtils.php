@@ -81,4 +81,37 @@ class FormattingUtils {
     public static function formatPercentage($value, $decimals = 1) {
         return number_format(floatval($value), $decimals) . '%';
     }
+
+    /**
+     * Format a promotion value
+     * Converts compressed format like "22322" or "2022" to "2022-2023"
+     * 
+     * @param string|null $promotion The promotion string to format
+     * @return string Formatted promotion (e.g., "2022-2023")
+     */
+    public static function formatPromotion($promotion) {
+        $promotion = trim((string)$promotion);
+        if ($promotion === '') {
+            return '';
+        }
+
+        // Cas "2022-2023" déjà bien formaté
+        if (preg_match('/^[0-9]{4}-[0-9]{4}$/', $promotion)) {
+            return $promotion;
+        }
+
+        // Cas "2022" -> "2022-2023"
+        if (preg_match('/^[0-9]{4}$/', $promotion)) {
+            return $promotion . '-' . ((int)$promotion + 1);
+        }
+
+        // Cas "22322" -> "2022-2023" (Format compressé: 2 Y2 Y1)
+        // EvaluationSoutenanceService line 255: CONCAT('20', RIGHT(P, 2), '-', '20', SUBSTRING(P, 2, 2))
+        if (preg_match('/^2([0-9]{2})([0-9]{2})$/', $promotion, $matches)) {
+            // matches[1] = Y2, matches[2] = Y1
+            return '20' . $matches[2] . '-20' . $matches[1];
+        }
+
+        return $promotion;
+    }
 }

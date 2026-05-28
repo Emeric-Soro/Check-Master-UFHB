@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
+
+use App\Services\Document\DocumentStorageService;
 use App\Support\Database;
 use PDO;
 
@@ -15,6 +18,9 @@ use PDO;
  */
 class RecuDataUtils
 {
+    /** @var array<string, bool> */
+    private array $tableExistsCache = [];
+
     public function __construct(private readonly Database $db)
     {
     }
@@ -76,13 +82,18 @@ class RecuDataUtils
                     ELSE 'scolarite'
                 END AS type_versement,
                 CASE LOWER(COALESCE(i.methode_paiement, ''))
+                    WHEN 'es' THEN 'especes'
                     WHEN 'espèce' THEN 'especes'
                     WHEN 'espèces' THEN 'especes'
                     WHEN 'espece' THEN 'especes'
                     WHEN 'especes' THEN 'especes'
+                    WHEN 'ch' THEN 'cheque'
                     WHEN 'chèque' THEN 'cheque'
                     WHEN 'cheque' THEN 'cheque'
+                    WHEN 'cb' THEN 'carte'
                     WHEN 'carte bancaire' THEN 'carte'
+                    WHEN 'vr' THEN 'virement'
+                    WHEN 'vi' THEN 'virement'
                     WHEN 'virement' THEN 'virement'
                     ELSE LOWER(COALESCE(i.methode_paiement, ''))
                 END AS methode_paiement,
@@ -117,6 +128,7 @@ class RecuDataUtils
                 i.num_carte_etud,
                 i.id_annee_acad,
                 i.num_versement,
+                i.date_inscription,
                 i.solde AS reste_a_payer,
                 (
                     SELECT COALESCE(SUM(i2.montant_verser), 0)
@@ -124,12 +136,15 @@ class RecuDataUtils
                     WHERE i2.num_carte_etud = i.num_carte_etud
                       AND i2.id_annee_acad = i.id_annee_acad
                 ) AS montant_paye,
+                COALESCE(f.montant, 0) AS montant_total,
                 CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS libelle_annee,
                 COALESCE(n.lib_niv_etude, '') AS code_niveau,
                 COALESCE(n.lib_niv_etude, '') AS code_filiere
              FROM inscriptions i
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
              LEFT JOIN niveau_etude n ON n.id_niv_etude = i.id_niv_etude
+             LEFT JOIN frais_inscription f ON f.id_annee_acad = i.id_annee_acad
+                AND f.id_niv_etude = i.id_niv_etude
              WHERE i.num_carte_etud = :num_carte_etud
                AND i.id_annee_acad = :id_annee_acad
                AND i.num_versement = :num_versement
@@ -151,6 +166,8 @@ class RecuDataUtils
         $stmt = $this->db->pdo()->prepare(
             'SELECT
                 e.num_carte_etud,
+                e.num_ident_etud,
+                COALESCE(e.num_ident_etud, e.num_carte_etud) AS display_id,
                 e.nom_etu AS nom_etudiant,
                 e.prenom_etu AS prenom_etudiant,
                 e.email_etu AS email_etudiant
@@ -191,20 +208,56 @@ class RecuDataUtils
     }
 
     /**
-     * Enregistrement factice pour compatibilité.
+     * Persiste un document généré si la table optionnelle `document_genere` existe.
      *
      * @param array<string, mixed> $data
      */
     public function saveDocumentRecord(array $data): int
     {
-        error_log(sprintf(
-            '[RecuDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
-            (string) ($data['reference_document'] ?? '?'),
-            (string) ($data['type_document'] ?? '?'),
-            (string) ($data['chemin_fichier'] ?? '?')
-        ));
+        $storageDocumentId = $this->persistBinaryDocument($data);
 
-        return 0;
+        if (!$this->tableExists('document_genere')) {
+            error_log(sprintf(
+                '[RecuDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
+                (string) ($data['reference_document'] ?? '?'),
+                (string) ($data['type_document'] ?? '?'),
+                (string) ($data['chemin_fichier'] ?? '?')
+            ));
+
+            return $storageDocumentId;
+        }
+
+        $stmt = $this->db->pdo()->prepare(
+            'INSERT INTO document_genere (
+                reference,
+                type_document,
+                id_utilisateur,
+                id_source,
+                chemin_fichier,
+                nom_fichier,
+                taille_fichier
+             ) VALUES (
+                :reference,
+                :type_document,
+                :id_utilisateur,
+                :id_source,
+                :chemin_fichier,
+                :nom_fichier,
+                :taille_fichier
+             )'
+        );
+
+        $stmt->execute([
+            'reference' => (string) ($data['reference_document'] ?? ''),
+            'type_document' => (string) ($data['type_document'] ?? ''),
+            'id_utilisateur' => max(0, (int) ($data['id_utilisateur_generation'] ?? 0)),
+            'id_source' => isset($data['id_source']) ? (string) $data['id_source'] : null,
+            'chemin_fichier' => (string) ($data['chemin_fichier'] ?? ''),
+            'nom_fichier' => (string) ($data['nom_fichier'] ?? basename((string) ($data['chemin_fichier'] ?? 'document.pdf'))),
+            'taille_fichier' => isset($data['taille_fichier']) ? (int) $data['taille_fichier'] : 0,
+        ]);
+
+        return (int) $this->db->pdo()->lastInsertId();
     }
 
     /**
@@ -215,5 +268,50 @@ class RecuDataUtils
         require_once __DIR__ . '/ReceiptUtils.php';
 
         return \ReceiptUtils::numberToWords($number);
+    }
+
+    private function tableExists(string $table): bool
+    {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
+        try {
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = :table_name'
+            );
+            $stmt->execute(['table_name' => $table]);
+            $exists = (int) $stmt->fetchColumn() > 0;
+            $this->tableExistsCache[$table] = $exists;
+            return $exists;
+        } catch (\Throwable) {
+            $this->tableExistsCache[$table] = false;
+            return false;
+        }
+    }
+
+    private function persistBinaryDocument(array $data): int
+    {
+        $path = trim((string) ($data['chemin_fichier'] ?? ''));
+        if ($path === '') {
+            return 0;
+        }
+
+        $storage = new DocumentStorageService($this->db->pdo(), dirname(__DIR__, 2));
+        $document = $storage->storeFileFromPath(
+            'recu',
+            $path,
+            'inscriptions',
+            isset($data['id_source']) ? (string) $data['id_source'] : null,
+            max(0, (int) ($data['id_utilisateur_generation'] ?? 0)),
+            (string) ($data['reference_document'] ?? ''),
+            null,
+            true
+        );
+
+        return is_array($document) ? (int) ($document['id_document'] ?? 0) : 0;
     }
 }

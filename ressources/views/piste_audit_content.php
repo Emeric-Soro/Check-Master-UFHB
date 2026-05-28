@@ -27,7 +27,7 @@ foreach ($actions as $action) {
 $tableOptions = [];
 $statutOptions = [];
 foreach ($auditLog as $log) {
-    $table = trim((string) ($log['nom_table'] ?? ''));
+    $table = trim((string) ($log['contexte'] ?? $log['nom_table'] ?? ''));
     $statut = trim((string) ($log['statut_action'] ?? ''));
     if ($table !== '') {
         $tableOptions[$table] = $table;
@@ -42,7 +42,7 @@ ksort($statutOptions);
 $tableFilterOptions = ['' => '-- Toutes --'];
 foreach ($tableOptions as $tableValue) {
     $tableFilterOptions[$tableValue] = function_exists('cm_audit_humanize_context')
-        ? cm_audit_humanize_context(['nom_table' => $tableValue])
+        ? cm_audit_humanize_context(['contexte' => $tableValue])
         : $tableValue;
 }
 
@@ -76,7 +76,7 @@ foreach ($auditLog as $log) {
             : (string) ($log['action'] ?? '-'),
         'contexte' => function_exists('cm_audit_humanize_context')
             ? cm_audit_humanize_context($log)
-            : (string) ($log['nom_table'] ?? '-'),
+            : (string) ($log['contexte'] ?? $log['nom_table'] ?? '-'),
         'utilisateur' => $utilisateurLabel,
         'statut_action' => ['label' => $statut === '' ? '-' : $statut, 'type' => $badgeType],
     ];
@@ -106,10 +106,10 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
 ?>
 <section class="cm-prd3-crud-screen cm-prd6-admin-screen">
     <?php if (!empty($_GET['success']) && $_GET['success'] === 'cleanup'): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Nettoyage termine: ' . (int) ($_GET['deleted'] ?? 0) . ' ligne(s) supprimee(s).']); ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Nettoyage terminé: ' . (int) ($_GET['deleted'] ?? 0) . ' ligne(s) supprimée(s).']); ?>
     <?php endif; ?>
     <?php if (!empty($_GET['success']) && $_GET['success'] === 'log_deleted'): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Log supprime avec succes.']); ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => 'Log supprimé avec succès.']); ?>
     <?php endif; ?>
     <?php if (!empty($_GET['error'])): ?>
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => 'Une erreur est survenue: ' . htmlspecialchars((string) $_GET['error'], ENT_QUOTES, 'UTF-8')]); ?>
@@ -222,33 +222,42 @@ $exportUrl = '?page=piste_audit&action=export&' . http_build_query(array_filter(
                     'label' => 'Exporter CSV',
                     'class' => 'cm-btn is-info is-sm',
                 ],
+                [
+                    'tag' => 'a',
+                    'href' => str_replace('action=export', 'action=export_pdf', $exportUrl),
+                    'label' => 'Exporter PDF',
+                    'class' => 'cm-btn is-danger is-sm',
+                ],
                 (function_exists('canDelete') ? canDelete() : true) ? [
                     'tag' => 'button',
                     'type' => 'button',
                     'label' => 'Nettoyer',
                     'class' => 'cm-btn is-danger is-sm',
                     'attrs' => [
-                        'onclick' => "if(confirm('Confirmer le nettoyage des logs ?')) document.getElementById('cmAuditCleanupForm').submit();"
+                        'onclick' => "event.preventDefault(); window.CM.confirm('Confirmer le nettoyage des logs ?').then(c => { if(c) document.getElementById('cmAuditCleanupForm').submit(); });"
                     ],
                 ] : null,
             ])),
         ]); ?>
         <?php if (function_exists('canDelete') ? canDelete() : true): ?>
-            <form id="cmAuditCleanupForm" method="POST" action="?page=piste_audit&action=cleanup" class="cm-hidden" data-cm-ajax-form="true">
+            <form id="cmAuditCleanupForm" method="POST" action="?page=piste_audit&action=cleanup" class="cm-hidden">
                 <?php cm_component('form/csrf-token'); ?>
-                <script>
-                    document.getElementById('cmAuditCleanupForm').addEventListener('submit', function(e) {
-                        const daysInput = document.querySelector('input[name="days"]');
-                        if (daysInput) {
-                            const hiddenDays = document.createElement('input');
-                            hiddenDays.type = 'hidden';
-                            hiddenDays.name = 'days';
-                            hiddenDays.value = daysInput.value;
-                            this.appendChild(hiddenDays);
-                        }
-                    });
-                </script>
+                <input type="hidden" name="days" id="cmCleanupDays" value="30">
             </form>
+            <script>
+            (function() {
+                var visibleDays = document.querySelector('input[name="days"]');
+                var hiddenDays = document.getElementById('cmCleanupDays');
+                if (visibleDays && hiddenDays) {
+                    visibleDays.addEventListener('change', function() {
+                        hiddenDays.value = this.value;
+                    });
+                    visibleDays.addEventListener('input', function() {
+                        hiddenDays.value = this.value;
+                    });
+                }
+            })();
+            </script>
         <?php endif; ?>
 
         <div class="cm-pole-inferieur">

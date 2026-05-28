@@ -17,6 +17,12 @@ class RedactionCompteRenduController {
         $data = $this->service->getIndexData();
         $GLOBALS['rapports_valides'] = $data['rapports_valides'];
         $GLOBALS['enseignants']      = $data['enseignants'];
+        $GLOBALS['editing_compte_rendu'] = null;
+
+        $idCR = isset($_GET['id_CR']) ? (int) $_GET['id_CR'] : 0;
+        if ($idCR > 0) {
+            $GLOBALS['editing_compte_rendu'] = $this->service->getEditableCompteRenduData($idCR);
+        }
         // Ne pas inclure la vue ici, le layout s'en charge
     }
 
@@ -31,17 +37,42 @@ class RedactionCompteRenduController {
                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                     exit;
                 }
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 header('Location: layout.php?page=access_denied');
                 exit;
             }
+            $reportsPayload = $this->decodeReportsPayload($_POST['cm_reports_payload'] ?? '');
+            $rapportIds = isset($_POST['rapports']) ? (array) $_POST['rapports'] : [];
+            $encadrants = is_array($_POST['encadrant_pedagogique'] ?? null) ? $_POST['encadrant_pedagogique'] : [];
+            $directeurs = is_array($_POST['directeur_memoire'] ?? null) ? $_POST['directeur_memoire'] : [];
+            $numEtu = $_POST['num_etu'] ?? null;
+
+            foreach ($reportsPayload as $payloadRow) {
+                $idRapport = (int) ($payloadRow['id_rapport'] ?? 0);
+                if ($idRapport <= 0) {
+                    continue;
+                }
+                $rapportIds[] = $idRapport;
+                if (!isset($encadrants[$idRapport]) && isset($payloadRow['encadrant'])) {
+                    $encadrants[$idRapport] = (string) $payloadRow['encadrant'];
+                }
+                if (!isset($directeurs[$idRapport]) && isset($payloadRow['directeur'])) {
+                    $directeurs[$idRapport] = (string) $payloadRow['directeur'];
+                }
+                if ((empty($numEtu) || trim((string) $numEtu) === '') && !empty($payloadRow['num_etu'])) {
+                    $numEtu = (string) $payloadRow['num_etu'];
+                }
+            }
+
             $result = $this->service->enregistrer([
-                'num_etu'               => $_POST['num_etu'] ?? null,
+                'id_CR_edit'            => $_POST['id_CR_edit'] ?? null,
+                'num_etu'               => $numEtu,
                 'nom_CR'                => $_POST['nom_CR'] ?? '',
                 'contenu_CR'            => $_POST['contenu_CR'] ?? '',
-                'rapports'              => isset($_POST['rapports']) ? $_POST['rapports'] : [],
-                'encadrant_pedagogique' => $_POST['encadrant_pedagogique'] ?? [],
-                'directeur_memoire'     => $_POST['directeur_memoire'] ?? [],
+                'rapports'              => $rapportIds,
+                'encadrant_pedagogique' => $encadrants,
+                'directeur_memoire'     => $directeurs,
+                'submit_action'         => $_POST['submit_action'] ?? 'save',
             ]);
 
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
@@ -53,17 +84,20 @@ class RedactionCompteRenduController {
                 $_SESSION['error'] = (string) ($result['message'] ?? '');
             }
 
+            $redirectId = (int) ($result['id_CR'] ?? ($_POST['id_CR_edit'] ?? 0));
+            $redirect = '?page=redaction_compte_rendu' . ($redirectId > 0 ? '&id_CR=' . $redirectId : '');
+
             if ($isAjax) {
                 header('Content-Type: application/json; charset=UTF-8');
                 echo json_encode([
                     'success' => (bool) ($result['success'] ?? false),
                     'message' => (string) ($result['message'] ?? ''),
-                    'redirect' => '?page=redaction_compte_rendu',
+                    'redirect' => $redirect,
                 ]);
                 exit;
             }
 
-            header('Location: layout.php?page=redaction_compte_rendu');
+            header('Location: layout.php?page=redaction_compte_rendu' . ($redirectId > 0 ? '&id_CR=' . $redirectId : ''));
             exit;
         }
     }
@@ -90,5 +124,24 @@ class RedactionCompteRenduController {
             echo '<p><a href="javascript:history.back()">Retour</a></p>';
             exit;
         }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function decodeReportsPayload($rawPayload): array
+    {
+        if (!is_string($rawPayload) || trim($rawPayload) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($rawPayload, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter($decoded, static function ($row): bool {
+            return is_array($row) && (int) ($row['id_rapport'] ?? 0) > 0;
+        }));
     }
 }

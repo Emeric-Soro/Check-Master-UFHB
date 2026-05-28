@@ -13,19 +13,29 @@ $action = $_GET['action'] ?? '';
 // Router les actions
 switch ($action) {
     case 'evaluerSoutenance':
-        $controller->enregistrerEvaluation();
-        break;
+        $result = $controller->enregistrerEvaluation();
+        header('Content-Type: application/json; charset=UTF-8');
+        if (empty($result['success'])) {
+            http_response_code(400);
+        }
+        echo json_encode($result);
+        exit;
 
     case 'supprimerEvaluation':
-        $controller->supprimerEvaluation();
-        break;
+        $result = $controller->supprimerEvaluation();
+        header('Content-Type: application/json; charset=UTF-8');
+        if (empty($result['success'])) {
+            http_response_code(400);
+        }
+        echo json_encode($result);
+        exit;
 
     case 'getEvaluationExistante':
         $numEtu = $_GET['num_etu'] ?? '';
         if ($numEtu) {
             $evaluation = $controller->getEvaluationExistante($numEtu);
             header('Content-Type: application/json');
-            echo json_encode($evaluation ?: []);
+            echo json_encode($evaluation ?: ['rows' => []]);
             exit;
         }
         break;

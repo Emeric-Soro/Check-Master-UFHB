@@ -25,7 +25,9 @@ if ($hasAnneeFilterParam) {
     $filtreAnnee = \AcademicYear::getSelectedIdFromSession();
 }
 $filtreSession = isset($_GET['id_session']) && $_GET['id_session'] !== '' ? (int) $_GET['id_session'] : null;
-$filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== '' ? (int) $_GET['id_qualite_jury'] : null;
+$filtreQualiteJury = isset($_GET['id_qualite_jury']) && $_GET['id_qualite_jury'] !== ''
+    ? (string) $_GET['id_qualite_jury']
+    : null;
 $enseignantSelectionne = isset($_GET['id_enseignant_selected']) && $_GET['id_enseignant_selected'] !== '' ? (string) $_GET['id_enseignant_selected'] : null;
 
 $anneeOptions = [];
@@ -134,6 +136,7 @@ try {
         $juryTable = $pdo->query("SHOW TABLES LIKE 'enseignant_jury'")->fetchColumn() ? 'enseignant_jury' : 'composer_jury';
         $rolesTable = $pdo->query("SHOW TABLES LIKE 'qualite_jury'")->fetchColumn() ? 'qualite_jury' : 'roles_jury';
         $progTable = $pdo->query("SHOW TABLES LIKE 'programmer_soutenance'")->fetchColumn() ? 'programmer_soutenance' : 'programmer';
+        $rolesHasCode = (bool) $pdo->query("SHOW COLUMNS FROM {$rolesTable} LIKE 'code_qltjury'")->fetchColumn();
 
         $whereConditions = ["CAST(ej.id_enseignant AS CHAR) = :id_enseignant"];
         $params = [':id_enseignant' => $teacherId];
@@ -165,7 +168,7 @@ try {
                                 COUNT(DISTINCT ps.num_soutenance) AS total
                             FROM {$juryTable} ej
                             JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
-                            JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                            JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                             WHERE CAST(ej.id_enseignant AS CHAR) = :id_enseignant
                             " . ($filtreAnnee !== null ? "AND " . $inscriptionYearExistsFor('e.num_carte_etud') : "") . "
                             " . ($filtreSession !== null ? "AND ps.id_session = :id_session" : "") . "
@@ -252,7 +255,7 @@ try {
                             MAX(ps.heure_soutenance) AS heure_soutenance
                         FROM {$juryTable} ej_main
                         JOIN {$progTable} ps ON ps.num_soutenance = ej_main.num_soutenance
-                        JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                        JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                         WHERE {$whereEtudiantsClause}
                         GROUP BY ps.num_soutenance, e.num_carte_etud, e.nom_etu, e.prenom_etu
                         ORDER BY MAX(ps.date_soutenance) DESC, MAX(ps.heure_soutenance) DESC, e.nom_etu, e.prenom_etu";
@@ -284,11 +287,11 @@ try {
                             CONCAT(e.nom_etu, ' ', e.prenom_etu) AS nom_complet_etudiant,
                             ps.theme_soutenance,
                             qj.lib_role,
-                            qj.code_qltjury,
+                            " . ($rolesHasCode ? "qj.code_qltjury" : "qj.id_role_jury AS code_qltjury") . ",
                             s.lib_salle AS nom_salle
                         FROM {$juryTable} ej
                         JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance
-                        JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                        JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                         JOIN {$rolesTable} qj ON qj.id_role_jury = ej.id_qualite_jury
                         LEFT JOIN salles s ON s.id_salle = ps.id_salle
                         WHERE {$whereSoutenancesClause}
@@ -355,7 +358,7 @@ try {
         $stmtReports->execute($filtreAnnee !== null ? [':id_enseignant' => $teacherId, ':id_annee_acad' => $filtreAnnee] : [':id_enseignant' => $teacherId]);
         $stats['rapports_a_evaluer'] = (int) ($stmtReports->fetchColumn() ?: 0);
 
-        $stmtSoutenances = $pdo->prepare("SELECT COUNT(DISTINCT ej.num_soutenance) AS total FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE {$whereSoutenances}");
+        $stmtSoutenances = $pdo->prepare("SELECT COUNT(DISTINCT ej.num_soutenance) AS total FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud) WHERE {$whereSoutenances}");
         $paramsSoutenances = [':id_enseignant' => $teacherId];
         if ($filtreAnnee !== null) $paramsSoutenances[':id_annee_acad'] = $filtreAnnee;
         if ($filtreSession !== null) $paramsSoutenances[':id_session'] = $filtreSession;
@@ -379,7 +382,7 @@ try {
             $whereNext[] = "ps.id_session = :id_session";
             $paramsNext[':id_session'] = $filtreSession;
         }
-        $stmtNext = $pdo->prepare("SELECT ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE " . implode(' AND ', $whereNext) . " ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC LIMIT 1");
+        $stmtNext = $pdo->prepare("SELECT ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud) WHERE " . implode(' AND ', $whereNext) . " ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC LIMIT 1");
         $stmtNext->execute($paramsNext);
         $next = $stmtNext->fetch(PDO::FETCH_ASSOC);
         if (is_array($next) && !empty($next['date_soutenance'])) {
@@ -406,7 +409,7 @@ try {
                 'ts' => $stamp,
                 'type' => 'info',
                 'icon' => 'fa-file-lines',
-                'text' => 'Rapport recu: ' . (string) ($row['theme_rapport'] ?? 'Sans theme'),
+                'text' => 'Rapport reçu: ' . (string) ($row['theme_rapport'] ?? 'Sans thème'),
                 'time' => $rawDate !== '' ? date('d/m/Y H:i', $stamp) : '',
             ];
         }
@@ -421,7 +424,7 @@ try {
             $whereRecentSout[] = "ps.id_session = :id_session";
             $paramsRecentSout[':id_session'] = $filtreSession;
         }
-        $stmtRecentSout = $pdo->prepare("SELECT ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud WHERE " . implode(' AND ', $whereRecentSout) . " ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC LIMIT 5");
+        $stmtRecentSout = $pdo->prepare("SELECT ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance FROM {$juryTable} ej INNER JOIN {$progTable} ps ON ps.num_soutenance = ej.num_soutenance INNER JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud) WHERE " . implode(' AND ', $whereRecentSout) . " ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC LIMIT 5");
         $stmtRecentSout->execute($paramsRecentSout);
         foreach (($stmtRecentSout->fetchAll(PDO::FETCH_ASSOC) ?: []) as $row) {
             $rawDate = trim((string) ($row['date_soutenance'] ?? '') . ' ' . (string) ($row['heure_soutenance'] ?? '00:00:00'));
@@ -430,7 +433,7 @@ try {
                 'ts' => $stamp,
                 'type' => 'success',
                 'icon' => 'fa-calendar-check',
-                'text' => 'Soutenance programmee: ' . (string) ($row['theme_soutenance'] ?? 'Sans theme'),
+                'text' => 'Soutenance programmée: ' . (string) ($row['theme_soutenance'] ?? 'Sans thème'),
                 'time' => !empty($row['date_soutenance']) ? date('d/m/Y H:i', $stamp) : '',
             ];
         }
@@ -457,20 +460,20 @@ if ((int) $stats['etudiants_encadres'] === 0) {
 
 // Mapping des icones et couleurs pour les qualites de jury
 $roleIcons = [
-    'President' => ['icon' => 'fa-gavel', 'color' => 'primary'],
-    'Directeur memoire' => ['icon' => 'fa-user-tie', 'color' => 'info'],
+    'Président' => ['icon' => 'fa-gavel', 'color' => 'primary'],
+    'Directeur mémoire' => ['icon' => 'fa-user-tie', 'color' => 'info'],
     'Examinateur' => ['icon' => 'fa-search', 'color' => 'warning'],
     'Encadrant' => ['icon' => 'fa-chalkboard-teacher', 'color' => 'success'],
-    'Maitre de stage' => ['icon' => 'fa-building', 'color' => 'danger'],
+    'Maître de stage' => ['icon' => 'fa-building', 'color' => 'danger'],
 ];
 
 function normalizeRoleName(string $role): string {
     $normalized = strtolower(trim($role));
-    if (strpos($normalized, 'president') !== false) return 'President';
-    if (strpos($normalized, 'directeur') !== false) return 'Directeur memoire';
+    if (strpos($normalized, 'president') !== false) return 'Président';
+    if (strpos($normalized, 'directeur') !== false) return 'Directeur mémoire';
     if (strpos($normalized, 'examina') !== false) return 'Examinateur';
     if (strpos($normalized, 'encadr') !== false) return 'Encadrant';
-    if (strpos($normalized, 'maitre') !== false || strpos($normalized, 'stage') !== false) return 'Maitre de stage';
+    if (strpos($normalized, 'maitre') !== false || strpos($normalized, 'stage') !== false) return 'Maître de stage';
     return $role;
 }
 ?>
@@ -589,12 +592,20 @@ function normalizeRoleName(string $role): string {
                         $icon = $roleIcons[$roleKey]['icon'] ?? 'fa-user';
                         $color = $roleIcons[$roleKey]['color'] ?? 'info';
                     ?>
-                        <?php cm_component('dashboard/stat-widget', [
+                        <?php 
+                        $widgetUrl = '?page=tableau_bord_enseignant&id_qualite_jury=' . urlencode((string)($qualite['id_role_jury'] ?? ''));
+                        if ($filtreAnnee !== null) $widgetUrl .= '&id_annee_acad=' . urlencode((string)$filtreAnnee);
+                        if ($filtreSession !== null) $widgetUrl .= '&id_session=' . urlencode((string)$filtreSession);
+                        if ($isAdmin && $enseignantSelectionne !== null) $widgetUrl .= '&id_enseignant_selected=' . urlencode((string)$enseignantSelectionne);
+
+                        cm_component('dashboard/stat-widget', [
                             'value' => number_format((int) ($qualite['total'] ?? 0), 0, ',', ' '),
                             'label' => htmlspecialchars($qualite['lib_role'] ?? '', ENT_QUOTES, 'UTF-8'),
                             'subtitle' => 'soutenance(s)',
                             'icon' => $icon,
-                            'color' => $color
+                            'color' => $color,
+                            'url' => $widgetUrl,
+                            'ajax' => true
                         ]); ?>
                     <?php endforeach; ?>
                 </div>

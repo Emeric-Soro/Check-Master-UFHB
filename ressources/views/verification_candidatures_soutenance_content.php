@@ -10,8 +10,8 @@ foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
     $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
 }
 
-// Charger le modèle Approuver si disponible
-require_once __DIR__ . '/../../app/models/Approuver.php';
+// Charger le modèle Valider pour les décisions
+require_once __DIR__ . '/../../app/models/Valider.php';
 
 // Fonction pour obtenir la classe CSS du statut
 function getStatutClass($statut)
@@ -54,7 +54,6 @@ function traduireStatut($statut)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vérification des rapports étudiants</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -460,6 +459,7 @@ function traduireStatut($statut)
                                 if ($promotionLabel === '' && !empty($rapport->id_annee_acad)) {
                                     $promotionLabel = $academicYearLabels[(int) $rapport->id_annee_acad] ?? '-';
                                 }
+                                $promotionLabel = \FormattingUtils::formatPromotion($promotionLabel);
                                 ?>
                                 <tr class="cm-data-table__row">
                                     <td class="cm-data-table__td">
@@ -497,17 +497,17 @@ function traduireStatut($statut)
                                     // Récupérer l'approbation la plus récente si elle existe
                                     $approb = null;
                                     try {
-                                        $apprList = Approuver::getByRapport($rapport->id_rapport);
+                                        $apprList = Valider::getByRapport($rapport->id_rapport);
                                         if (!empty($apprList)) {
                                             $last = end($apprList);
-                                            $approb = isset($last['decision']) ? $last['decision'] : ($last->decision ?? null);
+                                            $approb = is_array($last) ? ($last['decision_validation'] ?? null) : ($last->decision_validation ?? null);
                                         }
                                     } catch (Exception $e) {
-                                        $approb = null; // en cas d'erreur, considérer comme non approuvé
+                                        $approb = null;
                                     }
                                     ?>
                                     <td class="text-center">
-                                        <?php if ($approb === 'approuve'): ?>
+                                        <?php if ($approb === 'valider'): ?>
                                             <span
                                                 class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm font-semibold">
                                                 <i class="fas fa-check mr-2"></i> Approuvé
@@ -525,19 +525,68 @@ function traduireStatut($statut)
                                         <?php endif; ?>
                                     </td>
                                     <td class="cm-data-table__td is-center"><div class="flex items-center justify-center gap-2 action-buttons">
-                                            <button onclick="voirDetail(<?= $rapport->id_rapport ?>)"
-                                                class="action-btn btn-detail" title="Consulter">
-                                                <i class="fas fa-eye mr-1"></i> Consulter
+<?php if (canEdit()): ?>
+                                            <button onclick="toggleInlineForm(<?= $rapport->id_rapport ?>, 'valider')" class="action-btn btn-validate" title="Approuver">
+                                                <i class="fas fa-check mr-1"></i> Approuver
                                             </button>
-                                            <a href="?page=gestion_dossiers_candidatures&action=telecharger_pdf&id_rapport=<?= urlencode((string) $rapport->id_rapport) ?>"
-                                                class="action-btn btn-pdf" title="PDF">
+                                            <button onclick="toggleInlineForm(<?= $rapport->id_rapport ?>, 'rejeter')" class="action-btn btn-reject" title="Rejeter">
+                                                <i class="fas fa-times mr-1"></i> Rejeter
+                                            </button>
+<?php endif; ?>
+                                            <button type="button" class="action-btn btn-pdf" title="Voir PDF"
+                                                onclick="CM.openDocViewer('rapport', '<?= htmlspecialchars((string) $rapport->id_rapport, ENT_QUOTES, 'UTF-8') ?>', {title: 'Rapport #<?= htmlspecialchars((string) $rapport->id_rapport, ENT_QUOTES, 'UTF-8') ?>'})">
                                                 <i class="fas fa-file-pdf mr-1"></i> PDF
-                                            </a>
+                                            </button>
                                             <a href="?page=gestion_dossiers_candidatures&id_rapport=<?= urlencode((string) $rapport->id_rapport) ?>"
                                                 class="action-btn btn-traiter" title="Traiter dans gestion_dossiers_candidatures">
                                                 <i class="fas fa-pen mr-1"></i> Traiter
                                             </a>
                                         </div>
+                                    </td>
+                                </tr>
+                                <!-- Formulaire inline pour validation/rejet -->
+                                <tr id="inline-form-<?= $rapport->id_rapport ?>" class="hidden">
+                                    <td colspan="7" class="p-4 bg-gray-50">
+                                        <!-- Formulaire de validation -->
+                                        <form id="valider-form-<?= $rapport->id_rapport ?>" method="POST" action="?page=verification_candidatures_soutenance" class="hidden mb-0">
+                                            <input type="hidden" name="valider" value="1">
+                                            <input type="hidden" name="id_rapport" value="<?= $rapport->id_rapport ?>">
+                                            <div class="flex flex-col gap-3">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-check-circle text-green-600"></i>
+                                                    <span class="font-semibold text-green-700">Approuver le rapport</span>
+                                                </div>
+                                                <textarea name="commentaire" rows="2" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm" placeholder="Commentaire (obligatoire)..." required></textarea>
+                                                <div class="flex gap-2">
+                                                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">
+                                                        <i class="fas fa-check mr-1"></i> Confirmer l'approbation
+                                                    </button>
+                                                    <button type="button" onclick="closeInlineForm(<?= $rapport->id_rapport ?>)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium">
+                                                        Annuler
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                        <!-- Formulaire de rejet -->
+                                        <form id="rejeter-form-<?= $rapport->id_rapport ?>" method="POST" action="?page=verification_candidatures_soutenance" class="hidden mb-0">
+                                            <input type="hidden" name="rejeter" value="1">
+                                            <input type="hidden" name="id_rapport" value="<?= $rapport->id_rapport ?>">
+                                            <div class="flex flex-col gap-3">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="fas fa-times-circle text-red-600"></i>
+                                                    <span class="font-semibold text-red-700">Rejeter le rapport</span>
+                                                </div>
+                                                <textarea name="commentaire" rows="2" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm" placeholder="Commentaire (obligatoire)..." required></textarea>
+                                                <div class="flex gap-2">
+                                                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">
+                                                        <i class="fas fa-times mr-1"></i> Confirmer le rejet
+                                                    </button>
+                                                    <button type="button" onclick="closeInlineForm(<?= $rapport->id_rapport ?>)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium">
+                                                        Annuler
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -548,336 +597,82 @@ function traduireStatut($statut)
         </div>
     </div>
 
-    <!-- Modal pour les détails du rapport -->
-    <div id="detailModal" class="cm-legacy-panel fixed inset-0 z-50 hidden items-center justify-center">
-        <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                
-                <button onclick="fermerModal()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-
-            <div id="modalContent">
-                <!-- Le contenu sera chargé dynamiquement -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de confirmation validation/rejet -->
-    <div id="confirmModal" class="cm-legacy-panel fixed inset-0 hidden z-50 items-center justify-center p-4">
-        <div class="modal-content bg-white max-w-md w-full rounded-xl shadow-2xl p-6 transform transition-all duration-300 scale-95 opacity-0"
-            id="confirmModalContent">
-            <h3 id="confirmModalTitle" class="text-base font-semibold text-gray-800 mb-4"></h3>
-
-
-            <?php if (canEdit()): ?>
-            <!-- Formulaire PHP pour valider -->
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#validerForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
-</style>
-<form id="validerForm" method="POST" action="?page=verification_candidatures_soutenance"
-                style="display: none;">
-                <input type="hidden" name="valider" value="1">
-                <input type="hidden" id="validerRapportId" name="id_rapport">
-                <div class="mb-4">
-                    <label for="validerComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
-                        (obligatoire)</label>
-                    <textarea id="validerComment" name="commentaire" rows="3"
-                        class="verification-comment focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                        placeholder="Entrez votre commentaire..." required></textarea>
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" onclick="closeConfirmModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
-                        Annuler
-                    </button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
-                        Confirmer l'approbation
-                    </button>
-                </div>
-            </form>
-
-            <!-- Formulaire PHP pour rejeter -->
-            <form id="rejeterForm" method="POST" action="?page=verification_candidatures_soutenance"
-                style="display: none;">
-                <input type="hidden" name="rejeter" value="1">
-                <input type="hidden" id="rejeterRapportId" name="id_rapport">
-                <div class="mb-4">
-                    <label for="rejeterComment" class="block text-sm font-medium text-gray-700 mb-2">Commentaire
-                        (obligatoire)</label>
-                    <textarea id="rejeterComment" name="commentaire" rows="3"
-                        class="verification-comment focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                        placeholder="Entrez votre commentaire..." required></textarea>
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" onclick="closeConfirmModal()"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
-                        Annuler
-                    </button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
-                        Confirmer le rejet
-                    </button>
-                </div>
-            </form>
-            <?php else: ?>
-            <div class="text-center text-gray-500 py-4">
-                <i class="fas fa-lock text-2xl mb-2"></i>
-                <p>Vous n'avez pas les permissions nécessaires pour effectuer cette action.</p>
-            </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
     <script>
-        // Recherche dynamique dans le tableau
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                const term = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#rapportsTable tbody tr');
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(term) ? '' : 'none';
-                });
-            });
-        }
+        // Toolbar handles search, select-all, deselect-all, print, export internally.
+        // This view only needs to handle inline forms and toolbar events.
 
-        // Remplace les fonctions validerRapport/rejeterRapport par ouverture de modale
-        let pendingAction = null;
-        let pendingRapportId = null;
+        // Gestion des formulaires inline
+        var currentOpenFormId = null;
 
-        function validerRapport(idRapport) {
-            openConfirmModal('valider', idRapport);
-        }
+        function toggleInlineForm(idRapport, action) {
+            var formRow = document.getElementById('inline-form-' + idRapport);
+            var validerForm = document.getElementById('valider-form-' + idRapport);
+            var rejeterForm = document.getElementById('rejeter-form-' + idRapport);
 
-        function rejeterRapport(idRapport) {
-            openConfirmModal('rejeter', idRapport);
-        }
-
-        function openConfirmModal(action, idRapport) {
-            console.log('Ouverture modal pour action:', action, 'ID:', idRapport); // Debug
-
-            // Stocke l'action et l'ID du rapport
-            pendingAction = action;
-            pendingRapportId = idRapport;
-
-            // Change le titre selon l'action
-            const modalTitle = document.getElementById('confirmModalTitle');
-            if (modalTitle) {
-                modalTitle.textContent = (action === 'valider') ?
-                    'Confirmer l\'approbation du rapport ?' : 'Confirmer la désapprobation du rapport ?';
+            // Fermer le formulaire precedemment ouvert
+            if (currentOpenFormId && currentOpenFormId !== idRapport) {
+                closeInlineForm(currentOpenFormId);
             }
 
-            // Afficher le bon formulaire selon l'action
-            const validerForm = document.getElementById('validerForm');
-            const rejeterForm = document.getElementById('rejeterForm');
+            // Basculer la visibilite
+            if (formRow.classList.contains('hidden')) {
+                formRow.classList.remove('hidden');
+                currentOpenFormId = idRapport;
+            }
 
+            // Afficher le bon formulaire
             if (action === 'valider') {
-                validerForm.style.display = 'block';
-                rejeterForm.style.display = 'none';
-                document.getElementById('validerRapportId').value = idRapport;
-                document.getElementById('validerComment').value = '';
+                validerForm.classList.remove('hidden');
+                rejeterForm.classList.add('hidden');
             } else {
-                validerForm.style.display = 'none';
-                rejeterForm.style.display = 'block';
-                document.getElementById('rejeterRapportId').value = idRapport;
-                document.getElementById('rejeterComment').value = '';
+                validerForm.classList.add('hidden');
+                rejeterForm.classList.remove('hidden');
             }
-
-            // Affiche la modal
-            const modal = document.getElementById('confirmModal');
-            const modalContent = document.getElementById('confirmModalContent');
-
-            // S'assurer que la modal est bien cachée au début
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-
-            // Attendre un peu avant d'afficher
-            setTimeout(() => {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-
-                // Désactiver le scroll de la page
-                document.body.classList.add('modal-open');
-
-                // Animation d'ouverture avec un délai plus long
-                setTimeout(() => {
-                    modalContent.style.transform = 'scale(1)';
-                    modalContent.style.opacity = '1';
-                }, 50);
-            }, 10);
         }
 
-        function closeConfirmModal() {
-            const modal = document.getElementById('confirmModal');
-            const modalContent = document.getElementById('confirmModalContent');
+        function closeInlineForm(idRapport) {
+            var formRow = document.getElementById('inline-form-' + idRapport);
+            var validerForm = document.getElementById('valider-form-' + idRapport);
+            var rejeterForm = document.getElementById('rejeter-form-' + idRapport);
 
-            // Animation de fermeture
-            modalContent.style.transform = 'scale(0.95)';
-            modalContent.style.opacity = '0';
+            formRow.classList.add('hidden');
+            validerForm.classList.add('hidden');
+            rejeterForm.classList.add('hidden');
 
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-
-                // Réinitialiser les styles
-                modalContent.style.transform = 'scale(0.95)';
-                modalContent.style.opacity = '0';
-
-                // Réactiver le scroll de la page
-                document.body.classList.remove('modal-open');
-            }, 300);
+            if (currentOpenFormId === idRapport) {
+                currentOpenFormId = null;
+            }
         }
 
-        // Gestion des formulaires PHP
-        const validerForm = document.getElementById('validerForm');
-        if (validerForm) {
-            validerForm.addEventListener('submit', function () {
-                console.log('Formulaire de validation soumis');
+        // Toolbar delete event
+        document.addEventListener('cm:toolbar:delete', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== 'verif_cand_toolbar') return;
+            var tableBody = document.querySelector('#rapportsTable tbody');
+            if (!tableBody) return;
+            var checkedRows = Array.from(tableBody.querySelectorAll('tr')).filter(function (row) {
+                var cb = row.querySelector('input[type="checkbox"]');
+                return cb && cb.checked && !row.querySelector('textarea');
             });
-        }
-
-        const rejeterForm = document.getElementById('rejeterForm');
-        if (rejeterForm) {
-            rejeterForm.addEventListener('submit', function () {
-                console.log('Formulaire de rejet soumis');
-            });
-        }
-
-        // Fonction pour voir les détails d'un rapport
-        function voirDetail(idRapport) {
-            // Afficher la modal avec overlay
-            const modal = document.getElementById('detailModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            // Désactiver le scroll de la page
-            document.body.classList.add('modal-open');
-
-            // Afficher un loader
-            document.getElementById('modalContent').innerHTML = `
-            <div class="flex justify-center items-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                <span class="ml-2 text-gray-600">Chargement des détails...</span>
-            </div>
-        `;
-
-            // Charger les détails via AJAX
-            fetch('?page=verification_candidatures_soutenance&action=detail&id=' + idRapport)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Erreur lors du chargement');
-                    }
-                    return response.text();
-                })
-                .then(html => {
-                    document.getElementById('modalContent').innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    document.getElementById('modalContent').innerHTML = `
-                    <div class="text-center py-8 text-red-500">
-                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                        <p>Erreur lors du chargement des détails</p>
-                    </div>
-                `;
-                });
-        }
-
-        // Fonction pour fermer le modal
-        function fermerModal() {
-            const modal = document.getElementById('detailModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-
-            // Réactiver le scroll de la page
-            document.body.classList.remove('modal-open');
-        }
-
-        // Fermer les modals en cliquant à l'extérieur
-        document.addEventListener('DOMContentLoaded', function () {
-            const modal = document.getElementById('detailModal');
-            modal.addEventListener('click', function (e) {
-                if (e.target === modal) {
-                    fermerModal();
-                }
-            });
-
-            const confirmModal = document.getElementById('confirmModal');
-            const confirmModalContent = document.getElementById('confirmModalContent');
-
-            // Empêcher la propagation des clics à l'intérieur de la modal
-            confirmModalContent.addEventListener('click', function (e) {
-                e.stopPropagation();
-            });
-
-            // Empêcher la propagation des clics sur les boutons
-            const confirmButtons = confirmModalContent.querySelectorAll('button');
-            confirmButtons.forEach(button => {
-                button.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                });
-            });
-
-            // Empêcher la propagation des clics sur le formulaire
-            const confirmForm = document.getElementById('validerForm');
-            confirmForm.addEventListener('click', function (e) {
-                e.stopPropagation();
-            });
-
-            confirmModal.addEventListener('click', function (e) {
-                // Ne fermer que si on clique sur l'overlay (pas sur le contenu de la modal)
-                if (e.target === confirmModal && !confirmModalContent.contains(e.target)) {
-                    closeConfirmModal();
-                }
-            });
+            if (checkedRows.length === 0) return;
+            checkedRows.forEach(function (row) { row.remove(); });
         });
 
-        // Fermer les modals avec la touche Escape
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                fermerModal();
-                closeConfirmModal();
+        // Toolbar limit change event (server-side pagination)
+        document.addEventListener('cm:toolbar:limit:change', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== 'verif_cand_toolbar') return;
+            event.preventDefault();
+            var limit = event.detail.limit || '10';
+            var url = new URL(window.location.href);
+            url.searchParams.set('limit', limit);
+            url.searchParams.set('p', '1');
+            if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                window.CM.ajax.load(url.toString());
+            } else {
+                window.location.href = url.toString();
             }
         });
-
-        // Fonction pour afficher des notifications
-        function showNotification(type, message) {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${type === 'success' ? 'bg-green-500 text-white' :
-                type === 'error' ? 'bg-red-500 text-white' :
-                    'bg-blue-500 text-white'
-                }`;
-            notification.innerHTML = `
-            <div class="flex items-center">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
-                <span>${message}</span>
-            </div>
-        `;
-
-            document.body.appendChild(notification);
-
-            // Animation d'entrée
-            setTimeout(() => {
-                notification.style.transform = 'translateX(0)';
-            }, 10);
-
-            // Auto-suppression après 3 secondes
-            setTimeout(() => {
-                notification.style.transform = 'translateX(full)';
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
     </script>
 </body>
 

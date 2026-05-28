@@ -74,24 +74,32 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
                         'value' => $quick_stats['total_etudiants'] ?? 0,
                         'icon' => 'fa-user-graduate',
                         'color' => 'primary',
+                        'url' => '?page=admin_historique&tab=students&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                     <?php cm_component('dashboard/stat-widget', [
                         'label' => 'Taux de réussite',
                         'value' => ($quick_stats['taux_reussite'] ?? 0) . '%',
                         'icon' => 'fa-check-circle',
                         'color' => 'success',
+                        'url' => '?page=admin_historique&tab=stats&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                     <?php cm_component('dashboard/stat-widget', [
                         'label' => 'Moyenne générale',
                         'value' => $quick_stats['moyenne_generale'] ?? '0.00',
                         'icon' => 'fa-star',
                         'color' => 'warning',
+                        'url' => '?page=admin_historique&tab=stats&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                     <?php cm_component('dashboard/stat-widget', [
                         'label' => 'Jours de soutenance',
                         'value' => $quick_stats['jours_soutenance'] ?? 0,
                         'icon' => 'fa-calendar-alt',
                         'color' => 'info',
+                        'url' => '?page=admin_historique&tab=jury&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                 </div>
 
@@ -295,24 +303,32 @@ $studentsPagerBase = '?page=admin_historique&tab=students&' . http_build_query(a
                         'value' => $globalStats['total_students'] ?? 0,
                         'icon' => 'fa-user-graduate',
                         'color' => 'info',
+                        'url' => '?page=admin_historique&tab=students&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                     <?php cm_component('dashboard/stat-widget', [
                         'label' => 'Soutenances',
                         'value' => $globalStats['total_soutenances'] ?? 0,
                         'icon' => 'fa-chalkboard-teacher',
                         'color' => 'success',
+                        'url' => '?page=admin_historique&tab=jury&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                     <?php cm_component('dashboard/stat-widget', [
                         'label' => 'Entreprises partenaires',
                         'value' => $globalStats['total_entreprises'] ?? 0,
                         'icon' => 'fa-building',
                         'color' => 'warning',
+                        'url' => '?page=admin_historique&tab=stats&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                     <?php cm_component('dashboard/stat-widget', [
                         'label' => 'Encadreurs',
                         'value' => $globalStats['total_encadreurs'] ?? 0,
                         'icon' => 'fa-users',
                         'color' => 'danger',
+                        'url' => '?page=admin_historique&tab=jury&annee=' . urlencode($filters['annee'] ?? ''),
+                        'ajax' => true
                     ]); ?>
                 </div>
 

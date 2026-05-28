@@ -8,9 +8,11 @@ $contenuRapport = $GLOBALS['contenuRapport'] ?? '';
 $contenuRapport = is_string($contenuRapport) ? $contenuRapport : '';
 $erreurs = $GLOBALS['erreurs'] ?? [];
 $erreurs = is_array($erreurs) ? $erreurs : [];
+$rapportEstUpload = !empty($GLOBALS['rapportEstUpload']);
+$rapportUploadChemin = (string) ($GLOBALS['rapportUploadChemin'] ?? '');
 
 $isEditingExisting = $isEditMode && is_array($rapport) && !empty($rapport);
-$isReadOnly = !empty($GLOBALS['rapportDejaDepose']);
+$isReadOnly = !empty($GLOBALS['rapportDejaDepose']) || $rapportEstUpload;
 
 $numEtu = $_SESSION['num_etu'] ?? '';
 $nomEtu = $_SESSION['nom_etu'] ?? '';
@@ -77,7 +79,7 @@ $studentLabel = $nomCompletEtu !== '' ? $nomCompletEtu : 'Etudiant non renseign�
 $themeLabel = $themeRapportInitial !== '' ? $themeRapportInitial : 'Thème non renseigné';
 $mentorLabel = $maitreStage !== '' ? $maitreStage : 'Maître de stage non renseigné';
 $companyLabel = $nomEntreprise !== '' ? $nomEntreprise : '';
-$statusLabel = $isReadOnly ? 'Déposé' : ($isEditingExisting ? 'Brouillon' : 'Nouveau');
+$statusLabel = $rapportEstUpload ? 'Téléversé' : ($isReadOnly ? 'Déposé' : ($isEditingExisting ? 'Brouillon' : 'Nouveau'));
 $mentorWithCompany = $mentorLabel . ($companyLabel !== '' ? ' (' . $companyLabel . ')' : '');
 
 if (!function_exists('cm_etu_escape')) {
@@ -123,10 +125,22 @@ $editorMeta = [
     'cmLogo' => $logoCmData,
 ];
 $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
-?>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
 
+// Garantir un encodage JSON valide même en présence de données corrompues
+$editorMetaJson = json_encode($editorMeta, $jsFlags);
+if ($editorMetaJson === false) {
+    $editorMetaJson = json_encode(array_map(function ($v) {
+        return is_string($v) ? @iconv('UTF-8', 'UTF-8//IGNORE', $v) : $v;
+    }, $editorMeta), $jsFlags);
+    if ($editorMetaJson === false) {
+        $editorMetaJson = '{}';
+    }
+}
+$contenuRapportJson = json_encode($contenuRapport, $jsFlags);
+if ($contenuRapportJson === false) {
+    $contenuRapportJson = '""';
+}
+?>
 <style>
 /* ── Focus Mode: 3-zone layout ── */
 .fm-wrapper {
@@ -344,23 +358,6 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
     flex-shrink: 0;
 }
 
-/* Error/success feedback */
-.fm-feedback {
-    padding: 0.55rem 1.25rem;
-    font-size: 0.82rem;
-    border-bottom: 1px solid rgba(26,82,118,0.1);
-    flex-shrink: 0;
-}
-.fm-feedback.is-success {
-    background: #f2fbf6;
-    border-left: 3px solid #27ae60;
-    color: #166534;
-}
-.fm-feedback.is-error {
-    background: #fff5f5;
-    border-left: 3px solid #e74c3c;
-    color: #991b1b;
-}
 
 /* Editor zone */
 .fm-editor-zone {
@@ -392,6 +389,14 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
     font-size: 12pt !important;
     line-height: 1.65 !important;
     color: #111827 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+.fm-editor-zone .jodit-wysiwyg > [data-cm-report-document="1"] {
+    max-width: 210mm;
+    width: 100%;
+    margin: 0 auto;
 }
 .fm-editor-zone .jodit-status-bar {
     display: none !important;
@@ -561,17 +566,19 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
             <a href="?page=gestion_rapports" class="fm-back-btn" title="Retour à la liste">
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <span class="fm-header__title">Rédaction du rapport</span>
-            <span class="fm-badge <?= $isReadOnly ? 'is-success' : ($isEditingExisting ? 'is-warning' : 'is-info') ?>">
-                <i class="fas <?= $isReadOnly ? 'fa-lock' : ($isEditingExisting ? 'fa-pen' : 'fa-plus') ?>"></i>
+            <span class="fm-header__title"><?= $rapportEstUpload ? 'Consultation du rapport' : 'Rédaction du rapport' ?></span>
+            <span class="fm-badge <?= $rapportEstUpload ? 'is-info' : ($isReadOnly ? 'is-success' : ($isEditingExisting ? 'is-warning' : 'is-info')) ?>">
+                <i class="fas <?= $rapportEstUpload ? 'fa-cloud-upload-alt' : ($isReadOnly ? 'fa-lock' : ($isEditingExisting ? 'fa-pen' : 'fa-plus')) ?>"></i>
                 <?= cm_etu_escape($statusLabel) ?>
             </span>
         </div>
         <div class="fm-header__right">
             <?php if (!$isReadOnly): ?>
-                <button id="saveBtn" type="button" class="fm-btn is-save">
-                    <i class="fas fa-save"></i> Enregistrer
-                </button>
+                <?php if (!$rapportEstUpload): ?>
+                    <button id="saveBtn" type="button" class="fm-btn is-save">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                <?php endif; ?>
                 <button id="deposerBtn" type="button" class="fm-btn is-deposit">
                     <i class="fas fa-paper-plane"></i> Déposer
                 </button>
@@ -581,7 +588,12 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
 
     <!-- ═══ ZONE B: Corps central ═══ -->
     <div class="fm-body">
-        <?php if ($isReadOnly): ?>
+        <?php if ($rapportEstUpload): ?>
+            <div class="fm-readonly-banner">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Rapport téléversé — le document original est affiché ci-dessous.</span>
+            </div>
+        <?php elseif ($isReadOnly): ?>
             <div class="fm-readonly-banner">
                 <i class="fas fa-lock"></i>
                 <span>Mode consultation — le rapport a été déposé et ne peut plus être modifié.</span>
@@ -589,16 +601,14 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
         <?php endif; ?>
 
         <?php if (isset($_SESSION['success'])): ?>
-            <div class="fm-feedback is-success"><?= cm_etu_escape($_SESSION['success']) ?></div>
+            <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $_SESSION['success']]); ?>
             <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
 
         <?php if (!empty($erreurs)): ?>
-            <div class="fm-feedback is-error">
-                <?php foreach ($erreurs as $e): ?>
-                    <div><?= cm_etu_escape($e) ?></div>
-                <?php endforeach; ?>
-            </div>
+            <?php foreach ($erreurs as $e): ?>
+                <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $e]); ?>
+            <?php endforeach; ?>
         <?php endif; ?>
 
         <!-- Info panel compact -->
@@ -621,30 +631,69 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
             <input type="text" id="reportTitleInput" class="fm-title-input"
                    placeholder="Saisissez le thème du rapport..."
                    value="<?= cm_etu_escape($themeLabel) ?>"
-                   <?= $isReadOnly ? 'readonly' : '' ?>>
+                   <?= ($isReadOnly || $rapportEstUpload) ? 'readonly' : '' ?>>
         </div>
 
-        <!-- Editeur WYSIWYG -->
-        <div class="fm-editor-zone">
-            <textarea id="jodit-editor"></textarea>
-        </div>
+        <?php if ($rapportEstUpload): ?>
+            <!-- Visualiseur du fichier téléversé -->
+            <div class="fm-editor-zone">
+                <?php
+                $uploadExt = strtolower(pathinfo($rapportUploadChemin, PATHINFO_EXTENSION));
+                $downloadUrl = '?page=gestion_rapports&action=download_fichier_rapport&id=' . ($rapport['id_rapport'] ?? 0);
+                if ($uploadExt === 'pdf'): ?>
+                    <iframe src="<?= htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8') ?>"
+                            style="width:100%;height:calc(100vh - 220px);border:none;border-radius:8px;" frameborder="0"
+                            title="Aperçu du rapport PDF"></iframe>
+                <?php else: ?>
+                    <div style="text-align:center;padding:80px 20px;">
+                        <i class="fas fa-file-word" style="font-size:3rem;color:#2b6cb0;margin-bottom:20px;display:block;"></i>
+                        <p style="color:#4a5568;font-size:1.1rem;margin-bottom:8px;">
+                            Document <?= htmlspecialchars(strtoupper($uploadExt), ENT_QUOTES, 'UTF-8') ?> téléversé
+                        </p>
+                        <p style="color:#718096;font-size:0.85rem;margin-bottom:24px;">
+                            <?= htmlspecialchars($rapportUploadChemin, ENT_QUOTES, 'UTF-8') ?>
+                        </p>
+                        <a href="<?= htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-btn is-primary" style="display:inline-flex;">
+                            <i class="fas fa-download"></i> Télécharger le document
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <!-- Editeur WYSIWYG -->
+            <div class="fm-editor-zone">
+                <textarea id="jodit-editor"></textarea>
+            </div>
+        <?php endif; ?>
     </div>
 
     <!-- ═══ ZONE C: Footer ═══ -->
     <footer class="fm-footer">
         <div class="fm-footer__left">
-            <span id="wordCount">0 mots</span>
+            <?php if (!$rapportEstUpload): ?>
+                <span id="wordCount">0 mots</span>
+            <?php endif; ?>
         </div>
         <div class="fm-footer__center">
-            <button id="previewPdfBtn" type="button" class="fm-btn-preview" title="Ouvrir l'aperçu PDF dans un nouvel onglet">
-                <i class="fas fa-eye"></i> Aperçu PDF
-            </button>
-            <button id="downloadPdfBtn" type="button" class="fm-btn-download" title="Télécharger le PDF officiel">
-                <i class="fas fa-file-pdf"></i> Télécharger
-            </button>
+            <?php if (!$rapportEstUpload): ?>
+                <button id="previewPdfBtn" type="button" class="fm-btn-preview" title="Ouvrir l'aperçu PDF dans un nouvel onglet">
+                    <i class="fas fa-eye"></i> Aperçu PDF
+                </button>
+                <button id="downloadPdfBtn" type="button" class="fm-btn-download" title="Télécharger le PDF officiel">
+                    <i class="fas fa-file-pdf"></i> Télécharger
+                </button>
+            <?php else: ?>
+                <?php
+                $uploadExt = strtolower(pathinfo($rapportUploadChemin, PATHINFO_EXTENSION));
+                $dlUrl = '?page=gestion_rapports&action=download_fichier_rapport&id=' . ($rapport['id_rapport'] ?? 0);
+                ?>
+                <a href="<?= htmlspecialchars($dlUrl, ENT_QUOTES, 'UTF-8') ?>" class="fm-btn-download" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                    <i class="fas fa-download"></i> Télécharger le fichier
+                </a>
+            <?php endif; ?>
         </div>
         <div class="fm-footer__right">
-            <span id="saveStatus" class="fm-save-status"><?= $isReadOnly ? 'Lecture seule' : 'Auto-save toutes les 60s' ?></span>
+            <span id="saveStatus" class="fm-save-status"><?= $rapportEstUpload ? 'Document téléversé' : ($isReadOnly ? 'Lecture seule' : 'Auto-save toutes les 60s') ?></span>
         </div>
     </footer>
 </div>
@@ -662,8 +711,11 @@ $jsFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON
 (function () {
 function initRapportEditorPage() {
     var isReadOnly = <?= $isReadOnly ? 'true' : 'false' ?>;
-    var editorMeta = <?= json_encode($editorMeta, $jsFlags) ?>;
-    var rawContent = <?= json_encode($contenuRapport, $jsFlags) ?>;
+    var isUploadedFile = <?= $rapportEstUpload ? 'true' : 'false' ?>;
+    var editorMeta = <?= $editorMetaJson ?>;
+    var rawContent = <?= $contenuRapportJson ?>;
+    if (typeof editorMeta !== 'object' || editorMeta === null) editorMeta = {};
+    if (typeof rawContent !== 'string') rawContent = '';
 
     var rapportForm = document.getElementById('rapportForm');
     var saveBtn = document.getElementById('saveBtn');
@@ -675,15 +727,42 @@ function initRapportEditorPage() {
     var saveStatusEl = document.getElementById('saveStatus');
     var pdfLoading = document.getElementById('pdfLoading');
     var reportEndpoint = window.location.pathname + '?page=gestion_rapports';
+
+    // Pour les fichiers uploadés, on ne initialise pas l'éditeur Jodit
+    if (isUploadedFile) {
+        // Configurer uniquement le dépôt si le bouton existe
+        if (rapportForm) {
+            rapportForm.setAttribute('action', reportEndpoint);
+        }
+        if (deposerBtn) {
+            deposerBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+                if (deposerBtn.disabled) return;
+                requestDepositConfirmation()
+                    .then(function (confirmed) {
+                        if (!confirmed) return null;
+                        deposerBtn.disabled = true;
+                        var reportId = getEditId();
+                        if (!reportId) return null;
+                        applyFormPayload('deposer_rapport');
+                        syncReportId(reportId);
+                        rapportForm.submit();
+                        return null;
+                    })
+                    .catch(function (error) {
+                        deposerBtn.disabled = false;
+                        showNotification('error', error.message || 'Erreur lors du dépôt.');
+                    });
+            });
+        }
+        return;
+    }
     var editorTextarea = document.getElementById('jodit-editor');
     var joditEditor = null;
     var fallbackEditorMode = false;
 
-    if (!rapportForm || rapportForm.getAttribute('data-cm-rapport-editor-init') === '1') {
-        return;
-    }
-
-    rapportForm.setAttribute('data-cm-rapport-editor-init', '1');
+    if (window.__cmRapportEditorReady) return;
+    window.__cmRapportEditorReady = true;
 
     if (rapportForm) {
         rapportForm.setAttribute('action', reportEndpoint);
@@ -766,19 +845,20 @@ function initRapportEditorPage() {
     /* ── Cover page HTML builder ── */
 
     function buildCoverSectionHTML() {
-        var theme = String(titleInput.value || editorMeta.theme || 'Thème du rapport');
-        var studentName = String(editorMeta.studentName || 'Etudiant');
-        var mentor = String(editorMeta.mentor || 'Maître de stage');
-        var company = String(editorMeta.company || '');
-        var academicYear = String(editorMeta.academicYear || '');
-        var studentNumber = String(editorMeta.studentNumber || '');
+        var meta = editorMeta || {};
+        var theme = String(titleInput.value || meta.theme || 'Thème du rapport');
+        var studentName = String(meta.studentName || 'Étudiant');
+        var mentor = String(meta.mentor || 'Maître de stage');
+        var company = String(meta.company || '');
+        var academicYear = String(meta.academicYear || '');
+        var studentNumber = String(meta.studentNumber || '');
         var companyLogos = '';
 
-        if (editorMeta.civLogo) {
-            companyLogos += '<img src="' + editorMeta.civLogo + '" alt="Armoiries" style="max-width:68px; width:68px; height:auto; display:inline-block; vertical-align:middle;">';
+        if (meta.civLogo) {
+            companyLogos += '<img src="' + meta.civLogo + '" alt="Armoiries" style="max-width:68px; width:68px; height:auto; display:inline-block; vertical-align:middle;">';
         }
-        if (editorMeta.cmLogo) {
-            companyLogos += '<img src="' + editorMeta.cmLogo + '" alt="Logo CM" style="max-width:64px; width:64px; height:auto; display:inline-block; vertical-align:middle; margin-left:12px;">';
+        if (meta.cmLogo) {
+            companyLogos += '<img src="' + meta.cmLogo + '" alt="Logo CM" style="max-width:64px; width:64px; height:auto; display:inline-block; vertical-align:middle; margin-left:12px;">';
         }
 
         return '' +
@@ -792,7 +872,7 @@ function initRapportEditorPage() {
                 '<table style="width:100%; border:none; margin:0 0 12mm; border-collapse:collapse;">' +
                     '<tr>' +
                         '<td style="width:50%; vertical-align:top; border:none; padding:0 10mm 0 0; text-align:center;">' +
-                            (editorMeta.ufhbLogo ? '<img src="' + editorMeta.ufhbLogo + '" alt="Logo UFHB" style="max-width:72px; width:72px; height:auto; display:block; margin:0 auto 10px;">' : '') +
+                            (meta.ufhbLogo ? '<img src="' + meta.ufhbLogo + '" alt="Logo UFHB" style="max-width:72px; width:72px; height:auto; display:block; margin:0 auto 10px;">' : '') +
                             '<div style="font-size:11pt; font-weight:bold; color:#0f4666; line-height:1.5;">UNIVERSITE FELIX HOUPHOUET BOIGNY</div>' +
                             '<div style="font-size:10pt; line-height:1.55; margin-top:6px;">UFR MATHEMATIQUES ET INFORMATIQUE<br>FILIERES PROFESSIONNALISEES MIAGE-GI</div>' +
                         '</td>' +
@@ -1025,8 +1105,9 @@ function initRapportEditorPage() {
         .catch(function (error) {
             console.error('[persistDraft] Error:', error);
             saveStatusEl.textContent = options.failureMessage || ('Échec à ' + nowLabel());
-            if (!options.silentError) showNotification('error', error.message || 'Erreur lors de la sauvegarde.');
-            throw error;
+            var errMsg = (error && typeof error.message === 'string') ? error.message : String(error || 'Erreur inconnue');
+            if (!options.silentError) showNotification('error', errMsg);
+            // Ne pas re-throw pour éviter les popups [object Object] du handler unhandledrejection global
         })
         .finally(function () {
             saveInFlight = null;
@@ -1154,8 +1235,15 @@ function initRapportEditorPage() {
     /* ── Notifications ── */
 
     function showNotification(type, message) {
+        var msgText = message;
+        if (typeof message === 'object' && message !== null) {
+            msgText = message.message || JSON.stringify(message);
+        } else {
+            msgText = String(message || '');
+        }
+
         if (typeof window.cmToast === 'function') {
-            window.cmToast({ type: type, title: type === 'success' ? 'Succès' : 'Erreur', message: message });
+            window.cmToast(msgText, type);
             return;
         }
         var container = document.getElementById('fmNotifications');

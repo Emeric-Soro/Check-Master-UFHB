@@ -191,7 +191,7 @@ class DashboardScolariteService
                          MIN(i.date_inscription) as date_inscription,
                          SUM(i.montant_verser) as montant_verser
                     FROM inscriptions i
-                    JOIN etudiants e ON e.num_ident_etud = i.num_carte_etud
+                    JOIN etudiants e ON (e.num_ident_etud = i.num_carte_etud OR e.num_carte_etud = i.num_carte_etud)
                     WHERE i.date_inscription >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                     $yearCond
                       GROUP BY i.num_carte_etud, i.id_annee_acad, e.nom_etu, e.prenom_etu, i.id_niv_etude
@@ -221,7 +221,7 @@ class DashboardScolariteService
                       i.solde AS reste_a_payer,
                       i.date_inscription
                     FROM inscriptions i
-                    JOIN etudiants e ON e.num_ident_etud = i.num_carte_etud
+                    JOIN etudiants e ON (e.num_ident_etud = i.num_carte_etud OR e.num_carte_etud = i.num_carte_etud)
                     WHERE i.solde > 0
                     $yearCond
                   ORDER BY i.date_inscription ASC, i.num_carte_etud ASC, i.num_versement ASC
@@ -253,7 +253,7 @@ class DashboardScolariteService
                               ) as libelle_statut,
                               r.statut_reclamation as statut_reclamation
                     FROM reclamations r
-                    LEFT JOIN etudiants e ON e.num_ident_etud = r.num_carte_etud
+                    LEFT JOIN etudiants e ON (e.num_ident_etud = r.num_carte_etud OR e.num_carte_etud = r.num_carte_etud)
                     LEFT JOIN statut_reclamation sr ON sr.id_statut_reclamation = r.statut_reclamation
                     ORDER BY r.date_creation DESC
                     LIMIT 10";

@@ -1,43 +1,11 @@
 <?php
-// require_once __DIR__ . '/../../app/controllers/MemoireController.php';
+$messageSuccess = (string) ($_SESSION['success'] ?? '');
+$messageError = (string) ($_SESSION['error'] ?? '');
+unset($_SESSION['success'], $_SESSION['error']);
 
-// Pour l'instant, on simule les données - à remplacer par un vrai contrôleur
-// $controller = new MemoireController();
-$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-$message = '';
-$messageType = 'success';
-
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'upload_memoire') {
-        // Traiter l'upload du mémoire
-        // $result = $controller->uploadMemoire();
-        // $message = (string) ($result['message'] ?? '');
-        // $messageType = !empty($result['success']) ? 'success' : 'error';
-    } elseif ($_POST['action'] === 'supprimer_memoire') {
-        // Supprimer un mémoire
-        // $result = $controller->supprimerMemoire();
-        // $message = (string) ($result['message'] ?? '');
-        // $messageType = !empty($result['success']) ? 'success' : 'error';
-    }
-
-    if ($isAjax) {
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode([
-            'success' => $messageType === 'success',
-            'message' => $message,
-        ]);
-        exit;
-    }
-}
-
-// Récupérer les étudiants ayant soutenu (à adapter selon votre base de données)
-// $etudiants = $controller->getEtudiantsAvecSoutenance();
-$etudiants = [];
-
-// Récupérer les mémoires déjà mis en ligne
-// $memoires = $controller->getMemoiresEnLigne();
-$memoires = [];
+$pageData = is_array($data ?? null) ? $data : [];
+$etudiants = is_array($pageData['etudiants'] ?? null) ? $pageData['etudiants'] : [];
+$memoires = is_array($pageData['memoires'] ?? null) ? $pageData['memoires'] : [];
 
 $allowedLimits = [5, 10, 25, 50];
 $perPage = max(5, (int) ($_GET['limit_memoire'] ?? 10));
@@ -66,15 +34,21 @@ foreach ($etudiants as $etudiant) {
     if ($num === '') {
         continue;
     }
-    $etudiantOptions[$num] = (string) ($etudiant['nom_complet'] ?? 'Etudiant');
+    $etudiantOptions[$num] = (string) ($etudiant['nom_complet'] ?? 'Étudiant');
 }
 ?>
 
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <?php if ($message !== ''): ?>
+    <?php if ($messageSuccess !== ''): ?>
         <?php cm_component('ui/alert-box', [
-            'type' => $messageType === 'success' ? 'success' : 'danger',
-            'message' => $message,
+            'type' => 'success',
+            'message' => $messageSuccess,
+        ]); ?>
+    <?php endif; ?>
+    <?php if ($messageError !== ''): ?>
+        <?php cm_component('ui/alert-box', [
+            'type' => 'danger',
+            'message' => $messageError,
         ]); ?>
     <?php endif; ?>
 
@@ -84,31 +58,6 @@ foreach ($etudiants as $etudiant) {
         <!-- Formulaire de mise en ligne -->
         <div class="cm-pole-superieur">
             <div class="cm-text-md cm-text-semibold cm-mb-md">Mise en ligne de mémoire</div>
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#cmMemoireForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-left {
-    flex: 1 1 20rem !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-center {
-    flex: 1 1 26rem !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-right {
-    flex: 0 0 auto !important;
-}
-
-.cm-memoire-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
-    min-width: 13rem !important;
-    max-width: 18rem !important;
-}
-</style>
 <form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data"
                 data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
@@ -117,12 +66,15 @@ foreach ($etudiants as $etudiant) {
 
                 <div class="cm-grid-2">
                     <?php
-                    cm_component('form/select', [
+                    cm_component('form/select-search', [
                         'name' => 'cm_memoire_etudiant',
                         'id' => 'cmMemoireEtudiantSelect',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'required' => true,
                         'options' => $etudiantOptions,
+                        'placeholder' => '-- Sélectionner --',
+                        'search_placeholder' => 'Rechercher un étudiant...',
+                        'show_selected_label' => false,
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_memoire_promotion',
@@ -135,7 +87,7 @@ foreach ($etudiants as $etudiant) {
                     cm_component('form/textarea', [
                         'name' => 'cm_memoire_theme',
                         'id' => 'cmMemoireTheme',
-                        'label' => 'Theme',
+                        'label' => 'Thème',
                         'readonly' => true,
                         'rows' => 3,
                     ]);
@@ -173,54 +125,23 @@ foreach ($etudiants as $etudiant) {
 
         <!-- Barre d'outils -->
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar cm-memoire-toolbar">
-                <div class="cm-toolbar-left">
-                    <label for="cmMemoireLimit"><strong>Afficher:</strong></label>
-                    <select id="cmMemoireLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                        data-cm-ajax-param="limit_memoire" data-cm-ajax-reset-param="page_memoire"
-                        data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <input type="text" id="cmMemoireSearch" class="cm-form-control cm-toolbar-field-lg"
-                        placeholder="Rechercher un mémoire...">
-                </div>
-
-                <div class="cm-toolbar-center">
-                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireSelectAllBtn"
-                        data-select-all="1">
-                        <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Tout sélectionner
-                    </button>
-                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireDeselectBtn"
-                        data-deselect-all="1">
-                        <i class="fas fa-square" aria-hidden="true"></i>
-                        Tout désélectionner
-                    </button>
-                    <button type="button" class="cm-btn is-danger is-sm" id="cmMemoireDeleteBtn"
-                        data-bulk-delete="1" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (0)
-                    </button>
-                </div>
-
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-secondary is-sm" id="cmMemoireExport"
-                        data-export="1">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Exporter
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmMemoirePrint"
-                        data-print="1" onclick="window.print()">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Imprimer
-                    </button>
-                </div>
-            </div>
+            <?php cm_toolbar([
+                'screen' => 'mise_en_ligne_memoire',
+                'id_prefix' => 'cmMemoire',
+                'limit' => $perPage,
+                'limit_options' => $allowedLimits,
+                'search_placeholder' => 'Rechercher un mémoire...',
+                'custom_actions' => [
+                    [
+                        'tag' => 'button',
+                        'id' => 'cmMemoireExport',
+                        'label' => 'Exporter',
+                        'icon' => 'fa-file-export',
+                        'class' => 'cm-btn is-secondary is-sm',
+                        'attrs' => ['data-cm-toolbar-action' => 'export']
+                    ]
+                ]
+            ]); ?>
         </div>
 
         <!-- Tableau récapitulatif -->
@@ -230,7 +151,7 @@ foreach ($etudiants as $etudiant) {
                     <thead>
                         <tr>
                             <th class="cm-data-table__th cm-data-table__th--check">
-                                <input type="checkbox" id="cmMemoireCheckAll" aria-label="Tout selectionner">
+                                <input type="checkbox" id="cmMemoireCheckAll" class="cm-table-check-all" aria-label="Tout selectionner">
                             </th>
                             <th class="cm-data-table__th">N°</th>
                             <th class="cm-data-table__th">Nom &amp; Prénom Étudiant</th>
@@ -264,11 +185,12 @@ foreach ($etudiants as $etudiant) {
                                     ? date('d/m/Y H:i', strtotime((string) $memoire['date_depot']))
                                     : '-';
                                 ?>
-                                <tr class="cm-data-table__row"
+                                <tr class="cm-data-table__row cm-clickable-row"
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
-                                    data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
+                                    data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-href="?page=mise_en_ligne_memoire&action=telecharger&num_etu=<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td cm-data-table__td--check">
-                                        <input type="checkbox" class="cm-memoire-check-row"
+                                        <input type="checkbox" class="cm-table-check-row cm-memoire-check-row"
                                             value="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
                                             aria-label="Selectionner ligne <?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     </td>
@@ -276,7 +198,7 @@ foreach ($etudiants as $etudiant) {
                                         <?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) ($memoire['nom_etudiant'] ?? 'Etudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
+                                        <?php echo htmlspecialchars((string) ($memoire['nom_etudiant'] ?? 'Étudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
                                         <small><?php echo htmlspecialchars((string) ($memoire['matricule'] ?? $numEtu), ENT_QUOTES, 'UTF-8'); ?></small>
                                     </td>
                                     <td class="cm-data-table__td">
@@ -338,8 +260,9 @@ foreach ($etudiants as $etudiant) {
     (function () {
         const etudiants = <?php echo json_encode($etudiants, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
-        const etudiantSelect = document.getElementById('cmMemoireEtudiantSelect');
+        const etudiantSelect = document.getElementById('cmMemoireEtudiantSelect_hidden');
         const numEtuInput = document.getElementById('cmMemoireNumEtu');
+        const etudiantSearchInput = document.getElementById('cmMemoireEtudiantSelect_search');
         const promotionInput = document.getElementById('cmMemoirePromotion');
         const themeInput = document.getElementById('cmMemoireTheme');
         const pdfInput = document.getElementById('cmMemoirePdf');
@@ -368,23 +291,21 @@ foreach ($etudiants as $etudiant) {
             });
         }
 
-        const searchInput = document.getElementById('cmMemoireSearch');
+        const searchInput = document.getElementById('cmMemoire_search');
         const tableBody = document.getElementById('cmMemoireTableBody');
         const exportBtn = document.getElementById('cmMemoireExport');
-        const printBtn = document.getElementById('cmMemoirePrint');
+        const printBtn = document.getElementById('cmMemoire_printBtn');
         const checkAll = document.getElementById('cmMemoireCheckAll');
-        const selectAllBtn = document.getElementById('cmMemoireSelectAllBtn');
-        const deselectBtn = document.getElementById('cmMemoireDeselectBtn');
-        const deleteBtn = document.getElementById('cmMemoireDeleteBtn');
+        const selectAllBtn = document.getElementById('cmMemoire_selectAll');
+        const deselectBtn = document.getElementById('cmMemoire_deselectAll');
+        const deleteBtn = document.getElementById('cmMemoire_deleteBtn');
 
         function setAlert(type, message) {
             if (!alertBox) {
                 return;
             }
             const cssType = type === 'success' ? 'success' : 'danger';
-            alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-                String(message || '').replace(/[<>&]/g, '') +
-                '</span></div></div>';
+            CM.alert.show(alertBox, cssType, String(message || '').replace(/[<>&]/g, ''));
         }
 
         function getRows() {
@@ -477,12 +398,19 @@ foreach ($etudiants as $etudiant) {
             resetBtn.addEventListener('click', function () {
                 if (etudiantSelect) etudiantSelect.value = '';
                 if (numEtuInput) numEtuInput.value = '';
+                if (etudiantSearchInput) etudiantSearchInput.value = '';
                 if (promotionInput) promotionInput.value = '';
                 if (themeInput) themeInput.value = '';
                 if (pdfInput) pdfInput.value = '';
                 if (pdfLabel) {
                     pdfLabel.textContent = 'Aucun fichier';
                     pdfLabel.style.color = '#6b7280';
+                }
+                // Fermer la liste déroulante du select-search
+                const wrapper = document.getElementById('cmMemoireEtudiantSelect_wrapper');
+                if (wrapper) {
+                    wrapper.classList.remove('is-open');
+                    wrapper.setAttribute('aria-expanded', 'false');
                 }
             });
         }
@@ -559,6 +487,31 @@ foreach ($etudiants as $etudiant) {
             });
         });
 
+        document.querySelectorAll('.cm-memoire-edit').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const numEtu = button.getAttribute('data-num-etu') || '';
+                if (!numEtu) {
+                    return;
+                }
+                if (etudiantSelect) {
+                    etudiantSelect.value = numEtu;
+                    // Déclencher l'événement change pour le select-search
+                    etudiantSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (numEtuInput) {
+                    numEtuInput.value = numEtu;
+                }
+                fillEtudiantInfo(numEtu);
+                if (pdfBtn) {
+                    pdfBtn.click();
+                }
+                const form = document.getElementById('cmMemoireForm');
+                if (form && typeof form.scrollIntoView === 'function') {
+                    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
         // Event: Supprimer un mémoire
         document.querySelectorAll('.cm-memoire-delete-one').forEach(function (button) {
             button.addEventListener('click', async function () {
@@ -567,21 +520,14 @@ foreach ($etudiants as $etudiant) {
                     return;
                 }
 
-                if (!window.CM || !window.CM.confirm) {
-                    if (!confirm('Supprimer ce mémoire ?')) {
-                        return;
-                    }
-                } else {
-                    const confirmed = await window.CM.confirm({
-                        title: 'Suppression',
-                        message: 'Supprimer ce mémoire ?',
-                        type: 'danger',
-                        confirmText: 'Supprimer',
-                    });
-                    if (!confirmed) {
-                        return;
-                    }
-                }
+                const confirmed = await window.CM.confirm({
+                    title: 'Suppression',
+                    message: 'Supprimer ce mémoire ?',
+                    type: 'danger',
+                    confirmText: 'Supprimer',
+                });
+
+                if (!confirmed) return;
 
                 deleteMemoire(numEtu)
                     .then(function (payload) {
@@ -614,21 +560,14 @@ foreach ($etudiants as $etudiant) {
                     return;
                 }
 
-                if (!window.CM || !window.CM.confirm) {
-                    if (!confirm('Supprimer ' + nums.length + ' mémoire(s) ?')) {
-                        return;
-                    }
-                } else {
-                    const confirmed = await window.CM.confirm({
-                        title: 'Suppression multiple',
-                        message: 'Supprimer ' + nums.length + ' mémoire(s) ?',
-                        type: 'danger',
-                        confirmText: 'Supprimer',
-                    });
-                    if (!confirmed) {
-                        return;
-                    }
-                }
+                const confirmed = await window.CM.confirm({
+                    title: 'Suppression multiple',
+                    message: 'Supprimer ' + nums.length + ' mémoire(s) ?',
+                    type: 'danger',
+                    confirmText: 'Supprimer',
+                });
+
+                if (!confirmed) return;
 
                 Promise.all(nums.map(deleteMemoire))
                     .then(function (results) {
@@ -655,7 +594,7 @@ foreach ($etudiants as $etudiant) {
         // Event: Export CSV
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['N°', 'Etudiant', 'Promotion', 'Thème', 'Fichier', 'Date dépôt', 'Taille'];
+                const headers = ['N°', 'Étudiant', 'Promotion', 'Thème', 'Fichier', 'Date dépôt', 'Taille'];
                 const csvRows = [headers.join(';')];
 
                 getVisibleRows().forEach(function (row) {

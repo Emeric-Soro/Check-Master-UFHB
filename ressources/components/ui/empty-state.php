@@ -1,5 +1,5 @@
 <?php
-$title = (string) ($title ?? 'Aucune donnee');
+$title = (string) ($title ?? 'Aucune donnée');
 $message = (string) ($message ?? '');
 $icon = (string) ($icon ?? 'fa-inbox');
 $in_table = !empty($in_table);

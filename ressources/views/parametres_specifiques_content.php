@@ -31,6 +31,7 @@ $iconByTitle = [
     'Critères et Barème' => 'fa-list-check',
     'Critères Barème' => 'fa-list-check',
     'Salles' => 'fa-door-open',
+    'Programmation sessions' => 'fa-calendar-days',
     'Entreprises' => 'fa-building',
     'Spécialités' => 'fa-user-graduate',
     'Maître de stage' => 'fa-user-tie',

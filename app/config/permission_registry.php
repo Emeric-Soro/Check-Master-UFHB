@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 $groups = [
     'administrateur' => 5,
+    'admin_responsable_filiere' => 14,
     'secretaire' => 6,
     'charge_communication' => 7,
     'responsable_scolarite' => 8,
@@ -37,25 +38,31 @@ foreach ($groups as $groupId) {
 $categoryDefaults = [
     'ADMIN_PLATEFORME' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
     ],
     'SCOLARITE' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['responsable_scolarite'] => $full,
     ],
     'ETUDIANT_ENV' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['etudiant'] => $view,
     ],
     'COMMISSION' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['commission'] => $full,
     ],
     'SOUTENANCE' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['commission'] => $full,
     ],
     'ENV_ENSEIGNANT' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['responsable_filiere'] => $view,
         $groups['responsable_niveau'] => $view,
         $groups['commission'] => $view,
@@ -86,13 +93,7 @@ $addFeature = static function (array $definition) use (&$features): void {
     $features[$slug] = $definition;
 };
 
-$paramCrud = static function (
-    string $slug,
-    string $action,
-    string $label,
-    string $code,
-    array $options = []
-) use ($addFeature, $groups, $full, $viewEdit): void {
+$paramCrud = static function (string $slug, string $action, string $label, string $code, array $options = []) use ($addFeature, $groups, $full, $viewEdit): void {
     $pageAliases = $options['page_aliases'] ?? ['parametres_generaux'];
     $routes = [];
     foreach ($pageAliases as $pageAlias) {
@@ -192,6 +193,24 @@ $addFeature([
 ]);
 
 $addFeature([
+    'slug' => 'validation_memoires',
+    'code' => 'MEMOIRE_VALIDATION',
+    'label' => 'Validation des memoires',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=validation_memoires',
+    'routes' => [
+        ['pattern' => 'page=validation_memoires', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=validation_memoires&action=enregistrer_decision', 'method' => 'POST', 'crud' => 'modifier'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
+        $groups['responsable_filiere'] => $viewEdit,
+        $groups['enseignant'] => $viewEdit,
+    ],
+]);
+
+$addFeature([
     'slug' => 'tableau_bord_enseignant',
     'code' => 'ENS_DASHBOARD',
     'label' => 'Tableau de bord enseignant',
@@ -212,9 +231,12 @@ $addFeature([
     'existing_codes' => ['PROFIL'],
     'routes' => [
         ['pattern' => 'page=profil', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=profil&tab=profile', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=profil&tab=password', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=profil&tab=history', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=profil&tab=profile', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=profil&tab=password', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=profil&action=update_email&tab=profile', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=profil&action=update_password&tab=password', 'method' => 'POST', 'crud' => 'modifier'],
     ],
     'permissions' => $profileMatrix,
@@ -431,9 +453,12 @@ $addFeature([
     'existing_codes' => ['MAJ_ENSEIGNANT'],
     'routes' => [
         ['pattern' => 'page=maj_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=maj_enseignant&action=importer', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=maj_enseignant&action=btn_add_enseignant', 'method' => 'POST', 'crud' => 'creer'],
         ['pattern' => 'page=maj_enseignant&action=btn_modifier_enseignant', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=maj_enseignant&action=submit_delete_multiple', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=maj_enseignant&action=submit_import_upload', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=maj_enseignant&action=submit_import_commit', 'method' => 'POST', 'crud' => 'creer'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -450,9 +475,12 @@ $addFeature([
     'existing_codes' => ['MAJ_PERSONNEL_ADMIN'],
     'routes' => [
         ['pattern' => 'page=maj_personnel_admin', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=maj_personnel_admin&action=importer', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=maj_personnel_admin&action=btn_add_pers_admin', 'method' => 'POST', 'crud' => 'creer'],
         ['pattern' => 'page=maj_personnel_admin&action=btn_modifier_pers_admin', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=maj_personnel_admin&action=submit_delete_multiple', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=maj_personnel_admin&action=submit_import_upload', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=maj_personnel_admin&action=submit_import_commit', 'method' => 'POST', 'crud' => 'creer'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -471,11 +499,14 @@ $addFeature([
         ['pattern' => 'page=gestion_etudiants', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&action=ajouter_des_etudiants', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&action=inscrire_des_etudiants', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_etudiants&action=importer_etudiants', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&modalAction=edit', 'method' => 'GET', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_etudiants&modalAction=imprimer_recu', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_etudiants&action=submit_add_etudiant', 'method' => 'POST', 'crud' => 'creer'],
         ['pattern' => 'page=gestion_etudiants&action=submit_modifier_etudiant', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_etudiants&action=selected_ids', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=gestion_etudiants&action=submit_import_upload', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=gestion_etudiants&action=submit_import_commit', 'method' => 'POST', 'crud' => 'creer'],
     ],
 ]);
 
@@ -621,20 +652,85 @@ $addFeature([
     'routes' => [
         ['pattern' => 'page=gestion_rapports', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_rapports&action=creer_rapport', 'method' => 'GET', 'crud' => 'creer'],
-        ['pattern' => 'page=gestion_rapports&action=suivi_rapport', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=commentaire_rapport', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=supprimer_rapport', 'method' => 'GET', 'crud' => 'supprimer'],
-        ['pattern' => 'page=gestion_rapports&action=get_rapport', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=get_commentaires', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=exporter_rapports', 'method' => 'GET', 'crud' => 'voir'],
+
         ['pattern' => 'page=gestion_rapports&action=save_rapport', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_rapports&action=deposer_rapport', 'method' => 'POST', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_rapports&action=export_pdf', 'method' => 'POST', 'crud' => 'voir'],
-        ['pattern' => 'page=gestion_rapports&action=supprimer_rapport', 'method' => 'POST', 'crud' => 'supprimer'],
+
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
         $groups['etudiant'] => $full,
+    ],
+]);
+
+// ======================== PRD 1 & 2 & 4 : Téléchargement rapport étudiant ========================
+
+$addFeature([
+    'slug' => 'telechargement_rapport_etudiant_etu',
+    'code' => 'RAPPORT_ETU',
+    'label' => 'Téléchargement rapport étudiant (vue étudiant)',
+    'category_code' => 'ETUDIANT_ENV',
+    'menu_url' => '?page=gestion_rapports&action=telecharger_rapport',
+    'routes' => [
+        ['pattern' => 'page=gestion_rapports&action=telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=upload_rapport', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=gestion_rapports&action=download_modele', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['etudiant'] => $createEdit,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'cycle_etudiant',
+    'code' => 'CYCLE_ETUDIANT',
+    'label' => 'Parcours étudiant complet',
+    'category_code' => 'ETUDIANT_ENV',
+    'menu_url' => '?page=cycle_etudiant',
+    'routes' => [
+        ['pattern' => 'page=cycle_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=show', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=search', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=progression', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=cycle_etudiant&action=module', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['admin_responsable_filiere'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'telechargement_rapport_etudiant_admin',
+    'code' => 'RAPPORT_ADMIN',
+    'label' => 'Téléchargement rapport étudiant (vue administration)',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=gestion_rapports&action=admin_telecharger_rapport',
+    'routes' => [
+        ['pattern' => 'page=gestion_rapports&action=admin_telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=admin_upload_rapport', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=gestion_rapports&action=get_etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=export_rapports_csv', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_rapports&action=update_rapport_inline', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=admin_telecharger_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=admin_upload_rapport', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=telecharger_rapport&action=get_etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=export_rapports_csv', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=download_fichier_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=download_modele', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=telecharger_rapport&action=update_rapport_inline', 'method' => 'POST', 'crud' => 'modifier'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $full,
+        $groups['charge_communication'] => $full,
+        $groups['responsable_scolarite'] => $full,
     ],
 ]);
 
@@ -728,6 +824,7 @@ $addFeature([
     'existing_codes' => ['SUIVI_VALIDATION_COM'],
     'routes' => [
         ['pattern' => 'page=processus_validation', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=processus_validation', 'method' => 'POST', 'crud' => 'modifier'],
     ],
 ]);
 
@@ -742,7 +839,7 @@ $addFeature([
         ['pattern' => 'page=redaction_compte_rendu', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=redaction_compte_rendu&action=brouillons', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=redaction_compte_rendu&action=archives', 'method' => 'GET', 'crud' => 'voir'],
-        ['pattern' => 'page=redaction_compte_rendu&action=export_pdf', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=redaction_compte_rendu&action=export_pdf', 'method' => 'POST', 'crud' => 'voir'],
         ['pattern' => 'page=redaction_compte_rendu', 'method' => 'POST', 'crud' => 'modifier'],
     ],
 ]);
@@ -1035,6 +1132,337 @@ $paramCrud('schema_tables', 'schema_tables', 'Couverture tables/colonnes', 'PARA
         $groups['administrateur'] => $view,
     ],
 ]);
+$paramCrud('programmation_sessions_soutenance', 'programmation_sessions_soutenance', 'Programmation sessions soutenance', 'PARAM_SESSIONS_SOUTENANCE', [
+    'page_aliases' => ['parametres_generaux', 'parametres_specifiques'],
+]);
+
+// ── Nouveaux écrans P1-P3 ──
+
+$addFeature([
+    'slug' => 'dashboard_direction',
+    'code' => 'DIR_DASHBOARD',
+    'label' => 'Dashboard direction',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=dashboard_direction',
+    'routes' => [
+        ['pattern' => 'page=dashboard_direction', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['responsable_filiere'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'recherche_globale',
+    'code' => 'RECH_GLOBALE',
+    'label' => 'Recherche globale',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=recherche_globale',
+    'routes' => [
+        ['pattern' => 'page=recherche_globale', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=recherche_globale&ajax=1', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+        $groups['commission'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'dashboard_securite',
+    'code' => 'SECURITE_DASH',
+    'label' => 'Dashboard sécurité',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=dashboard_securite',
+    'routes' => [
+        ['pattern' => 'page=dashboard_securite', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'fiche_enseignante',
+    'code' => 'FICHE_ENS',
+    'label' => 'Fiche enseignante complète',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=fiche_enseignante',
+    'routes' => [
+        ['pattern' => 'page=fiche_enseignante', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['responsable_filiere'] => $view,
+        $groups['commission'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'fiche_commission',
+    'code' => 'FICHE_COM',
+    'label' => 'Fiche commission',
+    'category_code' => 'COMMISSION',
+    'menu_url' => '?page=fiche_commission',
+    'routes' => [
+        ['pattern' => 'page=fiche_commission', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['commission'] => $view,
+    ],
+]);
+
+// ── Nouveaux écrans P2.5-P2.16 ──
+
+$addFeature([
+    'slug' => 'etudiants_sans_rapport',
+    'code' => 'ETU_SANS_RAPPORT',
+    'label' => 'Étudiants sans rapport',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=etudiants_sans_rapport',
+    'routes' => [
+        ['pattern' => 'page=etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'etudiants_non_inscrits',
+    'code' => 'ETU_NON_INSCRITS',
+    'label' => 'Étudiants non inscrits',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=etudiants_non_inscrits',
+    'routes' => [
+        ['pattern' => 'page=etudiants_non_inscrits', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'etudiants_sans_compte',
+    'code' => 'ETU_SANS_COMPTE',
+    'label' => 'Étudiants sans compte',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=etudiants_sans_compte',
+    'routes' => [
+        ['pattern' => 'page=etudiants_sans_compte', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=etudiants_sans_compte&action=creer_comptes_masse', 'method' => 'POST', 'crud' => 'creer'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'planning_jurys_enseignant',
+    'code' => 'PLANNING_JURYS',
+    'label' => 'Planning jurys enseignant',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=planning_jurys_enseignant',
+    'routes' => [
+        ['pattern' => 'page=planning_jurys_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'stats_encadrement_enseignant',
+    'code' => 'STATS_ENCADREMENT',
+    'label' => 'Stats encadrement enseignant',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=stats_encadrement_enseignant',
+    'routes' => [
+        ['pattern' => 'page=stats_encadrement_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'portfolio_enseignant',
+    'code' => 'PORTFOLIO_ENS',
+    'label' => 'Portfolio enseignant',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=portfolio_enseignant',
+    'routes' => [
+        ['pattern' => 'page=portfolio_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'echeancier_etudiant',
+    'code' => 'ECHEANCIER',
+    'label' => 'Échéancier étudiant',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=echeancier_etudiant',
+    'routes' => [
+        ['pattern' => 'page=echeancier_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'historique_modifications',
+    'code' => 'HISTORIQUE_MODIFS',
+    'label' => 'Historique modifications',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=historique_modifications',
+    'routes' => [
+        ['pattern' => 'page=historique_modifications', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=historique_modifications&export=csv', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'export_masse_documents',
+    'code' => 'EXPORT_MASSE_DOCS',
+    'label' => 'Export masse documents',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=export_masse_documents',
+    'routes' => [
+        ['pattern' => 'page=export_masse_documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=export_masse_documents&action=generate_zip', 'method' => 'POST', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+// ════════════════════════════════════════════════════════════════
+// HUBS DE NAVIGATION (remaniement menus 2026-05-19)
+// ════════════════════════════════════════════════════════════════
+
+$addFeature([
+    'slug' => 'suivi_scolarite',
+    'code' => 'SCOLA_SUIVI',
+    'label' => 'Suivi & Scolarité',
+    'category_code' => 'SCOLARITE',
+    'menu_url' => '?page=suivi_scolarite',
+    'routes' => [
+        ['pattern' => 'page=suivi_scolarite', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=fiche_financiere_annee', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=historique_inscriptions', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_non_inscrits', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_sans_compte', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=etudiants_sans_compte&action=creer_comptes_masse', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=suivi_scolarite&tab=echeancier_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=visualisation_fiche_inscription', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=fiche_etudiant_complete', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=suivi_scolarite&tab=timeline_parcours_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $viewEdit,
+        $groups['responsable_scolarite'] => $full,
+        $groups['responsable_filiere'] => $view,
+        $groups['responsable_niveau'] => $view,
+        $groups['commission'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'commissions_archives',
+    'code' => 'COMM_ARCHIVES',
+    'label' => 'Commissions & Archives',
+    'category_code' => 'COMMISSION',
+    'menu_url' => '?page=commissions_archives',
+    'routes' => [
+        ['pattern' => 'page=commissions_archives', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=archives_documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=archives_etudiants', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=archive_comptes_rendus', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=fiche_commission', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=workflow_validation', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['commission'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'enseignant_gestion',
+    'code' => 'ENS_GESTION',
+    'label' => 'Gestion des Enseignants',
+    'category_code' => 'ENV_ENSEIGNANT',
+    'menu_url' => '?page=enseignant_gestion',
+    'routes' => [
+        ['pattern' => 'page=enseignant_gestion', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=repertoire_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=fiche_enseignante', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=planning_jurys_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=stats_encadrement_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=portfolio_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=enseignant_gestion&tab=annuaire_enseignants', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['responsable_filiere'] => $view,
+        $groups['responsable_niveau'] => $view,
+        $groups['commission'] => $view,
+        $groups['enseignant'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'outils_direction',
+    'code' => 'ADM_OUTILS_DIRECTION',
+    'label' => 'Outils & Direction',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=outils_direction',
+    'routes' => [
+        ['pattern' => 'page=outils_direction', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=historique_modifications', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=historique_modifications&export=csv', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=export_masse_documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=export_masse_documents&action=generate_zip', 'method' => 'POST', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=dashboard_securite', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=comparaison_versions_document', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=fiche_personnel_admin', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=outils_direction&tab=dashboard_direction', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+    ],
+]);
+
+// ════════════════════════════════════════════════════════════════
 
 return [
     'version' => '2026-03-12',
@@ -1043,6 +1471,8 @@ return [
         ['pattern' => 'page=access_denied', 'method' => 'GET'],
         ['pattern' => 'page=page_connexion', 'method' => 'GET'],
         ['pattern' => 'page=reset_password', 'method' => 'GET'],
+        ['pattern' => 'page=docviewer&action=preview', 'method' => 'GET'],
+        ['pattern' => 'page=docviewer&action=download', 'method' => 'GET'],
     ],
     'slug_aliases' => [
         'dashboard_admin' => 'dashboard',
@@ -1058,6 +1488,14 @@ return [
         'gestion_notes' => 'gestion_notes_evaluations',
         'reclamation_etudiant' => 'gestion_reclamations_scolarite',
         'repertoire_documents' => 'repertoire_enseignant',
+        'annuaire_enseignants' => 'repertoire_enseignant',
+        'fiche_financiere_annee' => 'gestion_scolarite',
+        'fiche_personnel_admin' => 'gestion_rh',
+        'fiche_pers_admin' => 'fiche_personnel_admin',
+        'fiche_etudiant_complete' => 'archives_etudiants',
+        'fiche_etudiant' => 'fiche_etudiant_complete',
+        'timeline_parcours_etudiant' => 'archives_etudiants',
+        'parcours_etudiant' => 'cycle_etudiant',
     ],
     'category_defaults' => $categoryDefaults,
     'features' => $features,

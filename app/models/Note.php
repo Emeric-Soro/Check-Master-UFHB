@@ -49,11 +49,18 @@ class Note
 
             if ($existing) {
                 // Mise à jour
-                return $this->updateNote($numEtu, $moyenneM1, $moyenneM2);
-            } else {
+                return $this->updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
+            }
+
+            $existingForStudent = $this->getLatestNote($numEtu);
+            if ($existingForStudent) {
+                return $this->updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
+            }
+
+            
                 // Création
                 return $this->createNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
-            }
+            
         } catch (PDOException $e) {
             error_log("Erreur lors de l'enregistrement des notes: " . $e->getMessage());
             return false;
@@ -101,15 +108,24 @@ class Note
     /**
      * Mettre à jour une note existante
      */
-    private function updateNote($numEtu, $moyenneM1, $moyenneM2)
+    private function updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId = null)
     {
         try {
             $query = "UPDATE notes 
-                     SET moyenne_M1 = ?, moyenne_M2 = ?
-                     WHERE num_etu = ?";
+                     SET moyenne_M1 = ?, moyenne_M2 = ?";
+
+            $params = [$moyenneM1, $moyenneM2];
+
+            if ($anneeAcadId !== null) {
+                $query .= ", id_annee_acad = ?";
+                $params[] = $anneeAcadId;
+            }
+
+            $query .= " WHERE num_etu = ?";
+            $params[] = $numEtu;
 
             $stmt = $this->db->prepare($query);
-            return $stmt->execute([$moyenneM1, $moyenneM2, $numEtu]);
+            return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log("Erreur lors de la mise à jour de la note: " . $e->getMessage());
             return false;
@@ -127,6 +143,45 @@ class Note
             return $stmt->execute([$numEtu]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la suppression de la note: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Vérifier si un étudiant a validé un semestre donné pour un niveau donné.
+     * Un semestre est considéré validé si la moyenne du niveau >= 10.
+     *
+     * @param string $numEtu Numéro étudiant
+     * @param string $codeSemestre Code du semestre (S1, S2)
+     * @param string $libNiveau Libellé du niveau (Master 1, Master 2)
+     * @return bool
+     */
+    public function estSemestreValide(string $numEtu, string $codeSemestre, string $libNiveau): bool
+    {
+        try {
+            $note = $this->getLatestNote($numEtu);
+            if (!$note) {
+                return false;
+            }
+
+            // Pour le S1 du Master 2, on vérifie que la moyenne M2 >= 10
+            if ($codeSemestre === 'S1' && $libNiveau === 'Master 2') {
+                return ($note->moyenne_M2 ?? 0) >= 10;
+            }
+
+            // Pour le S2 du Master 1, on vérifie que la moyenne M1 >= 10
+            if ($codeSemestre === 'S2' && $libNiveau === 'Master 1') {
+                return ($note->moyenne_M1 ?? 0) >= 10;
+            }
+
+            // Par défaut, on accepte si la note de ce niveau existe
+            if ($libNiveau === 'Master 2') {
+                return ($note->moyenne_M2 ?? 0) >= 10;
+            }
+
+            return ($note->moyenne_M1 ?? 0) >= 10;
+        } catch (Exception $e) {
+            error_log("Erreur estSemestreValide: " . $e->getMessage());
             return false;
         }
     }
@@ -187,10 +242,18 @@ class Note
     public function getNotesByNiveauAndYear($niveauId, $anneeAcadId)
     {
         try {
-            $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
-                            a.date_deb, a.date_fin
+            $query = "SELECT e.num_carte_etud,
+                            MAX(n.num_etu) AS num_etu,
+                            MAX(n.id_annee_acad) AS id_annee_acad,
+                            MAX(n.moyenne_M1) AS moyenne_M1,
+                            MAX(n.moyenne_M2) AS moyenne_M2,
+                            MAX(n.date_creation) AS date_creation,
+                            MAX(n.date_modification) AS date_modification,
+                            e.nom_etu, e.prenom_etu,
+                            MAX(a.date_deb) AS date_deb,
+                            MAX(a.date_fin) AS date_fin
                      FROM notes n
-                     INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
+                     INNER JOIN etudiants e ON (n.num_etu = e.num_carte_etud OR n.num_etu = e.num_ident_etud)
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
                      LEFT JOIN (
                         SELECT i1.num_carte_etud, i1.id_niv_etude
@@ -203,6 +266,7 @@ class Note
                                AND latest.max_v = i1.num_versement
                         ) ins ON ins.num_carte_etud = e.num_carte_etud
                      WHERE ins.id_niv_etude = ?
+                     GROUP BY e.num_carte_etud, e.nom_etu, e.prenom_etu
                      ORDER BY e.nom_etu, e.prenom_etu";
 
             $params = [$niveauId];
@@ -230,10 +294,18 @@ class Note
     public function getNotesByYear($anneeAcadId = null)
     {
         try {
-            $query = "SELECT n.*, e.nom_etu, e.prenom_etu, e.num_carte_etud,
-                            a.date_deb, a.date_fin
+            $query = "SELECT e.num_carte_etud,
+                            MAX(n.num_etu) AS num_etu,
+                            MAX(n.id_annee_acad) AS id_annee_acad,
+                            MAX(n.moyenne_M1) AS moyenne_M1,
+                            MAX(n.moyenne_M2) AS moyenne_M2,
+                            MAX(n.date_creation) AS date_creation,
+                            MAX(n.date_modification) AS date_modification,
+                            e.nom_etu, e.prenom_etu,
+                            MAX(a.date_deb) AS date_deb,
+                            MAX(a.date_fin) AS date_fin
                      FROM notes n
-                     INNER JOIN etudiants e ON n.num_etu = e.num_carte_etud
+                     INNER JOIN etudiants e ON (n.num_etu = e.num_carte_etud OR n.num_etu = e.num_ident_etud)
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad";
 
             $params = [];
@@ -242,7 +314,7 @@ class Note
                 $params[] = (int) $anneeAcadId;
             }
 
-            $query .= " ORDER BY e.nom_etu, e.prenom_etu";
+            $query .= " GROUP BY e.num_carte_etud, e.nom_etu, e.prenom_etu ORDER BY e.nom_etu, e.prenom_etu";
 
             $stmt = $this->db->prepare($query);
             $stmt->execute($params);

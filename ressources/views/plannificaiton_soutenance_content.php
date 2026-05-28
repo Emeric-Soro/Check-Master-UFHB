@@ -147,7 +147,7 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
                                 <?= htmlspecialchars($etudiant['nom_complet']) ?>
                                 (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
                                 <?php if ($allYearsSelected && !empty($etudiant['promotion_etu'])): ?>
-                                    - <?= htmlspecialchars($etudiant['promotion_etu']) ?>
+                                    - <?= htmlspecialchars(\FormattingUtils::formatPromotion($etudiant['promotion_etu'])) ?>
                                 <?php endif; ?>
                                 <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'complete'): ?>
                                     - ✅ Planifié
@@ -280,7 +280,7 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
                                 </div>
                             </td>
                             <td class="cm-data-table__td">
-                                <?= htmlspecialchars($planification['promotion_etu'] ?? '-') ?>
+                                <?= htmlspecialchars(\FormattingUtils::formatPromotion($planification['promotion_etu'] ?? '-')) ?>
                             </td>
                             <td class="cm-data-table__td">
                                 <div class="text-sm text-gray-900 max-w-xs truncate"

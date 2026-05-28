@@ -110,6 +110,47 @@ if (!function_exists('cm_asset')) {
     }
 }
 
+if (!function_exists('cm_session_flash')) {
+    /**
+     * Display session flash messages using the toast component.
+     *
+     * Call this early in views to show success/error/warning/info messages
+     * stored in $_SESSION by controllers. Messages are consumed (unset) after display.
+     *
+     * Supported session keys: success, error, warning, info, message
+     * message can be string or ['text' => '...', 'type' => '...']
+     *
+     * NOTE: If the toast component is already included in the layout (app-shell.php),
+     * this function is NOT needed — the toast auto-reads session messages.
+     * Use this ONLY in views that do NOT use the standard layout.
+     */
+    function cm_session_flash(): void
+    {
+        $keys = ['success', 'error', 'warning', 'info', 'message'];
+        foreach ($keys as $key) {
+            if (!isset($_SESSION[$key]) || $_SESSION[$key] === '' || $_SESSION[$key] === []) {
+                continue;
+            }
+            $raw = $_SESSION[$key];
+            $type = $key === 'message' ? 'info' : $key;
+            $text = '';
+
+            if (is_array($raw) && isset($raw['text'])) {
+                $text = (string) $raw['text'];
+                $type = (string) ($raw['type'] ?? $type);
+            } elseif (is_string($raw)) {
+                $text = trim($raw);
+            }
+
+            if ($text !== '') {
+                cm_component('ui/alert-box', ['type' => $type, 'message' => $text]);
+            }
+
+            unset($_SESSION[$key]);
+        }
+    }
+}
+
 if (!function_exists('cm_render_param_crud_view')) {
     /**
      * Render a standardized PRD6/7 CRUD screen for PARAM_* pages.
@@ -160,6 +201,8 @@ if (!function_exists('cm_render_param_crud_view')) {
         $list = is_array($config['list'] ?? null) ? $config['list'] : [];
         $editObject = $config['edit'] ?? null;
         $isEdit = is_object($editObject) || is_array($editObject);
+
+        $exportMode = strtolower(trim((string) ($_GET['_export'] ?? '')));
 
         $extraQueryString = '';
         if (!empty($extraQuery)) {
@@ -222,6 +265,23 @@ if (!function_exists('cm_render_param_crud_view')) {
             }));
         }
 
+        // Export fichiers (XLSX) : télécharger directement sans afficher l'écran.
+        if (in_array($exportMode, ['xlsx', 'excel'], true)) {
+            cm_param_crud_export('xlsx', [
+                'title' => $title,
+                'action' => $action,
+                'page_slug' => $pageSlug,
+                'rows' => $list,
+                'columns' => $columnDefs,
+            ]);
+            return;
+        }
+        if ($exportMode === 'pdf') {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "Export PDF désactivé.";
+            exit;
+        }
+
         $pagination = function_exists('cm_paginate')
             ? cm_paginate(count($list), $perPage, $currentPage)
             : [
@@ -237,18 +297,19 @@ if (!function_exists('cm_render_param_crud_view')) {
 
         $rowsPage = array_slice($list, (int) ($pagination['offset'] ?? 0), $perPage);
 
-        $uid = 'cmParamCrud_' . preg_replace('/[^a-zA-Z0-9]/', '_', $action) . '_' . substr(md5($action . $title), 0, 8);
+        $uid = (string) ($config['uid'] ?? ('cmParamCrud_' . preg_replace('/[^a-zA-Z0-9]/', '_', $action) . '_' . substr(md5($action . $title), 0, 8)));
         $tableId = $uid . '_table';
-        $filterFormId = $uid . '_filters';
+        $filterFormId = $uid . '_filterForm';
         $bulkFormId = $uid . '_bulk';
         $limitId = $uid . '_limit';
         $searchId = $uid . '_search';
-        $deleteBtnId = $uid . '_delete_selected';
-        $selectAllBtnId = $uid . '_select_all';
-        $deselectAllBtnId = $uid . '_deselect_all';
+        $deleteBtnId = $uid . '_deleteBtn';
+        $selectAllBtnId = $uid . '_selectAll';
+        $deselectAllBtnId = $uid . '_deselectAll';
         $selectedCountId = $uid . '_selected_count';
-        $printBtnId = $uid . '_print';
-        $exportBtnId = $uid . '_export';
+        $printBtnId = $uid . '_printBtn';
+        $xlsxBtnId = $uid . '_excelBtn';
+        $exportBtnId = $uid . '_exportBtn';
         $deleteFlagId = $uid . '_delete_flag';
 
         $columns = [];
@@ -446,84 +507,6 @@ if (!function_exists('cm_render_param_crud_view')) {
         $formContent = (string) ob_get_clean();
 
         ob_start();
-        ?>
-        <form id="<?= htmlspecialchars($filterFormId, ENT_QUOTES, 'UTF-8') ?>" method="GET" action="" data-cm-ajax-form="true">
-            <input type="hidden" name="page" value="<?= htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8') ?>">
-            <input type="hidden" name="action" value="<?= htmlspecialchars($action, ENT_QUOTES, 'UTF-8') ?>">
-            <?php foreach ($extraQuery as $k => $v): ?>
-                <input type="hidden" name="<?= htmlspecialchars((string) $k, ENT_QUOTES, 'UTF-8') ?>"
-                    value="<?= htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8') ?>">
-            <?php endforeach; ?>
-            <input type="hidden" name="<?= htmlspecialchars($pageParam, ENT_QUOTES, 'UTF-8') ?>" value="1">
-            <?php
-            ob_start();
-            ?>
-            <label class="cm-toolbar__control">
-                <span>Afficher:</span>
-                <select id="<?= htmlspecialchars($limitId, ENT_QUOTES, 'UTF-8') ?>" class="cm-form-control cm-toolbar__select"
-                    name="<?= htmlspecialchars($limitParam, ENT_QUOTES, 'UTF-8') ?>">
-                    <?php foreach ($perPageOptions as $opt): ?>
-                        <?php $optValue = (int) $opt; ?>
-                        <option value="<?= $optValue ?>" <?= $optValue === $perPage ? 'selected' : '' ?>><?= $optValue ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <?php
-            $leftHtml = (string) ob_get_clean();
-
-            ob_start();
-            ?>
-            <div class="cm-toolbar__search-wrap">
-                <input id="<?= htmlspecialchars($searchId, ENT_QUOTES, 'UTF-8') ?>" type="search" class="cm-form-control"
-                    name="<?= htmlspecialchars($searchParam, ENT_QUOTES, 'UTF-8') ?>"
-                    value="<?= htmlspecialchars($search, ENT_QUOTES, 'UTF-8') ?>" placeholder="Rechercher...">
-                <button type="submit" class="cm-btn is-info is-sm">
-                    <span>Rechercher</span>
-                </button>
-            </div>
-            <?php
-            $centerHtml = (string) ob_get_clean();
-
-            ob_start();
-            ?>
-            <div class="cm-toolbar__actions">
-                <?php if (function_exists('canDelete') ? canDelete() : true): ?>
-                    <button type="button" id="<?= htmlspecialchars($selectAllBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-secondary is-sm" data-select-all="1">
-                        <span>Tout sélectionner</span>
-                    </button>
-                    <button type="button" id="<?= htmlspecialchars($deselectAllBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-secondary is-sm" data-deselect-all="1">
-                        <span>Tout désélectionner</span>
-                    </button>
-                    <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-danger is-sm" data-bulk-delete="1" disabled>
-                        <span>Supprimer (<span id="<?= htmlspecialchars($selectedCountId, ENT_QUOTES, 'UTF-8') ?>">0</span>)</span>
-                    </button>
-                <?php endif; ?>
-                <?php if (function_exists('canView') ? canView() : true): ?>
-                    <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-light is-sm">
-                        <span>Imprimer</span>
-                    </button>
-                    <!-- <button type="button" id="<?= htmlspecialchars($exportBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                        class="cm-btn is-info is-sm">
-                        <span>Exporter</span>
-                    </button> -->
-                <?php endif; ?>
-            </div>
-            <?php
-            $rightHtml = (string) ob_get_clean();
-
-            cm_component('crud/toolbar', [
-                'left_html' => $leftHtml,
-                'center_html' => $centerHtml,
-                'right_html' => $rightHtml,
-            ]);
-            ?>
-        </form>
-        <?php
-        $toolbarHtml = (string) ob_get_clean();
 
         $tableActions = [];
         $noDelete = !empty($config['no_delete']);
@@ -579,7 +562,23 @@ if (!function_exists('cm_render_param_crud_view')) {
                 ]);
                 ?>
 
-                <?= $toolbarHtml ?>
+                <?php
+                cm_toolbar([
+                    'id_prefix' => $uid,
+                    'screen' => $action,
+                    'search_name' => $searchParam,
+                    'search_value' => $search,
+                    'limit' => $perPage,
+                    'limit_options' => $perPageOptions,
+                    'limit_name' => $limitParam,
+                    'show_filters' => false,
+                    'show_actions' => true,
+                    'can_delete' => function_exists('canDelete') ? canDelete() : true,
+                    'can_view' => function_exists('canView') ? canView() : true,
+                    'can_excel' => true,
+                    'custom_actions' => is_array($config['toolbar_custom_actions'] ?? null) ? $config['toolbar_custom_actions'] : [],
+                ]);
+                ?>
 
                 <div class="cm-pole-inferieur">
                     <form id="<?= htmlspecialchars($bulkFormId, ENT_QUOTES, 'UTF-8') ?>" method="POST"
@@ -595,7 +594,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                             'row_key' => '_id',
                             'selectable' => (function_exists('canDelete') ? canDelete() : true),
                             'actions' => $tableActions,
-                            'empty_title' => 'Aucune donnee',
+                            'empty_title' => 'Aucune donnée',
                             'empty_message' => 'Aucun enregistrement trouve.',
                         ]);
                         ?>
@@ -617,16 +616,18 @@ if (!function_exists('cm_render_param_crud_view')) {
                     return;
                 }
 
-                const filterForm = document.getElementById(<?= json_encode($filterFormId) ?>);
+                const filterForm = document.getElementById(<?= json_encode($filterFormId) ?>) || root.querySelector('form');
                 const bulkForm = document.getElementById(<?= json_encode($bulkFormId) ?>);
                 const table = document.getElementById(<?= json_encode($tableId) ?>);
                 const limitSelect = document.getElementById(<?= json_encode($limitId) ?>);
+                const searchInput = document.getElementById(<?= json_encode($searchId) ?>);
                 const deleteFlag = document.getElementById(<?= json_encode($deleteFlagId) ?>);
                 const deleteBtn = document.getElementById(<?= json_encode($deleteBtnId) ?>);
                 const selectAllBtn = document.getElementById(<?= json_encode($selectAllBtnId) ?>);
                 const deselectAllBtn = document.getElementById(<?= json_encode($deselectAllBtnId) ?>);
-                const selectedCount = document.getElementById(<?= json_encode($selectedCountId) ?>);
+                const selectedCount = deleteBtn ? deleteBtn.querySelector('.cm-delete-count') : null;
                 const printBtn = document.getElementById(<?= json_encode($printBtnId) ?>);
+                const xlsxBtn = document.getElementById(<?= json_encode($xlsxBtnId) ?>);
                 const exportBtn = document.getElementById(<?= json_encode($exportBtnId) ?>);
 
                 const navigate = function (url) {
@@ -657,7 +658,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                     const checks = rowChecks();
                     const selected = checks.filter(function (input) { return input.checked; });
                     if (selectedCount) {
-                        selectedCount.textContent = String(selected.length);
+                        selectedCount.textContent = selected.length > 0 ? (' (' + selected.length + ')') : '';
                     }
                     if (deleteBtn) {
                         deleteBtn.disabled = selected.length === 0;
@@ -691,9 +692,14 @@ if (!function_exists('cm_render_param_crud_view')) {
 
                 if (limitSelect && filterForm) {
                     limitSelect.addEventListener('change', function () {
-                        if (typeof filterForm.requestSubmit === 'function') {
-                            filterForm.requestSubmit();
-                        } else {
+                        // Si c'est dans un cm_toolbar, le form est englobant
+                        filterForm.submit();
+                    });
+                }
+                if (searchInput && filterForm) {
+                    searchInput.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
                             filterForm.submit();
                         }
                     });
@@ -722,7 +728,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                         const deleteButton = event.target.closest('.cm-btn-action.is-delete');
                         if (deleteButton) {
                             const rowId = deleteButton.getAttribute('data-row-id') || '';
-                            if (rowId !== '' && window.confirm('Confirmer la suppression de cet element ?')) {
+                            if (rowId !== '') {
                                 submitDelete([rowId]);
                             }
                         }
@@ -749,9 +755,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                         if (ids.length === 0) {
                             return;
                         }
-                        if (window.confirm('Confirmer la suppression des elements selectionnes ?')) {
-                            submitDelete(ids);
-                        }
+                        submitDelete(ids);
                     });
                 }
 
@@ -764,13 +768,110 @@ if (!function_exists('cm_render_param_crud_view')) {
                         if (!printWindow) {
                             return;
                         }
-                        printWindow.document.write('<html><head><title>Impression</title><style>body{font-family:Arial,sans-serif;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#f3f4f6}</style></head><body>');
+                        const now = new Date();
+                        const printedAt = (typeof now.toLocaleString === 'function')
+                            ? now.toLocaleString('fr-FR')
+                            : (now.toDateString() + ' ' + now.toTimeString());
+
+                        const printedBy = <?= json_encode(trim((string) (($_SESSION['nom_utilisateur'] ?? '') . ' ' . ($_SESSION['prenom_utilisateur'] ?? '') ?: ($_SESSION['username'] ?? '') ?: ($_SESSION['email'] ?? ''))), JSON_UNESCAPED_UNICODE) ?>;
+                        const docTitle = <?= json_encode(trim((string) ($title !== '' ? $title : ucfirst(str_replace('_', ' ', (string) $action)))), JSON_UNESCAPED_UNICODE) ?> || 'Impression';
+                        const academicYear = <?= json_encode(trim((string) ($_SESSION['global_annee_selected'] ?? $_SESSION['global_annee_active_label'] ?? $_SESSION['annee_academique'] ?? $_SESSION['annee_academique_libelle'] ?? '')), JSON_UNESCAPED_UNICODE) ?>;
+
+                        const path = String(window.location.pathname || '');
+                        const publicBasePath = path.replace(/\/public\/.*$/i, '/public');
+                        const baseUrl = String(window.location.origin || '') + publicBasePath;
+                        const logoLeft = baseUrl + '/image/logo_civ.png';
+                        const logoRight = baseUrl + '/image/logo_ufhb.png';
+
+                        const css = `
+                            :root { --header-h: 88px; --footer-h: 48px; }
+                            body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #111827; }
+                            .cm-print-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); padding: 12px 20px 8px; border-bottom: 1px solid #e5e7eb; background: #fff; }
+                            .cm-print-header__row { display: flex; align-items: flex-start; gap: 16px; }
+                            .cm-print-side { width: 160px; display: flex; flex-direction: column; align-items: center; }
+                            .cm-print-logo { width: 64px; height: 64px; object-fit: contain; }
+                            .cm-print-side .meta { margin-top: 6px; font-size: 10px; color: #4b5563; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                            .cm-print-side.left .meta { text-align: left; }
+                            .cm-print-side.right .meta { text-align: right; }
+                            .cm-print-title { flex: 1; text-align: center; padding-top: 6px; }
+                            .cm-print-title h1 { margin: 0; font-size: 18px; font-weight: 700; }
+                            .cm-print-title .meta-row { margin-top: 6px; display: flex; justify-content: center; }
+                            .cm-print-title .meta-row .ay { font-size: 12px; font-weight: 600; color: #111827; text-align: center; }
+                            .cm-print-footer { position: fixed; bottom: 0; left: 0; right: 0; height: var(--footer-h); padding: 8px 20px; border-top: 1px solid #e5e7eb; background: #fff; font-size: 11px; color: #374151; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+                            .cm-print-footer .center { flex: 1; text-align: center; }
+                            .cm-print-content { padding: calc(var(--header-h) + 14px) 20px calc(var(--footer-h) + 14px); }
+                            table { width: 100%; border-collapse: collapse; }
+                            th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
+                            th { background: #f3f4f6; }
+                            button, input[type="checkbox"], .cm-btn, .cm-btn-action { display: none !important; }
+                            @media print {
+                                @page { margin: 12mm; }
+                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        `;
+
+                        const footerText = 'UFR MI, Filière Professionnalisées MIAGE-GI, 22.BP. 582 Abidjan 22, email: miage-gi.mi@univ-fhb.edu.ci';
+
+                        const headerHtml = `
+                            <div class="cm-print-header">
+                                <div class="cm-print-header__row">
+                                    <div class="cm-print-side left">
+                                        <img class="cm-print-logo" src="${logoLeft}" alt="Logo Côte d’Ivoire" />
+                                        <div class="meta">Imprimé par: ${printedBy || '-'}</div>
+                                    </div>
+                                    <div class="cm-print-title">
+                                        <h1>${docTitle}</h1>
+                                        <div class="meta-row">
+                                            <div class="ay">${academicYear ? ('Année académique: ' + academicYear) : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="cm-print-side right">
+                                        <img class="cm-print-logo" src="${logoRight}" alt="Logo UFHB" />
+                                        <div class="meta">Imprimé le: ${printedAt}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        const footerHtml = `
+                            <div class="cm-print-footer">
+                                <div class="left"></div>
+                                <div class="center">${footerText}</div>
+                                <div class="right"></div>
+                            </div>
+                        `;
+
+                        // NOTE: les rectangles (date/titre/url) viennent des "en-têtes/pieds" du navigateur.
+                        // Pour les masquer: dans la fenêtre d'impression, décocher "En-têtes et pieds de page".
+                        printWindow.document.write('<html><head><title></title><meta charset="utf-8"><style>' + css + '</style></head><body>');
+                        printWindow.document.write(headerHtml);
+                        printWindow.document.write('<div class="cm-print-content">');
                         printWindow.document.write(table.outerHTML);
+                        printWindow.document.write('</div>');
+                        printWindow.document.write(footerHtml);
                         printWindow.document.write('</body></html>');
                         printWindow.document.close();
                         printWindow.focus();
-                        printWindow.print();
+                        // Laisser le temps aux images de charger pour éviter un header vide
+                        setTimeout(function () { printWindow.print(); }, 250);
                     });
+                }
+
+                const openDownload = function (mode) {
+                    try {
+                        const u = new URL(window.location.href);
+                        u.searchParams.set('_export', String(mode));
+                        // Les exports doivent être un vrai téléchargement (pas AJAX)
+                        window.open(u.toString(), '_blank');
+                    } catch (e) {
+                        // Fallback si URL() indisponible
+                        const sep = window.location.href.indexOf('?') >= 0 ? '&' : '?';
+                        window.open(window.location.href + sep + '_export=' + encodeURIComponent(String(mode)), '_blank');
+                    }
+                };
+
+                if (xlsxBtn) {
+                    xlsxBtn.addEventListener('click', function () { openDownload('xlsx'); });
                 }
 
                 if (exportBtn) {
@@ -977,6 +1078,245 @@ if (!function_exists('cm_toolbar_filter_configs')) {
     }
 }
 
+if (!function_exists('cm_param_crud_export')) {
+    /**
+     * Export générique des écrans "Paramètres" rendus via cm_render_param_crud_view().
+     *
+     * @param 'xlsx' $mode
+     * @param array{title:string, action:string, page_slug:string, rows:array, columns:array} $payload
+     */
+    function cm_param_crud_export(string $mode, array $payload): void
+    {
+        // IMPORTANT: un export doit sortir un binaire "propre".
+        // On purge TOUT buffer avant d'envoyer des headers pour éviter un fichier corrompu.
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+        if (function_exists('ini_set')) {
+            @ini_set('zlib.output_compression', '0');
+        }
+
+        $title = trim((string) ($payload['title'] ?? 'Export'));
+        $action = trim((string) ($payload['action'] ?? 'export'));
+        $rows = is_array($payload['rows'] ?? null) ? $payload['rows'] : [];
+        $columnDefs = is_array($payload['columns'] ?? null) ? $payload['columns'] : [];
+
+        $safeBase = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $action) ?: 'export';
+        $dateSuffix = date('Ymd_His');
+
+        // Colonnes exportables: on ignore la colonne "Actions" et les colonnes vides.
+        $exportCols = [];
+        foreach ($columnDefs as $def) {
+            $key = (string) ($def['key'] ?? '');
+            if ($key === '' || $key === 'actions' || $key === '_actions') {
+                continue;
+            }
+            $label = (string) ($def['label'] ?? $key);
+            $exportCols[] = ['key' => $key, 'label' => $label, 'def' => $def];
+        }
+
+        $rowValue = static function ($row, string $key, $default = '') {
+            if (is_array($row)) {
+                return $row[$key] ?? $default;
+            }
+            if (is_object($row)) {
+                return $row->{$key} ?? $default;
+            }
+            return $default;
+        };
+
+        $normalizeCell = static function ($v): string {
+            if (is_array($v)) {
+                if (isset($v['label'])) {
+                    return trim((string) $v['label']);
+                }
+                return trim((string) json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            }
+            if (is_bool($v)) {
+                return $v ? 'Oui' : 'Non';
+            }
+            if ($v === null) {
+                return '';
+            }
+            return trim((string) $v);
+        };
+
+        // Construire matrice (header + lignes)
+        $headers = array_map(static fn(array $c): string => (string) $c['label'], $exportCols);
+        $data = [];
+        foreach ($rows as $row) {
+            $line = [];
+            foreach ($exportCols as $c) {
+                $def = is_array($c['def'] ?? null) ? $c['def'] : [];
+                if (isset($def['value']) && is_callable($def['value'])) {
+                    $val = $def['value']($row);
+                    $line[] = $normalizeCell($val);
+                } elseif (isset($def['source'])) {
+                    $line[] = $normalizeCell($rowValue($row, (string) $def['source'], ''));
+                } else {
+                    $line[] = $normalizeCell($rowValue($row, (string) $c['key'], ''));
+                }
+            }
+            $data[] = $line;
+        }
+
+        if (!class_exists(\PhpOffice\PhpSpreadsheet\Spreadsheet::class)) {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "Export XLSX indisponible (PhpSpreadsheet non chargé).";
+            exit;
+        }
+
+        $filename = $safeBase . '_' . $dateSuffix . '.xlsx';
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle(substr($safeBase, 0, 31));
+
+        // Header
+        $colIndex = 1;
+        foreach ($headers as $h) {
+            $sheet->setCellValue([$colIndex, 1], $h);
+            $colIndex++;
+        }
+        $sheet->getStyle('1:1')->getFont()->setBold(true);
+
+        // Rows
+        $r = 2;
+        foreach ($data as $line) {
+            $c = 1;
+            foreach ($line as $cell) {
+                $sheet->setCellValue([$c, $r], $cell);
+                $c++;
+            }
+            $r++;
+        }
+
+        // Autosize simple
+        for ($i = 1; $i <= count($headers); $i++) {
+            $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+        }
+
+        // Output
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+}
+
+if (!function_exists('cm_handle_toolbar_xlsx_export')) {
+    /**
+     * Export XLSX générique depuis un tableau HTML (payload JSON envoyé par cm_toolbar()).
+     * Attendu: POST[cm_export_xlsx_payload] = JSON { title, academic_year, headers[], rows[][] }
+     */
+    function cm_handle_toolbar_xlsx_export(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || empty($_POST['cm_export_xlsx_payload'])) {
+            return;
+        }
+
+        // CSRF (best-effort: si Csrf existe, l'utiliser)
+        $token = $_POST['csrf_token'] ?? null;
+        if (class_exists(\CheckMaster\Core\Csrf::class)) {
+            // Csrf::validateToken() existe dans le projet, mais on garde un fallback si signature diffère.
+            $ok = true;
+            if (method_exists(\CheckMaster\Core\Csrf::class, 'validateToken')) {
+                $ok = (bool) call_user_func([\CheckMaster\Core\Csrf::class, 'validateToken'], is_string($token) ? $token : null);
+            } elseif (method_exists(\CheckMaster\Core\Csrf::class, 'validate')) {
+                $ok = (bool) call_user_func([\CheckMaster\Core\Csrf::class, 'validate'], is_string($token) ? $token : null);
+            }
+            if (!$ok) {
+                header('Content-Type: text/plain; charset=utf-8', true, 403);
+                echo "CSRF invalide.";
+                exit;
+            }
+        }
+
+        // Purger tous les buffers pour éviter XLSX corrompu
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+        if (function_exists('ini_set')) {
+            @ini_set('zlib.output_compression', '0');
+        }
+
+        $raw = (string) $_POST['cm_export_xlsx_payload'];
+        $payload = json_decode($raw, true);
+        if (!is_array($payload)) {
+            header('Content-Type: text/plain; charset=utf-8', true, 400);
+            echo "Payload export invalide.";
+            exit;
+        }
+
+        if (!class_exists(\PhpOffice\PhpSpreadsheet\Spreadsheet::class)) {
+            header('Content-Type: text/plain; charset=utf-8', true, 500);
+            echo "PhpSpreadsheet indisponible.";
+            exit;
+        }
+
+        $title = trim((string) ($payload['title'] ?? 'Export'));
+        $academicYear = trim((string) ($payload['academic_year'] ?? ''));
+        $headers = is_array($payload['headers'] ?? null) ? $payload['headers'] : [];
+        $rows = is_array($payload['rows'] ?? null) ? $payload['rows'] : [];
+
+        $safeBase = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $title) ?: 'export';
+        $filename = $safeBase . '_' . date('Ymd_His') . '.xlsx';
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheetTitle = $safeBase;
+        if ($sheetTitle === '') {
+            $sheetTitle = 'Export';
+        }
+        $sheet->setTitle(substr($sheetTitle, 0, 31));
+
+        $rowIndex = 1;
+        if ($title !== '' || $academicYear !== '') {
+            $sheet->setCellValue([1, $rowIndex], $title . ($academicYear !== '' ? (' — ' . $academicYear) : ''));
+            $sheet->mergeCells([1, $rowIndex, max(1, count($headers)), $rowIndex]);
+            $sheet->getStyle([1, $rowIndex, 1, $rowIndex])->getFont()->setBold(true);
+            $rowIndex += 2;
+        }
+
+        // Header
+        $colIndex = 1;
+        foreach ($headers as $h) {
+            $sheet->setCellValue([$colIndex, $rowIndex], (string) $h);
+            $colIndex++;
+        }
+        $sheet->getStyle([1, $rowIndex, max(1, count($headers)), $rowIndex])->getFont()->setBold(true);
+        $rowIndex++;
+
+        foreach ($rows as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+            $c = 1;
+            foreach ($r as $cell) {
+                $sheet->setCellValue([$c, $rowIndex], is_scalar($cell) || $cell === null ? (string) $cell : json_encode($cell, JSON_UNESCAPED_UNICODE));
+                $c++;
+            }
+            $rowIndex++;
+        }
+
+        $colCount = max(1, count($headers));
+        for ($i = 1; $i <= $colCount; $i++) {
+            $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+}
+
+// Auto-handle toolbar excel export on any page that includes ComponentHelper
+cm_handle_toolbar_xlsx_export();
+
 /**
  * Render a unified toolbar component (search + filters + actions)
  *
@@ -996,12 +1336,26 @@ if (!function_exists('cm_toolbar_filter_configs')) {
  *   - on_filter_apply: string JS callback for filter apply
  *   - on_filter_reset: string JS callback for filter reset
  *   - align: string 'left'|'center'|'right'|'space-between' (default: 'space-between')
+ *   - left_html|center_html|right_html: string|callable Custom slot content
  */
 if (!function_exists('cm_toolbar')) {
     function cm_toolbar(array $config = []): void
     {
         $screen = (string) ($config['screen'] ?? '');
         $idPrefix = (string) ($config['id_prefix'] ?? 'cmToolbar_' . substr(md5(uniqid()), 0, 8));
+        $printTitle = trim((string) ($config['print_title'] ?? ''));
+        if ($printTitle === '') {
+            $printTitle = $screen !== '' ? ucfirst(str_replace('_', ' ', $screen)) : 'Impression';
+        }
+        $footerText = trim((string) ($config['footer_text'] ?? ''));
+        if ($footerText === '') {
+            $footerText = 'UFR MI, Filière Professionnalisées MIAGE-GI, 22.BP. 582 Abidjan 22, email: miage-gi.mi@univ-fhb.edu.ci';
+        }
+        $printedBy = trim((string) (($_SESSION['nom_utilisateur'] ?? '') . ' ' . ($_SESSION['prenom_utilisateur'] ?? '')));
+        if ($printedBy === '') {
+            $printedBy = trim((string) (($_SESSION['username'] ?? '') ?: ($_SESSION['email'] ?? '')));
+        }
+        $academicYear = trim((string) ($_SESSION['global_annee_selected'] ?? $_SESSION['global_annee_active_label'] ?? ''));
 
         // IDs
         $toolbarId = $idPrefix . '_toolbar';
@@ -1015,6 +1369,7 @@ if (!function_exists('cm_toolbar')) {
         $deleteBtnId = $idPrefix . '_deleteBtn';
         $exportBtnId = $idPrefix . '_exportBtn';
         $printBtnId = $idPrefix . '_printBtn';
+        $excelBtnId = $idPrefix . '_excelBtn';
         $filterFormId = $idPrefix . '_filterForm';
 
         // Search
@@ -1032,6 +1387,7 @@ if (!function_exists('cm_toolbar')) {
         $showFilters = (bool) ($config['show_filters'] ?? true);
         $canDelete = (bool) ($config['can_delete'] ?? (function_exists('canDelete') ? canDelete() : true));
         $canView = (bool) ($config['can_view'] ?? (function_exists('canView') ? canView() : true));
+        $canExcel = (bool) ($config['can_excel'] ?? $canView);
 
         // Filters
         $customFilters = is_array($config['filters'] ?? null) ? $config['filters'] : null;
@@ -1053,190 +1409,250 @@ if (!function_exists('cm_toolbar')) {
         $align = (string) ($config['align'] ?? 'space-between');
         $alignClass = 'cm-toolbar--' . $align;
 
+        $resolveToolbarHtml = static function ($slot): string {
+            if (is_callable($slot)) {
+                $slot = $slot();
+            }
+            if ($slot === null) {
+                return '';
+            }
+            if (is_scalar($slot)) {
+                return (string) $slot;
+            }
+            if (is_object($slot) && method_exists($slot, '__toString')) {
+                return (string) $slot;
+            }
+            return '';
+        };
+        $leftHtml = $resolveToolbarHtml($config['left_html'] ?? '');
+        $centerHtml = $resolveToolbarHtml($config['center_html'] ?? '');
+        $rightHtml = $resolveToolbarHtml($config['right_html'] ?? '');
+
         ?>
         <div class="cm-barre-intermediaire" id="<?= htmlspecialchars($toolbarId, ENT_QUOTES, 'UTF-8') ?>">
             <div class="cm-toolbar cm-toolbar--unified <?= htmlspecialchars($alignClass, ENT_QUOTES, 'UTF-8') ?>">
                 <!-- GAUCHE : Pagination -->
                 <div class="cm-toolbar-left">
-                    <label class="cm-toolbar__control">
-                        <span>Afficher:</span>
-                        <select id="<?= htmlspecialchars($limitId, ENT_QUOTES, 'UTF-8') ?>"
-                            name="<?= htmlspecialchars($limitName, ENT_QUOTES, 'UTF-8') ?>"
-                            class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs">
-                            <?php foreach ($limitOptions as $opt): ?>
-                                <?php $optValue = (int) $opt; ?>
-                                <option value="<?= $optValue ?>" <?= $optValue === $limit ? 'selected' : '' ?>><?= $optValue ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
+                    <?php if ($leftHtml !== ''): ?>
+                        <?= $leftHtml ?>
+                    <?php else: ?>
+                        <label class="cm-toolbar__control">
+                            <span>Afficher:</span>
+                            <select id="<?= htmlspecialchars($limitId, ENT_QUOTES, 'UTF-8') ?>"
+                                name="<?= htmlspecialchars($limitName, ENT_QUOTES, 'UTF-8') ?>"
+                                class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
+                                data-cm-toolbar-action="limit">
+                                <?php foreach ($limitOptions as $opt): ?>
+                                    <?php $optValue = (int) $opt; ?>
+                                    <option value="<?= $optValue ?>" <?= $optValue === $limit ? 'selected' : '' ?>><?= $optValue ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    <?php endif; ?>
                 </div>
 
                 <!-- CENTRE : Recherche -->
                 <div class="cm-toolbar-center">
-                    <div class="cm-toolbar__search-wrap">
-                        <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
-                        <input type="search" id="<?= htmlspecialchars($searchId, ENT_QUOTES, 'UTF-8') ?>"
-                            name="<?= htmlspecialchars($searchName, ENT_QUOTES, 'UTF-8') ?>"
-                            class="cm-form-control is-sm cm-toolbar-field-lg"
-                            value="<?= htmlspecialchars($searchValue, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="<?= htmlspecialchars($searchPlaceholder, ENT_QUOTES, 'UTF-8') ?>"
-                            data-cm-toolbar-action="search">
-                    </div>
+                    <?php if ($centerHtml !== ''): ?>
+                        <?= $centerHtml ?>
+                    <?php else: ?>
+                        <div class="cm-toolbar__search-wrap">
+                            <i class="fas fa-search cm-toolbar__search-icon" aria-hidden="true"></i>
+                            <input type="search" id="<?= htmlspecialchars($searchId, ENT_QUOTES, 'UTF-8') ?>"
+                                name="<?= htmlspecialchars($searchName, ENT_QUOTES, 'UTF-8') ?>"
+                                class="cm-form-control is-sm cm-toolbar-field-lg"
+                                value="<?= htmlspecialchars($searchValue, ENT_QUOTES, 'UTF-8') ?>"
+                                placeholder="<?= htmlspecialchars($searchPlaceholder, ENT_QUOTES, 'UTF-8') ?>"
+                                data-cm-toolbar-action="search">
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- DROITE : Filtres + Actions -->
                 <div class="cm-toolbar-right">
-                    <?php if ($showFilters && !empty($customFilters)): ?>
-                        <!-- Bouton Filtre unique avec dropdown -->
-                        <div class="cm-dropdown cm-dropdown--toolbar"
-                            id="<?= htmlspecialchars($filterDropdownId, ENT_QUOTES, 'UTF-8') ?>">
-                            <button type="button" class="cm-btn is-light is-sm cm-dropdown__toggle"
-                                id="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>" aria-haspopup="true"
-                                aria-expanded="false">
-                                <span>Filtres</span>
-                                <?php if ($activeFilterCount > 0): ?>
-                                    <span class="cm-badge cm-badge--filter"
-                                        id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>"><?= $activeFilterCount ?></span>
-                                <?php else: ?>
-                                    <span class="cm-badge cm-badge--filter"
-                                        id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>" style="display:none">0</span>
-                                <?php endif; ?>
-                            </button>
-                            <div class="cm-dropdown__menu cm-dropdown__menu--right cm-dropdown__menu--filters" role="menu"
-                                aria-labelledby="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>">
-                                <div id="<?= htmlspecialchars($filterFormId, ENT_QUOTES, 'UTF-8') ?>" class="cm-filter-form">
-                                    <?php foreach ($customFilters as $filter): ?>
-                                        <?php
-                                        $fType = $filter['type'] ?? 'select';
-                                        $fName = $filter['name'] ?? '';
-                                        $fLabel = $filter['label'] ?? $fName;
-                                        $fValue = $_GET[$fName] ?? '';
-                                        ?>
-                                        <div class="cm-filter-section">
-                                            <label class="cm-filter-section__label"
-                                                for="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                <?= htmlspecialchars($fLabel, ENT_QUOTES, 'UTF-8') ?>
-                                            </label>
-                                            <?php if ($fType === 'select'): ?>
-                                                <select name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    class="cm-form-control is-sm cm-filter-field"
-                                                    data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                    <?php
-                                                    $fOptions = $filter['options'] ?? ['' => 'Tous'];
-                                                    foreach ($fOptions as $optValue => $optLabel):
-                                                        ?>
-                                                        <option value="<?= htmlspecialchars((string) $optValue, ENT_QUOTES, 'UTF-8') ?>"
-                                                            <?= (string) $fValue === (string) $optValue ? 'selected' : '' ?>>
-                                                            <?= htmlspecialchars((string) $optLabel, ENT_QUOTES, 'UTF-8') ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            <?php elseif ($fType === 'date'): ?>
-                                                <input type="date" name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
-                                                    class="cm-form-control is-sm cm-filter-field"
-                                                    value="<?= htmlspecialchars((string) $fValue, ENT_QUOTES, 'UTF-8') ?>"
-                                                    data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                            <?php elseif ($fType === 'date_range'): ?>
-                                                <div class="cm-filter-date-range">
-                                                    <input type="date"
-                                                        name="<?= htmlspecialchars($fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
-                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
+                    <?php if ($rightHtml !== ''): ?>
+                        <?= $rightHtml ?>
+                    <?php else: ?>
+                        <?php if ($showFilters && !empty($customFilters)): ?>
+                            <!-- Bouton Filtre unique avec dropdown -->
+                            <div class="cm-dropdown cm-dropdown--toolbar"
+                                id="<?= htmlspecialchars($filterDropdownId, ENT_QUOTES, 'UTF-8') ?>">
+                                <button type="button" class="cm-btn is-light is-sm cm-dropdown__toggle"
+                                    id="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>" aria-haspopup="true"
+                                    aria-expanded="false">
+                                    <span>Filtres</span>
+                                    <?php if ($activeFilterCount > 0): ?>
+                                        <span class="cm-badge cm-badge--filter"
+                                            id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>"><?= $activeFilterCount ?></span>
+                                    <?php else: ?>
+                                        <span class="cm-badge cm-badge--filter"
+                                            id="<?= htmlspecialchars($filterCountId, ENT_QUOTES, 'UTF-8') ?>" style="display:none">0</span>
+                                    <?php endif; ?>
+                                </button>
+                                <div class="cm-dropdown__menu cm-dropdown__menu--right cm-dropdown__menu--filters" role="menu"
+                                    aria-labelledby="<?= htmlspecialchars($filterToggleId, ENT_QUOTES, 'UTF-8') ?>">
+                                    <div id="<?= htmlspecialchars($filterFormId, ENT_QUOTES, 'UTF-8') ?>" class="cm-filter-form">
+                                        <?php foreach ($customFilters as $filter): ?>
+                                            <?php
+                                            $fType = $filter['type'] ?? 'select';
+                                            $fName = $filter['name'] ?? '';
+                                            $fLabel = $filter['label'] ?? $fName;
+                                            $fValue = $_GET[$fName] ?? '';
+                                            ?>
+                                            <div class="cm-filter-section">
+                                                <label class="cm-filter-section__label"
+                                                    for="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <?= htmlspecialchars($fLabel, ENT_QUOTES, 'UTF-8') ?>
+                                                </label>
+                                                <?php if ($fType === 'select'): ?>
+                                                    <select name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
+                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
                                                         class="cm-form-control is-sm cm-filter-field"
-                                                        value="<?= htmlspecialchars((string) ($_GET[$fName . '_debut'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                                        placeholder="Du"
                                                         data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                    <input type="date" name="<?= htmlspecialchars($fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
-                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
+                                                        <?php
+                                                        $fOptions = $filter['options'] ?? ['' => 'Tous'];
+                                                        foreach ($fOptions as $optValue => $optLabel):
+                                                            ?>
+                                                            <option value="<?= htmlspecialchars((string) $optValue, ENT_QUOTES, 'UTF-8') ?>"
+                                                                <?= (string) $fValue === (string) $optValue ? 'selected' : '' ?>>
+                                                                <?= htmlspecialchars((string) $optLabel, ENT_QUOTES, 'UTF-8') ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                <?php elseif ($fType === 'date'): ?>
+                                                    <input type="date" name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>"
+                                                        id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName, ENT_QUOTES, 'UTF-8') ?>"
                                                         class="cm-form-control is-sm cm-filter-field"
-                                                        value="<?= htmlspecialchars((string) ($_GET[$fName . '_fin'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                                        placeholder="Au"
+                                                        value="<?= htmlspecialchars((string) $fValue, ENT_QUOTES, 'UTF-8') ?>"
                                                         data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
-                                                </div>
-                                            <?php endif; ?>
+                                                <?php elseif ($fType === 'date_range'): ?>
+                                                    <div class="cm-filter-date-range">
+                                                        <input type="date"
+                                                            name="<?= htmlspecialchars($fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
+                                                            id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_debut', ENT_QUOTES, 'UTF-8') ?>"
+                                                            class="cm-form-control is-sm cm-filter-field"
+                                                            value="<?= htmlspecialchars((string) ($_GET[$fName . '_debut'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                            placeholder="Du"
+                                                            data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
+                                                        <input type="date" name="<?= htmlspecialchars($fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
+                                                            id="<?= htmlspecialchars($idPrefix . '_filter_' . $fName . '_fin', ENT_QUOTES, 'UTF-8') ?>"
+                                                            class="cm-form-control is-sm cm-filter-field"
+                                                            value="<?= htmlspecialchars((string) ($_GET[$fName . '_fin'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                            placeholder="Au"
+                                                            data-filter-name="<?= htmlspecialchars($fName, ENT_QUOTES, 'UTF-8') ?>">
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        <div class="cm-filter-actions">
+                                            <button type="button" class="cm-btn is-light is-xs cm-filter-reset"
+                                                data-cm-toolbar-action="filter-reset">
+                                                Réinitialiser
+                                            </button>
+                                            <button type="button" class="cm-btn is-info is-xs cm-filter-apply"
+                                                data-cm-toolbar-action="filter-apply">
+                                                Appliquer
+                                            </button>
                                         </div>
-                                    <?php endforeach; ?>
-                                    <div class="cm-filter-actions">
-                                        <button type="button" class="cm-btn is-light is-xs cm-filter-reset"
-                                            data-cm-toolbar-action="filter-reset">
-                                            Réinitialiser
-                                        </button>
-                                        <button type="button" class="cm-btn is-info is-xs cm-filter-apply"
-                                            data-cm-toolbar-action="filter-apply">
-                                            Appliquer
-                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($showActions): ?>
-                        <!-- Groupe Sélection -->
-                        <div class="cm-toolbar__actions-group" role="group" aria-label="Actions de sélection">
-                            <button type="button" id="<?= htmlspecialchars($selectAllId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-secondary is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
-                                <span>Tout sélectionner</span>
-                            </button>
-                            <button type="button" id="<?= htmlspecialchars($deselectAllId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-secondary is-sm" title="Tout désélectionner" data-cm-toolbar-action="deselect-all">
-                                <span>Tout désélectionner</span>
-                            </button>
-                        </div>
-
-                        <?php if ($canDelete): ?>
-                            <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-danger is-sm" disabled data-cm-toolbar-action="delete">
-                                <span>Supprimer</span>
-                                <span class="cm-delete-count" data-selected-count="0"></span>
-                            </button>
                         <?php endif; ?>
 
-                        <?php if ($canView): ?>
-                            <!-- <button type="button" id="<?= htmlspecialchars($exportBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-info is-sm" title="Exporter" data-cm-toolbar-action="export">
-                                <span>Exporter</span>
-                            </button> -->
-                            <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
-                                class="cm-btn is-light is-sm" title="Imprimer" data-cm-toolbar-action="print">
-                                <span>Imprimer</span>
-                            </button>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                        <?php if ($showActions): ?>
+                            <!-- Groupe Sélection -->
+                            <div class="cm-toolbar__actions-group" role="group" aria-label="Actions de sélection">
+                                <button type="button" id="<?= htmlspecialchars($selectAllId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-secondary is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
+                                    <span>Tout sélectionner</span>
+                                </button>
+                                <button type="button" id="<?= htmlspecialchars($deselectAllId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-secondary is-sm" title="Tout désélectionner" data-cm-toolbar-action="deselect-all">
+                                    <span>Tout désélectionner</span>
+                                </button>
+                            </div>
 
-                    <!-- Actions personnalisées -->
-                    <?php if (!empty($config['custom_actions']) && is_array($config['custom_actions'])): ?>
-                        <?php foreach ($config['custom_actions'] as $action): ?>
-                            <?php
-                            $aTag = strtolower((string) ($action['tag'] ?? 'button'));
-                            $aLabel = (string) ($action['label'] ?? 'Action');
-                            $aClass = (string) ($action['class'] ?? 'cm-btn is-light is-sm');
-                            $aAttrs = is_array($action['attrs'] ?? null) ? $action['attrs'] : [];
-                            $aHref = (string) ($action['href'] ?? '#');
-                            $aType = (string) ($action['type'] ?? 'button');
-                            $aId = !empty($action['id']) ? ' id="' . htmlspecialchars((string) $action['id'], ENT_QUOTES, 'UTF-8') . '"' : '';
-                            ?>
-                            <?php if ($aTag === 'a'): ?>
-                                <a href="<?= htmlspecialchars($aHref, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
-                                    class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
-                                    <span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
-                                </a>
-                            <?php else: ?>
-                                <button type="<?= htmlspecialchars($aType, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
-                                    class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
-                                    <span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                            <?php if ($canDelete): ?>
+                                <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-danger is-sm" disabled data-cm-toolbar-action="delete">
+                                    <i class="fas fa-trash" aria-hidden="true"></i>
+                                    <span>Supprimer</span>
+                                    <span class="cm-delete-count" data-selected-count="0"></span>
                                 </button>
                             <?php endif; ?>
-                        <?php endforeach; ?>
+
+                            <?php if ($canView): ?>
+                                <button type="button" id="<?= htmlspecialchars($printBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                                    class="cm-btn is-light is-sm" title="Imprimer" data-cm-toolbar-action="print">
+                                    <i class="fas fa-print" aria-hidden="true"></i>
+                                    <span>Imprimer</span>
+                                </button>
+                                <?php if ($canExcel): ?>
+                                    <button type="button" id="<?= htmlspecialchars($excelBtnId, ENT_QUOTES, 'UTF-8') ?>"
+                                        class="cm-btn is-secondary is-sm" title="Télécharger en Excel"
+                                        data-cm-toolbar-action="excel">
+                                        <i class="fas fa-file-excel" aria-hidden="true"></i>
+                                        <span>Excel</span>
+                                    </button>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <!-- Actions personnalisées -->
+                        <?php if (!empty($config['custom_actions']) && is_array($config['custom_actions'])): ?>
+                            <?php foreach ($config['custom_actions'] as $action): ?>
+                                <?php
+                                $aTag = strtolower((string) ($action['tag'] ?? 'button'));
+                                $aLabel = (string) ($action['label'] ?? 'Action');
+                                $aClass = (string) ($action['class'] ?? 'cm-btn is-light is-sm');
+                                $aAttrs = is_array($action['attrs'] ?? null) ? $action['attrs'] : [];
+                                $aHref = (string) ($action['href'] ?? '#');
+                                $aType = (string) ($action['type'] ?? 'button');
+                                $aId = !empty($action['id']) ? ' id="' . htmlspecialchars((string) $action['id'], ENT_QUOTES, 'UTF-8') . '"' : '';
+                                $aIcon = !empty($action['icon']) ? '<i class="fas ' . htmlspecialchars((string) $action['icon'], ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"></i> ' : '';
+                                ?>
+                                <?php if ($aTag === 'a'): ?>
+                                    <a href="<?= htmlspecialchars($aHref, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
+                                        class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
+                                        <?= $aIcon ?><span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </a>
+                                <?php elseif ($aTag === 'select'): ?>
+                                    <select <?= $aId ?> class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
+                                        <?php
+                                        $aOptions = is_array($action['options'] ?? null) ? $action['options'] : [];
+                                        foreach ($aOptions as $optValue => $optLabel):
+                                            ?>
+                                            <option value="<?= htmlspecialchars((string) $optValue, ENT_QUOTES, 'UTF-8') ?>">
+                                                <?= htmlspecialchars((string) $optLabel, ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <button type="<?= htmlspecialchars($aType, ENT_QUOTES, 'UTF-8') ?>" <?= $aId ?>
+                                        class="<?= htmlspecialchars($aClass, ENT_QUOTES, 'UTF-8') ?>" <?= cm_form_attr_string($aAttrs) ?>>
+                                        <?= $aIcon ?><span><?= htmlspecialchars($aLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </button>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
 
+
         <script>
             (function () {
+                const controller = typeof AbortController === 'function' ? new AbortController() : null;
+                const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+                if (window.CM && window.CM.pageLifecycle && controller) {
+                    window.CM.pageLifecycle.registerCleanup(function () {
+                        controller.abort();
+                    });
+                }
+
                 const toolbarId = <?= json_encode($toolbarId) ?>;
                 const searchInputId = <?= json_encode($searchId) ?>;
                 const limitSelectId = <?= json_encode($limitId) ?>;
@@ -1249,6 +1665,12 @@ if (!function_exists('cm_toolbar')) {
                 const selectAllId = <?= json_encode($selectAllId) ?>;
                 const deselectAllId = <?= json_encode($deselectAllId) ?>;
                 const deleteBtnId = <?= json_encode($deleteBtnId) ?>;
+                const excelBtnId = <?= json_encode($excelBtnId) ?>;
+
+                const cmPrintTitle = <?= json_encode($printTitle, JSON_UNESCAPED_UNICODE) ?> || 'Impression';
+                const cmPrintedBy = <?= json_encode($printedBy, JSON_UNESCAPED_UNICODE) ?> || '';
+                const cmAcademicYear = <?= json_encode($academicYear, JSON_UNESCAPED_UNICODE) ?> || '';
+                const cmFooterText = <?= json_encode($footerText, JSON_UNESCAPED_UNICODE) ?> || '';
 
                 const onFilterApply = <?= json_encode($config['on_filter_apply'] ?? null) ?>;
                 const onFilterReset = <?= json_encode($config['on_filter_reset'] ?? null) ?>;
@@ -1458,6 +1880,76 @@ if (!function_exists('cm_toolbar')) {
                         return scope.querySelector('.cm-table-wrapper table, table.cm-data-table, table');
                     }
 
+                    function getCsrfToken() {
+                        const input = document.querySelector('input[name="csrf_token"]');
+                        return input ? String(input.value || '') : '';
+                    }
+
+                    function tableToMatrix(table) {
+                        const matrix = { headers: [], rows: [] };
+                        if (!table) return matrix;
+
+                        const headerRow = table.querySelector('thead tr:last-child');
+                        const ths = headerRow ? Array.from(headerRow.querySelectorAll('th')) : [];
+
+                        const colIndexes = [];
+                        ths.forEach(function (th, idx) {
+                            const text = (th.textContent || '').replace(/\s+/g, ' ').trim();
+                            const hasCheckbox = !!th.querySelector('input[type="checkbox"]');
+                            const isActions = /actions/i.test(text);
+                            if (hasCheckbox || isActions || text === '') return;
+                            colIndexes.push(idx);
+                            matrix.headers.push(text);
+                        });
+
+                        const body = (table.tBodies && table.tBodies.length > 0) ? table.tBodies[0] : table.querySelector('tbody');
+                        if (!body) return matrix;
+
+                        Array.from(body.querySelectorAll('tr')).forEach(function (tr) {
+                            if (tr.querySelector('th')) return;
+                            if (tr.style && tr.style.display === 'none') return;
+                            const tds = Array.from(tr.querySelectorAll('td'));
+                            if (tds.length === 0) return;
+                            const row = [];
+                            colIndexes.forEach(function (i) {
+                                const cell = tds[i];
+                                const text = (cell ? (cell.textContent || '') : '').replace(/\s+/g, ' ').trim();
+                                row.push(text);
+                            });
+                            matrix.rows.push(row);
+                        });
+
+                        return matrix;
+                    }
+
+                    function downloadExcel(table) {
+                        const payload = tableToMatrix(table);
+                        const csrf = getCsrfToken();
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = window.location.href;
+                        form.target = '_blank';
+
+                        const add = function (name, value) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = name;
+                            input.value = String(value || '');
+                            form.appendChild(input);
+                        };
+
+                        add('csrf_token', csrf);
+                        add('cm_export_xlsx_payload', JSON.stringify({
+                            title: cmPrintTitle,
+                            academic_year: cmAcademicYear,
+                            headers: payload.headers,
+                            rows: payload.rows
+                        }));
+
+                        document.body.appendChild(form);
+                        form.submit();
+                        document.body.removeChild(form);
+                    }
                     function exportTableAsCsv(table) {
                         if (!table) return;
                         const rows = Array.from(table.querySelectorAll('tr')).filter(function (row) {
@@ -1492,12 +1984,83 @@ if (!function_exists('cm_toolbar')) {
                             }
                         });
 
-                        printWindow.document.write('<html><head><title>Impression</title><style>body{font-family:Arial,sans-serif;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#f3f4f6}</style></head><body>');
+                        const now = new Date();
+                        const printedAt = (typeof now.toLocaleString === 'function')
+                            ? now.toLocaleString('fr-FR')
+                            : (now.toDateString() + ' ' + now.toTimeString());
+
+                        const path = String(window.location.pathname || '');
+                        const publicBasePath = path.replace(/\/public\/.*$/i, '/public');
+                        const baseUrl = String(window.location.origin || '') + publicBasePath;
+                        const logoLeft = baseUrl + '/image/logo_civ.png';
+                        const logoRight = baseUrl + '/image/logo_ufhb.png';
+
+                        const css = `
+                            :root { --header-h: 92px; --footer-h: 48px; }
+                            body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #111827; }
+                            .cm-print-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); padding: 12px 20px 8px; border-bottom: 1px solid #e5e7eb; background: #fff; }
+                            .cm-print-header__row { display: flex; align-items: flex-start; gap: 16px; }
+                            .cm-print-side { width: 160px; display: flex; flex-direction: column; align-items: center; }
+                            .cm-print-logo { width: 64px; height: 64px; object-fit: contain; }
+                            .cm-print-side .meta { margin-top: 6px; font-size: 10px; color: #4b5563; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                            .cm-print-side.left .meta { text-align: left; }
+                            .cm-print-side.right .meta { text-align: right; }
+                            .cm-print-title { flex: 1; text-align: center; padding-top: 6px; }
+                            .cm-print-title h1 { margin: 0; font-size: 18px; font-weight: 700; }
+                            .cm-print-title .meta-row { margin-top: 6px; display: flex; justify-content: center; }
+                            .cm-print-title .meta-row .ay { font-size: 12px; font-weight: 600; color: #111827; text-align: center; }
+                            .cm-print-footer { position: fixed; bottom: 0; left: 0; right: 0; height: var(--footer-h); padding: 8px 20px; border-top: 1px solid #e5e7eb; background: #fff; font-size: 11px; color: #374151; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+                            .cm-print-footer .center { flex: 1; text-align: center; }
+                            .cm-print-content { padding: calc(var(--header-h) + 14px) 20px calc(var(--footer-h) + 14px); }
+                            table { width: 100%; border-collapse: collapse; }
+                            th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; vertical-align: top; }
+                            th { background: #f3f4f6; }
+                            button, input[type="checkbox"], .cm-btn, .cm-btn-action { display: none !important; }
+                            @media print {
+                                @page { margin: 12mm; }
+                                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            }
+                        `;
+
+                        const headerHtml = `
+                            <div class="cm-print-header">
+                                <div class="cm-print-header__row">
+                                    <div class="cm-print-side left">
+                                        <img class="cm-print-logo" src="${logoLeft}" alt="Logo Côte d’Ivoire" />
+                                        <div class="meta">Imprimé par: ${cmPrintedBy || '-'}</div>
+                                    </div>
+                                    <div class="cm-print-title">
+                                        <h1>${cmPrintTitle}</h1>
+                                        <div class="meta-row">
+                                            <div class="ay">${cmAcademicYear ? ('Année académique: ' + cmAcademicYear) : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="cm-print-side right">
+                                        <img class="cm-print-logo" src="${logoRight}" alt="Logo UFHB" />
+                                        <div class="meta">Imprimé le: ${printedAt}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        const footerHtml = `
+                            <div class="cm-print-footer">
+                                <div class="left"></div>
+                                <div class="center">${cmFooterText}</div>
+                                <div class="right"></div>
+                            </div>
+                        `;
+
+                        printWindow.document.write('<html><head><title></title><meta charset="utf-8"><style>' + css + '</style></head><body>');
+                        printWindow.document.write(headerHtml);
+                        printWindow.document.write('<div class="cm-print-content">');
                         printWindow.document.write(clone.outerHTML);
+                        printWindow.document.write('</div>');
+                        printWindow.document.write(footerHtml);
                         printWindow.document.write('</body></html>');
                         printWindow.document.close();
                         printWindow.focus();
-                        printWindow.print();
+                        setTimeout(function () { printWindow.print(); }, 250);
                     }
 
                     function getSelectableCheckboxes() {
@@ -1847,6 +2410,11 @@ if (!function_exists('cm_toolbar')) {
                                     printTable(getDataTableInScope());
                                 }
                                 break;
+                            case 'excel':
+                                if (dispatchToolbarEvent('cm:toolbar:excel', { toolbar: toolbar, button: btn })) {
+                                    downloadExcel(getDataTableInScope());
+                                }
+                                break;
                             case 'limit-change':
                                 if (btn && btn.tagName === 'SELECT') {
                                     const limitValue = btn.value;
@@ -1888,22 +2456,14 @@ if (!function_exists('cm_toolbar')) {
                         if (e.target && e.target.matches('table tbody input[type="checkbox"]')) {
                             updateDeleteState();
                         }
-                    });
+                    }, listenerOptions);
 
                     updateDeleteState();
                     updateFilterCount();
                     applyClientSideFiltering();
                 }
 
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initToolbar, { once: true });
-                } else {
-                    initToolbar();
-                }
-
-                document.addEventListener('cm:ajax:navigation:done', function () {
-                    initToolbar();
-                });
+                initToolbar();
             })();
         </script>
         <?php
@@ -2021,6 +2581,15 @@ if (!function_exists('cm_data_table_selectable')) {
         <?php if ($toolbarId !== ''): ?>
             <script>
                 (function () {
+                    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+                    const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+                    if (window.CM && window.CM.pageLifecycle && controller) {
+                        window.CM.pageLifecycle.registerCleanup(function () {
+                            controller.abort();
+                        });
+                    }
+
                     const tableId = <?= json_encode($id) ?>;
                     const toolbarId = <?= json_encode($toolbarId) ?>;
 
@@ -2089,13 +2658,13 @@ if (!function_exists('cm_data_table_selectable')) {
                             if (!isSameToolbarEvent(evt) || !isStillMounted()) return;
                             checkRows.forEach(function (cb) { cb.checked = true; });
                             updateSelection();
-                        });
+                        }, listenerOptions);
 
                         document.addEventListener('cm:toolbar:select:none', function (evt) {
                             if (!isSameToolbarEvent(evt) || !isStillMounted()) return;
                             checkRows.forEach(function (cb) { cb.checked = false; });
                             updateSelection();
-                        });
+                        }, listenerOptions);
 
                         document.addEventListener('cm:toolbar:delete', function (evt) {
                             if (!isSameToolbarEvent(evt) || !isStillMounted()) return;
@@ -2106,7 +2675,7 @@ if (!function_exists('cm_data_table_selectable')) {
                             document.dispatchEvent(new CustomEvent('cm:table:delete:selected', {
                                 detail: { table: table, ids: ids }
                             }));
-                        });
+                        }, listenerOptions);
 
                         // Row action buttons
                         table.addEventListener('click', function (e) {
@@ -2116,27 +2685,32 @@ if (!function_exists('cm_data_table_selectable')) {
                             const rowId = btn.getAttribute('data-row-id');
                             const action = btn.getAttribute('data-action');
                             const confirmMsg = btn.getAttribute('data-confirm');
+                            const dispatchRowAction = function () {
+                                document.dispatchEvent(new CustomEvent('cm:table:row:action', {
+                                    detail: { table: table, rowId: rowId, action: action, button: btn }
+                                }));
+                            };
 
-                            if (confirmMsg && !confirm(confirmMsg)) return;
+                            if (confirmMsg) {
+                                const confirmPromise = window.CM && typeof window.CM.confirm === 'function'
+                                    ? window.CM.confirm(confirmMsg)
+                                    : Promise.resolve(window.confirm(confirmMsg));
+                                confirmPromise.then(c => {
+                                    if (c) {
+                                        dispatchRowAction();
+                                    }
+                                });
+                                return;
+                            }
 
-                            document.dispatchEvent(new CustomEvent('cm:table:row:action', {
-                                detail: { table: table, rowId: rowId, action: action, button: btn }
-                            }));
+                            dispatchRowAction();
                         });
 
                         // Initial state
                         updateSelection();
                     }
 
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', initSelectableTable, { once: true });
-                    } else {
-                        initSelectableTable();
-                    }
-
-                    document.addEventListener('cm:ajax:navigation:done', function () {
-                        initSelectableTable();
-                    });
+                    initSelectableTable();
                 })();
             </script>
         <?php endif; ?>

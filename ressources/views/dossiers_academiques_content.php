@@ -98,10 +98,10 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                         <div class="font-semibold">Année académique affichée : <?= htmlspecialchars($selectedYearLabel) ?></div>
                         <div class="text-sm">
                             <?= $allYearsSelected
-                                ? 'Affichage multi-années actif. Les modifications restent possibles uniquement pour les étudiants rattachés à l année active ' . htmlspecialchars($writableYearLabel) . '.'
+                                ? 'Affichage multi-années actif. Les modifications restent possibles uniquement pour les étudiants rattachés à l\'année active ' . htmlspecialchars($writableYearLabel) . '.'
                                 : ($isWritableYear
-                                    ? 'Les dossiers académiques affichés et modifiables correspondent à l année active.'
-                                    : 'Consultation historique uniquement. Les enregistrements restent réservés à l année active ' . htmlspecialchars($activeYearLabel) . '.') ?>
+                                    ? 'Les dossiers académiques affichés et modifiables correspondent à l\'année active.'
+                                    : 'Consultation historique uniquement. Les enregistrements restent réservés à l\'année active ' . htmlspecialchars($activeYearLabel) . '.') ?>
                         </div>
                     </div>
                 </div>
@@ -129,6 +129,8 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                             Niveau</th>
                         <th class="px-3 py-1.5 text-left text-xs font-bold text-green-700 uppercase tracking-wider">
                             Promotion</th>
+                        <th class="px-3 py-1.5 text-center text-xs font-bold text-green-700 uppercase tracking-wider">
+                            Action</th>
                         <th class="px-3 py-1.5 text-center text-xs font-bold text-green-700 uppercase tracking-wider">
                             Action</th>
                     </tr>
@@ -188,13 +190,68 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
                                 }
                                 ?></td>
                                 <td class="px-4 py-2 whitespace-nowrap text-center">
-                                    <button
-                                        class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-green-700 transition open-dossier-modal"
-                                        data-num-etu="<?= htmlspecialchars($etu->num_carte_etud) ?>"
-                                        data-nom="<?= htmlspecialchars($etu->nom_etu . ' ' . $etu->prenom_etu) ?>"
-                                        data-year-id="<?= htmlspecialchars((string) ($etu->id_annee_acad ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                                        <i class="fas fa-eye mr-2"></i> Visualiser le dossier
+                                    <button onclick="toggleDossierForm('<?= htmlspecialchars($etu->num_carte_etud) ?>')" class="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-green-700 transition">
+                                        <i class="fas fa-eye mr-2"></i> Visualiser
                                     </button>
+                                </td>
+                            </tr>
+                            <!-- Formulaire inline pour afficher/modifier le dossier -->
+                            <tr id="dossier-row-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="hidden">
+                                <td colspan="6" class="p-4 bg-gray-50">
+                                    <div class="dossier-inline-form bg-white rounded-lg p-4 border border-gray-200">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <h4 class="font-semibold text-gray-800">Dossier de <?= htmlspecialchars($etu->nom_etu . ' ' . $etu->prenom_etu) ?></h4>
+                                            <button onclick="toggleDossierForm('<?= htmlspecialchars($etu->num_carte_etud) ?>')" class="text-gray-500 hover:text-gray-700">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <form method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
+                                            <input type="hidden" name="num_etu" value="<?= htmlspecialchars($etu->num_carte_etud) ?>">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Adresse</label>
+                                                    <input type="text" name="adresse" id="adresse-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" disabled>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Téléphone</label>
+                                                    <input type="tel" name="telephone" id="telephone-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" disabled>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Nationalité</label>
+                                                    <input type="text" name="nationalite" id="nationalite-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" disabled>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Situation familiale</label>
+                                                    <input type="text" name="situation_familiale" id="situation-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" disabled>
+                                                </div>
+                                            </div>
+                                            <hr class="my-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Dernier diplôme</label>
+                                                    <input type="text" name="dernier_diplome" id="diplome-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" disabled>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Établissement d'origine</label>
+                                                    <input type="text" name="etablissement_origine" id="etablissement-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" disabled>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Année d'obtention</label>
+                                                    <input type="number" name="annee_obtention_diplome" id="annee-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" min="1900" max="2030" disabled>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm text-gray-700 mb-1">Mention</label>
+                                                    <input type="text" name="mention_diplome" id="mention-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" disabled>
+                                                </div>
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <?php if (canEdit() && $isWritableYear): ?>
+                                                <button type="button" onclick="enableDossierEdit('<?= htmlspecialchars($etu->num_carte_etud) ?>')" id="edit-btn-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">Modifier</button>
+                                                <button type="submit" id="save-btn-<?= htmlspecialchars($etu->num_carte_etud) ?>" class="hidden px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">Enregistrer</button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -249,243 +306,42 @@ $etudiants = array_slice($etudiants, $offset, $itemsPerPage);
             </div>
         <?php endif; ?>
     </div>
-    <div id="dossierModal" class="cm-legacy-panel fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 hidden">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative overflow-y-auto max-h-[90vh]">
-            <button id="closeModalBtn" class="absolute top-4 left-4  text-gray-500 flex items-center justify-center"><i
-                    class="fas fa-times text-lg"></i></button>
-            <!-- Indicateur de chargement -->
-            <div id="loadingIndicator" class="hidden flex items-center justify-center py-8">
-                <div class="flex items-center gap-3 text-green-600">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-                    <span class="font-medium">Chargement des données...</span>
-                </div>
-            </div>
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#dossierForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
+
+<script>
+function toggleDossierForm(numEtu) {
+    const row = document.getElementById('dossier-row-' + numEtu);
+    if (!row) return;
+
+    if (row.classList.contains('hidden')) {
+        row.classList.remove('hidden');
+        // Charger les données du dossier
+        fetch('?page=dossiers_academiques&action=get_dossier&num_etu=' + encodeURIComponent(numEtu))
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('adresse-' + numEtu).value = data.adresse || '';
+                document.getElementById('telephone-' + numEtu).value = data.telephone || '';
+                document.getElementById('nationalite-' + numEtu).value = data.nationalite || '';
+                document.getElementById('situation-' + numEtu).value = data.situation_familiale || '';
+                document.getElementById('diplome-' + numEtu).value = data.dernier_diplome || '';
+                document.getElementById('etablissement-' + numEtu).value = data.etablissement_origine || '';
+                document.getElementById('annee-' + numEtu).value = data.annee_obtention_diplome || '';
+                document.getElementById('mention-' + numEtu).value = data.mention_diplome || '';
+            })
+            .catch(() => {
+                console.log('Aucun dossier existant pour cet étudiant');
+            });
+    } else {
+        row.classList.add('hidden');
+    }
 }
-</style>
-<form id="dossierForm" method="POST" action="?page=dossiers_academiques&action=enregistrer_dossier">
-                <input type="hidden" name="num_etu" id="modalNumEtu">
-                <!-- Informations personnelles -->
-                <div class="mb-6">
 
-                    <div class="cm-dossier-grid grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-gray-700">Adresse</label>
-                            <input type="text" name="adresse" id="modalAdresse"
-                                class="cm-form-control w-full"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Téléphone</label>
-                            <input type="tel" name="telephone" id="modalTelephone"
-                                class="cm-form-control w-full"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Nationalité</label>
-                            <input type="text" name="nationalite" id="modalNationalite"
-                                class="cm-form-control w-full"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Situation familiale</label>
-                            <input type="text" name="situation_familiale" id="modalSituationFamiliale"
-                                class="cm-form-control w-full"
-                                disabled>
-                        </div>
-                    </div>
-                </div>
-                <hr class="my-4 border-gray-200">
-                <!-- Informations académiques -->
-                <div class="mb-6">
-
-                    <div class="cm-dossier-grid grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-gray-700">Dernier diplôme</label>
-                            <input type="text" name="dernier_diplome" id="modalDernierDiplome"
-                                class="cm-form-control w-full"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Établissement d'origine</label>
-                            <input type="text" name="etablissement_origine" id="modalEtablissementOrigine"
-                                class="cm-form-control w-full"
-                                disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Année d'obtention du diplôme</label>
-                            <input type="number" name="annee_obtention_diplome" id="modalAnneeObtentionDiplome"
-                                class="cm-form-control w-full"
-                                min="1900" max="2030" placeholder="Ex: 2023" disabled>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700">Mention du diplôme</label>
-                            <input type="text" name="mention_diplome" id="modalMentionDiplome"
-                                class="cm-form-control w-full"
-                                disabled>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex gap-4 mt-6">
-                    <div id="dossierEditNotice" class="hidden text-sm text-amber-700">
-                        Modification disponible uniquement pour l année académique active <?= htmlspecialchars($writableYearLabel !== '' ? $writableYearLabel : $activeYearLabel) ?>.
-                    </div>
-                    <?php if (canEdit() && $isWritableYear): ?>
-                        <button type="button" id="editBtn"
-                            class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Modifier</button>
-                        <button type="submit" id="saveBtn"
-                            class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Enregistrer</button>
-                    <?php elseif (canEdit()): ?>
-                        <div class="text-sm text-amber-700">
-                            Modification désactivée pour l année académique historique sélectionnée.
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </form>
-        </div>
-    </div>
-    <script>
-        // Masquer automatiquement les messages de succès/erreur après 5 secondes
-        document.addEventListener('DOMContentLoaded', function () {
-            const successMessage = document.getElementById('successMessage');
-            const errorMessage = document.getElementById('errorMessage');
-            function hideMessage(element) {
-                if (element) {
-                    element.style.opacity = '0';
-                    setTimeout(() => {
-                        element.style.display = 'none';
-                    }, 500);
-                }
-            }
-            // Masquer le message de succès après 5 secondes
-            if (successMessage) {
-                setTimeout(() => hideMessage(successMessage), 5000);
-            }
-            // Masquer le message d'erreur après 5 secondes
-            if (errorMessage) {
-                setTimeout(() => hideMessage(errorMessage), 5000);
-            }
-        });
-        // Filtrage JS côté client (pour la démo)
-        const searchInput = document.getElementById('searchInput');
-        const tableBody = document.getElementById('studentTableBody');
-        const rows = Array.from(tableBody.getElementsByTagName('tr'));
-        const saveBtn = document.getElementById('saveBtn');
-        const editBtn = document.getElementById('editBtn');
-        const editNotice = document.getElementById('dossierEditNotice');
-        const allYearsSelected = <?= $allYearsSelected ? 'true' : 'false' ?>;
-        const writableYearId = <?= json_encode($writableYearId) ?>;
-        let currentModalYearId = '';
-        searchInput.addEventListener('input', function () {
-            const value = this.value.toLowerCase();
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(value) ? '' : 'none';
-            });
-        });
-        document.querySelectorAll('.open-dossier-modal').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const numEtu = this.dataset.numEtu;
-                const nom = this.dataset.nom;
-                const rowYearId = this.dataset.yearId || '';
-                currentModalYearId = rowYearId;
-                const canEditCurrentRow = !allYearsSelected || (rowYearId !== '' && writableYearId !== null && Number(rowYearId) === Number(writableYearId));
-                // Affiche la modal immédiatement
-                document.getElementById('dossierModal').classList.remove('hidden');
-                const modalNom = document.getElementById('modalNom');
-                if (modalNom) {
-                    modalNom.textContent = nom;
-                }
-                document.getElementById('modalNumEtu').value = numEtu;
-                // Affiche l'indicateur de chargement
-                document.getElementById('loadingIndicator').classList.remove('hidden');
-                document.getElementById('dossierForm').classList.add('hidden');
-                // Désactive les champs
-                document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
-                    if (i.type !== 'hidden' && i.type !== 'file') i.disabled = true;
-                });
-                if (saveBtn) {
-                    saveBtn.classList.add('hidden');
-                }
-                if (editBtn) {
-                    editBtn.classList.toggle('hidden', !canEditCurrentRow);
-                }
-                if (editNotice) {
-                    editNotice.classList.toggle('hidden', canEditCurrentRow);
-                }
-                // Cache les inputs file
-                document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display =
-                    'none');
-                // Charge les infos via AJAX avec timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes de timeout
-                fetch('?page=dossiers_academiques&action=get_dossier&num_etu=' + encodeURIComponent(
-                    numEtu), {
-                    signal: controller.signal
-                })
-                    .then(r => {
-                        clearTimeout(timeoutId);
-                        if (!r.ok) throw new Error('Erreur réseau');
-                        return r.json();
-                    })
-                    .then(data => {
-                        // Cache l'indicateur de chargement
-                        document.getElementById('loadingIndicator').classList.add('hidden');
-                        document.getElementById('dossierForm').classList.remove('hidden');
-                        // Remplit les champs avec les données existantes
-                        document.getElementById('modalAdresse').value = data.adresse || '';
-                        document.getElementById('modalTelephone').value = data.telephone || '';
-                        document.getElementById('modalNationalite').value = data.nationalite || '';
-                        document.getElementById('modalSituationFamiliale').value = data
-                            .situation_familiale || '';
-                        document.getElementById('modalDernierDiplome').value = data.dernier_diplome ||
-                            '';
-                        document.getElementById('modalEtablissementOrigine').value = data
-                            .etablissement_origine || '';
-                        document.getElementById('modalAnneeObtentionDiplome').value = data
-                            .annee_obtention_diplome || '';
-                        document.getElementById('modalMentionDiplome').value = data.mention_diplome ||
-                            '';
-                    })
-                    .catch(error => {
-                        clearTimeout(timeoutId);
-                        console.log('Aucun dossier existant pour cet étudiant ou erreur de chargement');
-                        // Cache l'indicateur de chargement
-                        document.getElementById('loadingIndicator').classList.add('hidden');
-                        document.getElementById('dossierForm').classList.remove('hidden');
-                        // Vide les champs si pas de dossier existant
-                        document.getElementById('modalAdresse').value = '';
-                        document.getElementById('modalTelephone').value = '';
-                        document.getElementById('modalNationalite').value = '';
-                        document.getElementById('modalSituationFamiliale').value = '';
-                        document.getElementById('modalDernierDiplome').value = '';
-                        document.getElementById('modalEtablissementOrigine').value = '';
-                        document.getElementById('modalAnneeObtentionDiplome').value = '';
-                        document.getElementById('modalMentionDiplome').value = '';
-                    });
-            });
-        });
-        document.getElementById('closeModalBtn').onclick = () => document.getElementById('dossierModal').classList.add('hidden');
-        if (editBtn) {
-            editBtn.onclick = function () {
-                if (allYearsSelected && (currentModalYearId === '' || writableYearId === null || Number(currentModalYearId) !== Number(writableYearId))) {
-                    return;
-                }
-                document.querySelectorAll('#dossierForm input, #dossierForm textarea').forEach(i => {
-                    if (i.type !== 'hidden') i.disabled = false;
-                });
-                document.querySelectorAll('#dossierForm input[type=file]').forEach(i => i.style.display = 'block');
-                if (saveBtn) {
-                    saveBtn.classList.remove('hidden');
-                }
-                this.classList.add('hidden');
-            };
-        }
-    </script>
-</div>
-
+function enableDossierEdit(numEtu) {
+    const fields = ['adresse', 'telephone', 'nationalite', 'situation', 'diplome', 'etablissement', 'annee', 'mention'];
+    fields.forEach(field => {
+        const input = document.getElementById(field + '-' + numEtu);
+        if (input) input.disabled = false;
+    });
+    document.getElementById('edit-btn-' + numEtu).classList.add('hidden');
+    document.getElementById('save-btn-' + numEtu).classList.remove('hidden');
+}
+</script>

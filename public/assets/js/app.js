@@ -1,454 +1,551 @@
 /* CheckMaster - App core */
-(function (window, document) {
-  'use strict';
+((window, document) => {
+	window.CM = window.CM || {};
+	var CM = window.CM;
 
-  window.CM = window.CM || {};
-  var CM = window.CM;
+	CM.utils = CM.utils || {
+		debounce: (fn, delay) => {
+			var timer;
+			return function () {
+				var args = arguments;
+				clearTimeout(timer);
+				timer = setTimeout(() => {
+					fn.apply(this, args);
+				}, delay);
+			};
+		},
+	};
 
-  CM.utils = CM.utils || {
-    debounce: function (fn, delay) {
-      var timer;
-      return function () {
-        var args = arguments;
-        var context = this;
-        clearTimeout(timer);
-        timer = setTimeout(function () {
-          fn.apply(context, args);
-        }, delay);
-      };
-    }
-  };
+	CM.pageLifecycle =
+		CM.pageLifecycle ||
+		(() => {
+			var cleanups = [];
 
-  CM.ajax = CM.ajax || (function () {
-    var initialized = false;
-    var activeRequestController = null;
+			function registerCleanup(callback) {
+				if (typeof callback !== "function") {
+					return () => {};
+				}
 
-    function canHandleAjax() {
-      return !!(window.fetch && window.DOMParser && document.getElementById('cmLayoutMain'));
-    }
+				cleanups.push(callback);
 
-    function shouldIgnoreClick(event, link) {
-      if (event.defaultPrevented || event.button !== 0) {
-        return true;
-      }
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-        return true;
-      }
-      if (!link || !link.href) {
-        return true;
-      }
-      if (link.target && link.target !== '_self') {
-        return true;
-      }
-      if (link.hasAttribute('download')) {
-        return true;
-      }
-      if ((link.getAttribute('href') || '').indexOf('#') === 0) {
-        return true;
-      }
-      return false;
-    }
+				return () => {
+					cleanups = cleanups.filter((item) => item !== callback);
+				};
+			}
 
-    function isAjaxEligibleLink(link) {
-      var href, parsedUrl, action;
+			function runCleanup() {
+				var pending = cleanups.slice();
+				cleanups = [];
 
-      if (!link || link.getAttribute('data-cm-ajax-link') === 'false') {
-        return false;
-      }
+				pending.forEach((callback) => {
+					try {
+						callback();
+					} catch (error) {
+						// Ignore cleanup failures to keep navigation functional.
+					}
+				});
+			}
 
-      href = link.getAttribute('href') || '';
-      if (!href || /^javascript:/i.test(href) || /^mailto:/i.test(href) || /^tel:/i.test(href)) {
-        return false;
-      }
+			return {
+				registerCleanup: registerCleanup,
+				runCleanup: runCleanup,
+			};
+		})();
 
-      try {
-        parsedUrl = new window.URL(link.href, window.location.href);
-      } catch (error) {
-        return false;
-      }
+	CM.ajax =
+		CM.ajax ||
+		(() => {
+			var initialized = false;
+			var activeRequestController = null;
 
-      if (parsedUrl.origin !== window.location.origin) {
-        return false;
-      }
+			function canHandleAjax() {
+				return !!(
+					window.fetch &&
+					window.DOMParser &&
+					document.getElementById("cmLayoutMain")
+				);
+			}
 
-      if (link.hasAttribute('download')) {
-        return false;
-      }
+			function shouldIgnoreClick(event, link) {
+				if (event.defaultPrevented || event.button !== 0) {
+					return true;
+				}
+				if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+					return true;
+				}
+				if (!link || !link.href) {
+					return true;
+				}
+				if (link.target && link.target !== "_self") {
+					return true;
+				}
+				if (link.hasAttribute("download")) {
+					return true;
+				}
+				if ((link.getAttribute("href") || "").indexOf("#") === 0) {
+					return true;
+				}
+				return false;
+			}
 
-      action = (parsedUrl.searchParams.get('action') || '').toLowerCase();
-      if (action.indexOf('imprimer') !== -1 || action.indexOf('export') !== -1 || action.indexOf('download') !== -1) {
-        return false;
-      }
-      if (action === 'export_pdf' || action === 'imprimer_pv') {
-        return false;
-      }
+			function isAjaxEligibleLink(link) {
+				var href, parsedUrl, action;
 
-      if (/\.(pdf|csv|xlsx?|zip)$/i.test(parsedUrl.pathname)) {
-        return false;
-      }
+				if (!link || link.getAttribute("data-cm-ajax-link") === "false") {
+					return false;
+				}
 
-      return true;
-    }
+				href = link.getAttribute("href") || "";
+				if (
+					!href ||
+					/^javascript:/i.test(href) ||
+					/^mailto:/i.test(href) ||
+					/^tel:/i.test(href)
+				) {
+					return false;
+				}
 
-    function executeInlineScripts(container) {
-      if (!container) {
-        return;
-      }
-      var scripts = container.querySelectorAll('script');
-      scripts.forEach(function (oldScript) {
-        var newScript = document.createElement('script');
-        Array.prototype.forEach.call(oldScript.attributes, function (attr) {
-          newScript.setAttribute(attr.name, attr.value);
-        });
+				try {
+					parsedUrl = new window.URL(link.href, window.location.href);
+				} catch (error) {
+					return false;
+				}
 
-        if (oldScript.src) {
-          newScript.src = oldScript.src;
-          newScript.async = false;
-        } else {
-          newScript.textContent = oldScript.textContent;
-        }
+				if (parsedUrl.origin !== window.location.origin) {
+					return false;
+				}
 
-        oldScript.parentNode.replaceChild(newScript, oldScript);
-      });
-    }
+				if (link.hasAttribute("download")) {
+					return false;
+				}
 
-    function updateSidebarActive(url) {
-      try {
-        var parsedUrl = new window.URL(url, window.location.href);
-        var page = parsedUrl.searchParams.get('page') || '';
-        var action = parsedUrl.searchParams.get('action') || '';
+				action = (parsedUrl.searchParams.get("action") || "").toLowerCase();
+				if (
+					action.indexOf("imprimer") !== -1 ||
+					action.indexOf("export") !== -1 ||
+					action.indexOf("download") !== -1
+				) {
+					return false;
+				}
+				if (action === "export_pdf" || action === "imprimer_pv") {
+					return false;
+				}
 
-        // Remove all active classes first
-        var allLinks = document.querySelectorAll(
-          '.cm-sidebar__menu-link.is-active-blue, .cm-sidebar__menu-link.is-active'
-        );
-        allLinks.forEach(function (el) {
-          el.classList.remove('is-active-blue', 'is-active');
-        });
+				if (/\.(pdf|csv|xlsx?|zip)$/i.test(parsedUrl.pathname)) {
+					return false;
+				}
 
-        if (!page) return;
+				return true;
+			}
 
-        // Find the matching link
-        var links = document.querySelectorAll('.cm-sidebar__menu-link');
-        var matched = null;
-        links.forEach(function (link) {
-          var href = link.getAttribute('href') || '';
-          try {
-            var linkUrl = new window.URL(href, window.location.href);
-            var linkPage = linkUrl.searchParams.get('page') || '';
-            var linkAction = linkUrl.searchParams.get('action') || '';
-            if (linkPage === page) {
-              // Prefer exact action match; fallback to page-only match
-              if (action && linkAction) {
-                if (linkAction === action && !matched) matched = link;
-              } else if (!action && !linkAction && !matched) {
-                matched = link;
-              } else if (!matched) {
-                matched = link; // broad fallback
-              }
-            }
-          } catch (e) { /* skip */ }
-        });
+			function executeInlineScripts(container) {
+				if (!container) {
+					return;
+				}
+				var scripts = container.querySelectorAll("script");
+				scripts.forEach((oldScript) => {
+					var newScript = document.createElement("script");
+					Array.prototype.forEach.call(oldScript.attributes, (attr) => {
+						newScript.setAttribute(attr.name, attr.value);
+					});
 
-        if (!matched) return;
+					if (oldScript.src) {
+						newScript.src = oldScript.src;
+						newScript.async = false;
+					} else {
+						newScript.textContent = oldScript.textContent;
+					}
 
-        matched.classList.add('is-active-blue');
+					oldScript.parentNode.replaceChild(newScript, oldScript);
+				});
+			}
 
-        // Reveal parent category if collapsed
-        var catItems = matched.closest('[id^="collapse-"]');
-        if (catItems) {
-          catItems.style.display = '';
-          var catIcon = document.getElementById('icon-' + catItems.id);
-          if (catIcon) catIcon.classList.add('is-open');
-        }
+			function updateSidebarActive(url) {
+				try {
+					var parsedUrl = new window.URL(url, window.location.href);
+					var page = parsedUrl.searchParams.get("page") || "";
+					var action = parsedUrl.searchParams.get("action") || "";
 
-        // Reveal parent sub-menu if inside one
-        var subItems = matched.closest('.cm-sidebar__sub-items');
-        if (subItems && subItems.id) {
-          subItems.style.display = '';
-          var subIcon = document.getElementById('icon-' + subItems.id);
-          if (subIcon) subIcon.classList.add('is-open');
-          // Also activate the parent button
-          var parentBtn = document.querySelector(
-            '[aria-controls="' + subItems.id + '"]'
-          );
-          if (parentBtn) parentBtn.classList.add('is-active-blue');
-        }
-      } catch (e) { /* Silently ignore */ }
-    }
+					// Remove all active classes first
+					var allLinks = document.querySelectorAll(
+						".cm-sidebar__menu-link.is-active-blue, .cm-sidebar__menu-link.is-active",
+					);
+					allLinks.forEach((el) => {
+						el.classList.remove("is-active-blue", "is-active");
+					});
 
-    function afterSwap(url) {
-      // Update sidebar active state on every AJAX navigation
-      updateSidebarActive(url);
+					if (!page) return;
 
-      if (window.CM && window.CM.selectSearch && typeof window.CM.selectSearch.init === 'function') {
-        window.CM.selectSearch.init();
-      }
+					// Find the matching link
+					var links = document.querySelectorAll(".cm-sidebar__menu-link");
+					var matched = null;
+					links.forEach((link) => {
+						var href = link.getAttribute("href") || "";
+						try {
+							var linkUrl = new window.URL(href, window.location.href);
+							var linkPage = linkUrl.searchParams.get("page") || "";
+							var linkAction = linkUrl.searchParams.get("action") || "";
+							if (linkPage === page) {
+								// Prefer exact action match; fallback to page-only match
+								if (action && linkAction) {
+									if (linkAction === action && !matched) matched = link;
+								} else if (!action && !linkAction && !matched) {
+									matched = link;
+								} else if (!matched) {
+									matched = link; // broad fallback
+								}
+							}
+						} catch (e) {
+							/* skip */
+						}
+					});
 
-      if (window.CM && window.CM.dataTable && typeof window.CM.dataTable.init === 'function') {
-        window.CM.dataTable.init();
-      }
+					if (!matched) return;
 
-      try {
-        document.dispatchEvent(new CustomEvent('cm:ajax:navigation:done', { detail: { url: url } }));
-      } catch (error) {
-        // Ignore CustomEvent issues on legacy browsers.
-      }
-    }
+					matched.classList.add("is-active-blue");
 
-    function swapMainContentFromHtml(html, url) {
-      var parser = new window.DOMParser();
-      var incomingDocument = parser.parseFromString(html, 'text/html');
-      var incomingMain = incomingDocument.getElementById('cmLayoutMain');
-      var currentMain = document.getElementById('cmLayoutMain');
+					// Reveal parent category if collapsed
+					var catItems = matched.closest('[id^="collapse-"]');
+					if (catItems) {
+						catItems.style.display = "";
+						var catIcon = document.getElementById("icon-" + catItems.id);
+						if (catIcon) catIcon.classList.add("is-open");
+					}
 
-      if (!incomingMain || !currentMain) {
-        return false;
-      }
+					// Reveal parent sub-menu if inside one
+					var subItems = matched.closest(".cm-sidebar__sub-items");
+					if (subItems && subItems.id) {
+						subItems.style.display = "";
+						var subIcon = document.getElementById("icon-" + subItems.id);
+						if (subIcon) subIcon.classList.add("is-open");
+						// Also activate the parent button
+						var parentBtn = document.querySelector(
+							'[aria-controls="' + subItems.id + '"]',
+						);
+						if (parentBtn) parentBtn.classList.add("is-active-blue");
+					}
+				} catch (e) {
+					/* Silently ignore */
+				}
+			}
 
-      currentMain.className = incomingMain.className;
-      var incomingPage = incomingMain.getAttribute('data-page');
-      if (incomingPage !== null) {
-        currentMain.setAttribute('data-page', incomingPage);
-      } else {
-        currentMain.removeAttribute('data-page');
-      }
+			function afterSwap(url) {
+				// Update sidebar active state on every AJAX navigation
+				updateSidebarActive(url);
 
-      currentMain.innerHTML = incomingMain.innerHTML;
+				// Dispatch a single custom event so all components can react
+				// Components listen to 'cm:ajax:navigation:done' and self-initialize
+				try {
+					document.dispatchEvent(
+						new CustomEvent("cm:ajax:navigation:done", {
+							detail: { url: url },
+						}),
+					);
+				} catch (error) {
+					// Ignore CustomEvent issues on legacy browsers.
+				}
+			}
 
-      var incomingTitle = incomingDocument.querySelector('title');
-      if (incomingTitle && incomingTitle.textContent) {
-        document.title = incomingTitle.textContent;
-      }
+			function swapMainContentFromHtml(html, url) {
+				var parser = new window.DOMParser();
+				var incomingDocument = parser.parseFromString(html, "text/html");
+				var incomingMain = incomingDocument.getElementById("cmLayoutMain");
+				var currentMain = document.getElementById("cmLayoutMain");
 
-      // Update navbar page title from incoming page
-      var incomingNavbarTitle = incomingDocument.querySelector('.cm-navbar__page-title');
-      var currentNavbarTitle = document.querySelector('.cm-navbar__page-title');
-      if (incomingNavbarTitle && currentNavbarTitle) {
-        currentNavbarTitle.textContent = incomingNavbarTitle.textContent;
-      }
+				if (!incomingMain || !currentMain) {
+					return false;
+				}
 
-      var incomingNavbarRight = incomingDocument.querySelector('.cm-navbar__right');
-      var currentNavbarRight = document.querySelector('.cm-navbar__right');
-      if (incomingNavbarRight && currentNavbarRight) {
-        currentNavbarRight.className = incomingNavbarRight.className;
-        currentNavbarRight.innerHTML = incomingNavbarRight.innerHTML;
-      }
+				if (
+					window.CM &&
+					window.CM.pageLifecycle &&
+					typeof window.CM.pageLifecycle.runCleanup === "function"
+				) {
+					window.CM.pageLifecycle.runCleanup();
+				}
 
-      executeInlineScripts(currentMain);
-      afterSwap(url);
-      return true;
-    }
+				if (incomingMain.className) {
+					currentMain.className = incomingMain.className;
+				}
+				var incomingPage = incomingMain.getAttribute("data-page");
+				if (incomingPage !== null) {
+					currentMain.setAttribute("data-page", incomingPage);
+				}
+				var incomingAction = incomingMain.getAttribute("data-action");
+				if (incomingAction !== null) {
+					currentMain.setAttribute("data-action", incomingAction);
+				}
 
-    function load(url, options) {
-      var loadOptions = options || {};
-      var currentMain = document.getElementById('cmLayoutMain');
+				currentMain.innerHTML = incomingMain.innerHTML;
 
-      if (!url || !canHandleAjax() || !currentMain) {
-        window.location.href = url;
-        return Promise.resolve(false);
-      }
+				var incomingTitle = incomingDocument.querySelector("title");
+				if (incomingTitle && incomingTitle.textContent) {
+					document.title = incomingTitle.textContent;
+				}
 
-      if (activeRequestController) {
-        activeRequestController.abort();
-      }
-      activeRequestController = new window.AbortController();
+				// Update navbar page title from incoming page
+				var incomingNavbarTitle = incomingDocument.querySelector(
+					".cm-navbar__page-title",
+				);
+				var currentNavbarTitle = document.querySelector(
+					".cm-navbar__page-title",
+				);
+				if (incomingNavbarTitle && currentNavbarTitle) {
+					currentNavbarTitle.textContent = incomingNavbarTitle.textContent;
+				}
 
-      currentMain.setAttribute('aria-busy', 'true');
-      currentMain.classList.add('cm-is-loading');
+				var incomingNavbarRight =
+					incomingDocument.querySelector(".cm-navbar__right");
+				var currentNavbarRight = document.querySelector(".cm-navbar__right");
+				if (incomingNavbarRight && currentNavbarRight) {
+					currentNavbarRight.className = incomingNavbarRight.className;
+					currentNavbarRight.innerHTML = incomingNavbarRight.innerHTML;
+				}
 
-      return window.fetch(url, {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'text/html, */*;q=0.8'
-        },
-        signal: activeRequestController.signal
-      })
-        .then(function (response) {
-          if (!response.ok) {
-            throw new Error('HTTP ' + response.status);
-          }
-          return response.text();
-        })
-        .then(function (html) {
-          var swapped = swapMainContentFromHtml(html, url);
-          if (!swapped) {
-            window.location.href = url;
-            return false;
-          }
+				executeInlineScripts(currentMain);
+				afterSwap(url);
+				return true;
+			}
 
-          if (!loadOptions.skipHistory) {
-            var state = { cmAjax: true, url: url };
-            if (loadOptions.replaceHistory) {
-              window.history.replaceState(state, '', url);
-            } else {
-              window.history.pushState(state, '', url);
-            }
-          }
-          return true;
-        })
-        .catch(function (error) {
-          if (error && error.name === 'AbortError') {
-            return false;
-          }
-          window.location.href = url;
-          return false;
-        })
-        .finally(function () {
-          activeRequestController = null;
-          currentMain.removeAttribute('aria-busy');
-          currentMain.classList.remove('cm-is-loading');
-        });
-    }
+			function load(url, options) {
+				var loadOptions = options || {};
+				var currentMain = document.getElementById("cmLayoutMain");
 
-    function navigateWithParams(changes, options) {
-      var url = new URL(window.location.href);
-      var opts = options || {};
-      var key;
+				if (!url || !canHandleAjax() || !currentMain) {
+					window.location.href = url;
+					return Promise.resolve(false);
+				}
 
-      if (changes && typeof changes === 'object') {
-        for (key in changes) {
-          if (!Object.prototype.hasOwnProperty.call(changes, key)) {
-            continue;
-          }
-          var value = changes[key];
-          if (value === null || value === undefined || value === '') {
-            url.searchParams.delete(key);
-          } else {
-            url.searchParams.set(key, String(value));
-          }
-        }
-      }
+				if (activeRequestController) {
+					activeRequestController.abort();
+				}
+				activeRequestController = new window.AbortController();
 
-      if (Array.isArray(opts.removeParams)) {
-        opts.removeParams.forEach(function (paramName) {
-          url.searchParams.delete(paramName);
-        });
-      }
+				currentMain.setAttribute("aria-busy", "true");
+				currentMain.classList.add("cm-is-loading");
 
-      return load(url.toString(), {
-        replaceHistory: !!opts.replaceHistory
-      });
-    }
+				return window
+					.fetch(url, {
+						method: "GET",
+						credentials: "same-origin",
+						headers: {
+							"X-Requested-With": "XMLHttpRequest",
+							Accept: "text/html, */*;q=0.8",
+						},
+						signal: activeRequestController.signal,
+					})
+					.then((response) => {
+						if (!response.ok) {
+							throw new Error("HTTP " + response.status);
+						}
+						return response.text();
+					})
+					.then((html) => {
+						var swapped = swapMainContentFromHtml(html, url);
+						if (!swapped) {
+							window.location.href = url;
+							return false;
+						}
 
-    function bindAjaxLinks() {
-      document.addEventListener('click', function (event) {
-        var link = event.target.closest('a');
-        if (!link || shouldIgnoreClick(event, link) || !isAjaxEligibleLink(link)) {
-          return;
-        }
+						if (!loadOptions.skipHistory) {
+							var state = { cmAjax: true, url: url };
+							if (loadOptions.replaceHistory) {
+								window.history.replaceState(state, "", url);
+							} else {
+								window.history.pushState(state, "", url);
+							}
+						}
+						return true;
+					})
+					.catch((error) => {
+						if (error && error.name === "AbortError") {
+							return false;
+						}
+						window.location.href = url;
+						return false;
+					})
+					.finally(() => {
+						activeRequestController = null;
+						currentMain.removeAttribute("aria-busy");
+						currentMain.classList.remove("cm-is-loading");
+					});
+			}
 
-        event.preventDefault();
-        load(link.href);
-      });
-    }
+			function navigateWithParams(changes, options) {
+				var url = new URL(window.location.href);
+				var opts = options || {};
+				var key;
 
-    function bindParamControls() {
-      document.addEventListener('change', function (event) {
-        var control = event.target.closest('[data-cm-ajax-param]');
-        if (!control) {
-          return;
-        }
+				if (changes && typeof changes === "object") {
+					for (key in changes) {
+						if (!Object.hasOwn(changes, key)) {
+							continue;
+						}
+						var value = changes[key];
+						if (value === null || value === undefined || value === "") {
+							url.searchParams.delete(key);
+						} else {
+							url.searchParams.set(key, String(value));
+						}
+					}
+				}
 
-        var paramName = control.getAttribute('data-cm-ajax-param');
-        if (!paramName) {
-          return;
-        }
+				if (Array.isArray(opts.removeParams)) {
+					opts.removeParams.forEach((paramName) => {
+						url.searchParams.delete(paramName);
+					});
+				}
 
-        var changes = {};
-        changes[paramName] = control.value;
+				return load(url.toString(), {
+					replaceHistory: !!opts.replaceHistory,
+				});
+			}
 
-        var resetParam = control.getAttribute('data-cm-ajax-reset-param');
-        if (resetParam) {
-          changes[resetParam] = control.getAttribute('data-cm-ajax-reset-value') || '1';
-        }
+			function bindAjaxLinks() {
+				document.addEventListener("click", (event) => {
+					var link = event.target.closest("a");
+					if (
+						!link ||
+						shouldIgnoreClick(event, link) ||
+						!isAjaxEligibleLink(link)
+					) {
+						return;
+					}
 
-        navigateWithParams(changes);
-      });
-    }
+					event.preventDefault();
+					load(link.href);
+				});
+			}
 
-    function bindHistoryNavigation() {
-      window.addEventListener('popstate', function () {
-        if (!canHandleAjax()) {
-          return;
-        }
-        load(window.location.href, { replaceHistory: true, skipHistory: true });
-      });
-    }
+			function bindParamControls() {
+				document.addEventListener("change", (event) => {
+					var control = event.target.closest("[data-cm-ajax-param]");
+					if (!control) {
+						return;
+					}
 
-    function init() {
-      if (initialized || !canHandleAjax()) {
-        return;
-      }
-      initialized = true;
-      bindAjaxLinks();
-      bindParamControls();
-      bindHistoryNavigation();
-    }
+					var paramName = control.getAttribute("data-cm-ajax-param");
+					if (!paramName) {
+						return;
+					}
 
-    return {
-      init: init,
-      load: load,
-      navigateWithParams: navigateWithParams
-    };
-  })();
+					var changes = {};
+					changes[paramName] = control.value;
 
-  CM.formsAjax = CM.formsAjax || (function () {
-    var initialized = false;
+					var resetParam = control.getAttribute("data-cm-ajax-reset-param");
+					if (resetParam) {
+						changes[resetParam] =
+							control.getAttribute("data-cm-ajax-reset-value") || "1";
+					}
 
-    function isAjaxForm(form) {
-      return !!form && form.getAttribute('data-cm-ajax-form') === 'true';
-    }
+					navigateWithParams(changes);
+				});
+			}
 
-    function buildGetUrl(action, formData) {
-      var url;
-      var params;
+			function bindHistoryNavigation() {
+				window.addEventListener("popstate", () => {
+					if (!canHandleAjax()) {
+						return;
+					}
+					load(window.location.href, {
+						replaceHistory: true,
+						skipHistory: true,
+					});
+				});
+			}
 
-      try {
-        url = new window.URL(action || window.location.href, window.location.href);
-      } catch (error) {
-        return action || window.location.href;
-      }
+			function init() {
+				if (initialized || !canHandleAjax()) {
+					return;
+				}
+				initialized = true;
+				bindAjaxLinks();
+				bindParamControls();
+				bindHistoryNavigation();
+			}
 
-      params = new window.URLSearchParams(url.search);
-      formData.forEach(function (value, key) {
-        if (params.has(key)) {
-          params.delete(key);
-        }
-      });
-      formData.forEach(function (value, key) {
-        if (value === null || value === undefined || value === '') {
-          return;
-        }
-        params.append(key, value);
-      });
+			return {
+				init: init,
+				load: load,
+				navigateWithParams: navigateWithParams,
+			};
+		})();
 
-      url.search = params.toString();
-      return url.toString();
-    }
+	CM.formsAjax =
+		CM.formsAjax ||
+		(() => {
+			var initialized = false;
+
+			function isAjaxForm(form) {
+				return !!form && form.getAttribute("data-cm-ajax-form") === "true";
+			}
+
+			function buildGetUrl(action, formData) {
+				var url;
+				var params;
+
+				try {
+					url = new window.URL(
+						action || window.location.href,
+						window.location.href,
+					);
+				} catch (error) {
+					return action || window.location.href;
+				}
+
+				params = new window.URLSearchParams(url.search);
+				formData.forEach((value, key) => {
+					if (params.has(key)) {
+						params.delete(key);
+					}
+				});
+				formData.forEach((value, key) => {
+					if (value === null || value === undefined || value === "") {
+						return;
+					}
+					params.append(key, value);
+				});
+
+				url.search = params.toString();
+				return url.toString();
+			}
 
     function submitWithAjax(event) {
       var form = event.target;
-      var method, action, formData, submitter;
+      var method, action, formData, submitter, isCandidatureStageForm;
 
-      if (!isAjaxForm(form)) {
-        return;
-      }
+				if (!isAjaxForm(form)) {
+					return;
+				}
 
-      if (!(window.fetch && window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function')) {
-        return;
-      }
+				if (
+					!(
+						window.fetch &&
+						window.CM &&
+						window.CM.ajax &&
+						typeof window.CM.ajax.load === "function"
+					)
+				) {
+					return;
+				}
 
-      event.preventDefault();
+				event.preventDefault();
 
-      if (form.getAttribute('data-cm-ajax-submitting') === '1') {
-        return;
-      }
+				if (form.getAttribute("data-cm-ajax-submitting") === "1") {
+					return;
+				}
 
       method = (form.getAttribute('method') || 'POST').toUpperCase();
       action = form.getAttribute('action') || window.location.href;
+      isCandidatureStageForm = action.indexOf('page=candidature_soutenance') !== -1;
+
+      if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+        console.log('[cm-ajax][candidature_soutenance] submit:start', {
+          method: method,
+          action: action,
+          ajaxSubmitting: form.getAttribute('data-cm-ajax-submitting')
+        });
+      }
 
       if (method !== 'POST') {
         submitter = event.submitter || document.activeElement;
@@ -460,14 +557,14 @@
         return;
       }
 
-      formData = new window.FormData(form);
-      submitter = event.submitter || document.activeElement;
-      if (submitter && submitter.name && !formData.has(submitter.name)) {
-        formData.append(submitter.name, submitter.value || '');
-      }
+				formData = new window.FormData(form);
+				submitter = event.submitter || document.activeElement;
+				if (submitter && submitter.name && !formData.has(submitter.name)) {
+					formData.append(submitter.name, submitter.value || "");
+				}
 
-      form.setAttribute('data-cm-ajax-submitting', '1');
-      form.classList.add('cm-is-loading');
+				form.setAttribute("data-cm-ajax-submitting", "1");
+				form.classList.add("cm-is-loading");
 
       window.fetch(action, {
         method: 'POST',
@@ -480,8 +577,20 @@
       })
         .then(function (response) {
           var contentType = (response.headers.get('content-type') || '').toLowerCase();
+          if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+            console.log('[cm-ajax][candidature_soutenance] submit:response', {
+              ok: response.ok,
+              status: response.status,
+              redirected: response.redirected,
+              url: response.url,
+              contentType: contentType
+            });
+          }
           if (contentType.indexOf('application/json') !== -1) {
             return response.json().then(function (payload) {
+              if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+                console.log('[cm-ajax][candidature_soutenance] submit:json', payload);
+              }
               return {
                 kind: 'json',
                 payload: payload,
@@ -492,6 +601,12 @@
           }
 
           return response.text().then(function () {
+            if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+              console.log('[cm-ajax][candidature_soutenance] submit:html-response', {
+                url: response.url,
+                ok: response.ok
+              });
+            }
             return {
               kind: 'html',
               url: response.url,
@@ -505,61 +620,77 @@
               return window.CM.ajax.load(result.payload.redirect, { replaceHistory: false });
             }
 
-            if (result.payload && result.payload.success === false) {
-              try {
-                document.dispatchEvent(new CustomEvent('cm:ajax:form:error', {
-                  detail: { form: form, payload: result.payload }
-                }));
-              } catch (error) {
-                // Ignore CustomEvent issues on legacy browsers.
-              }
-              return false;
-            }
+							if (result.payload && result.payload.success === false) {
+								try {
+									document.dispatchEvent(
+										new CustomEvent("cm:ajax:form:error", {
+											detail: { form: form, payload: result.payload },
+										}),
+									);
+								} catch (error) {
+									// Ignore CustomEvent issues on legacy browsers.
+								}
+								return false;
+							}
 
-            return window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
-          }
+							return window.CM.ajax.load(window.location.href, {
+								replaceHistory: true,
+								skipHistory: true,
+							});
+						}
 
           return window.CM.ajax.load(result.url || window.location.href, { replaceHistory: true });
         })
-        .catch(function () {
+        .catch(function (error) {
+          if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+            console.log('[cm-ajax][candidature_soutenance] submit:fetch-error', {
+              message: error && error.message ? error.message : null
+            });
+          }
           window.location.href = action;
         })
         .finally(function () {
+          if (isCandidatureStageForm && window.console && typeof window.console.log === 'function') {
+            console.log('[cm-ajax][candidature_soutenance] submit:finally');
+          }
           form.removeAttribute('data-cm-ajax-submitting');
           form.classList.remove('cm-is-loading');
         });
     }
 
-    function init() {
-      if (initialized) {
-        return;
-      }
-      initialized = true;
-      document.addEventListener('submit', submitWithAjax, true);
-    }
+			function init() {
+				if (initialized) {
+					return;
+				}
+				initialized = true;
+				document.addEventListener("submit", submitWithAjax, true);
+			}
 
-    return {
-      init: init
-    };
-  })();
+			return {
+				init: init,
+			};
+		})();
 
-  document.addEventListener('DOMContentLoaded', function () {
-    var contentArea = document.getElementById('contentArea');
+	document.addEventListener("DOMContentLoaded", () => {
+		var contentArea = document.getElementById("contentArea");
 
-    if (contentArea && document.querySelector('.cm-prd3-crud-screen')) {
-      contentArea.classList.add('is-prd3-page');
-    }
+		if (contentArea && document.querySelector(".cm-prd3-crud-screen")) {
+			contentArea.classList.add("is-prd3-page");
+		}
 
-    if (window.CM.selectSearch && typeof window.CM.selectSearch.init === 'function') {
-      window.CM.selectSearch.init();
-    }
+		if (
+			window.CM.selectSearch &&
+			typeof window.CM.selectSearch.init === "function"
+		) {
+			window.CM.selectSearch.init();
+		}
 
-    if (window.CM.ajax && typeof window.CM.ajax.init === 'function') {
-      window.CM.ajax.init();
-    }
+		if (window.CM.ajax && typeof window.CM.ajax.init === "function") {
+			window.CM.ajax.init();
+		}
 
-    if (window.CM.formsAjax && typeof window.CM.formsAjax.init === 'function') {
-      window.CM.formsAjax.init();
-    }
-  });
+		if (window.CM.formsAjax && typeof window.CM.formsAjax.init === "function") {
+			window.CM.formsAjax.init();
+		}
+	});
 })(window, document);

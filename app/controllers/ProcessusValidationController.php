@@ -60,11 +60,48 @@ class ProcessusValidationController
         return $this->service->verifierIdEnseignant($id_enseignant);
     }
 
+    public function resolveEnseignantIdFromSession(array $session)
+    {
+        return $this->service->resolveEnseignantIdFromSession($session);
+    }
+
+    /**
+     * Résout l'ID enseignant depuis l'ID utilisateur.
+     */
+    public function resoudreIdEnseignantDepuisUtilisateur($id_utilisateur)
+    {
+        return $this->service->resoudreIdEnseignantDepuisUtilisateur($id_utilisateur);
+    }
+
     /**
      * Finalise la décision pour un rapport
      */
     public function finaliserRapport($id_rapport, $id_enseignant, $commentaire = null)
     {
         return $this->service->finaliserRapport($id_rapport, $id_enseignant, $commentaire);
+    }
+
+    /**
+     * Applique le vote de l'administrateur connecté aux membres de commission manquants.
+     */
+    public function appliquerVoteAdminAuxMembres($id_rapport, $id_utilisateur, array $session = [])
+    {
+        return $this->service->appliquerVoteAdminAuxMembres($id_rapport, $id_utilisateur, $session);
+    }
+
+    /**
+     * Workflow visuel pour un rapport (P2.4)
+     */
+    public function workflowVisuel(): array
+    {
+        $idRapport = (int) ($_GET['id_rapport'] ?? $_GET['id'] ?? 0);
+        if ($idRapport <= 0) {
+            return $this->service->getDonneesPage();
+        }
+        $workflow = $this->service->getWorkflowProgress($idRapport);
+        return [
+            'workflow' => $workflow,
+            'statistiques' => $this->service->getStatistiques(),
+        ];
     }
 }

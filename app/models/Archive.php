@@ -168,7 +168,7 @@ class Archive
         $anneeExpr = $this->getAcademicYearExpression('e', 'aa');
         $sql = "
             SELECT DISTINCT
-                e.num_carte_etud as matricule,
+                COALESCE(e.num_ident_etud, e.num_carte_etud) as matricule,
                 e.nom_etu as nom,
                 e.prenom_etu as prenoms,
                 r.theme_rapport as theme,
@@ -179,8 +179,8 @@ class Archive
                 " . $anneeExpr . " as annee_academique,
                 r.id_rapport
             FROM etudiants e
-            LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
-            LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
+            LEFT JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+            LEFT JOIN informations_stage ist ON (e.num_carte_etud = ist.num_etu OR e.num_ident_etud = ist.num_etu)
             LEFT JOIN entreprises ent ON ist.id_entreprise = ent.id_entreprise
             LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
@@ -200,7 +200,7 @@ class Archive
         }
 
         if ($search) {
-            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search)";
+            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search OR e.num_ident_etud LIKE :search)";
             $params['search'] = '%' . $search . '%';
         }
 
@@ -232,7 +232,7 @@ class Archive
         $sql = "
             SELECT COUNT(DISTINCT e.num_carte_etud) as total
             FROM etudiants e
-            LEFT JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
+            LEFT JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
             LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             WHERE 1=1
@@ -251,7 +251,7 @@ class Archive
         }
 
         if ($search) {
-            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search)";
+            $sql .= " AND (e.nom_etu LIKE :search OR e.prenom_etu LIKE :search OR e.num_carte_etud LIKE :search OR e.num_ident_etud LIKE :search)";
             $params['search'] = '%' . $search . '%';
         }
 
@@ -338,12 +338,12 @@ class Archive
             FROM etudiants e
             LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
-            WHERE e.num_carte_etud = :num_etu
+            WHERE (e.num_ident_etud = :num_etu OR e.num_carte_etud = :num_etu2)
             ORDER BY i.date_inscription DESC
             LIMIT 1
         ";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['num_etu' => $numEtu]);
+        $stmt->execute(['num_etu' => $numEtu, 'num_etu2' => $numEtu]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -515,15 +515,15 @@ class Archive
                 e.num_carte_etud as etudiant_matricule,
                 CONCAT(e.nom_etu, ' ', e.prenom_etu) as etudiant_nom,
                 p.theme_soutenance,
-                MAX(CASE WHEN cj.id_qualite_jury = 1 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as president,
-                MAX(CASE WHEN cj.id_qualite_jury = 2 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as encadreur,
-                MAX(CASE WHEN cj.id_qualite_jury = 3 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as examinateur,
-                MAX(CASE WHEN cj.id_qualite_jury = 4 THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as directeur,
+                MAX(CASE WHEN cj.id_qualite_jury = 'PJ' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as president,
+                MAX(CASE WHEN cj.id_qualite_jury = 'EN' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as encadreur,
+                MAX(CASE WHEN cj.id_qualite_jury = 'EX' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as examinateur,
+                MAX(CASE WHEN cj.id_qualite_jury = 'DM' THEN CONCAT(ens.nom_enseignant, ' ', ens.prenom_enseignant) END) as directeur,
                 aa.date_deb,
                 aa.date_fin,
                 " . $anneeExpr . " as annee_academique
             FROM {$programmationTable} p
-            INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+            INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
             LEFT JOIN {$juryTable} cj ON CAST(p.{$programmationJuryColumn} AS CHAR) = CAST(cj.{$juryReferenceColumn} AS CHAR)
             LEFT JOIN enseignants ens ON cj.id_enseignant = ens.id_enseignant
             LEFT JOIN {$juryRoleTable} rj ON cj.id_qualite_jury = rj.{$juryRoleIdColumn}
@@ -602,8 +602,8 @@ class Archive
             FROM inscriptions i
             LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
             LEFT JOIN etudiants e ON e.num_carte_etud = i.num_carte_etud
-            LEFT JOIN rapport_etudiants re ON re.num_etu = e.num_carte_etud
-            LEFT JOIN evaluer ev ON ev.num_etudiant = e.num_carte_etud
+            LEFT JOIN rapport_etudiants re ON (re.num_etu = e.num_carte_etud OR re.num_etu = e.num_ident_etud)
+            LEFT JOIN evaluer ev ON (ev.num_etudiant = e.num_carte_etud OR ev.num_etudiant = e.num_ident_etud)
             GROUP BY aa.date_deb, aa.date_fin
             HAVING annee IS NOT NULL
             ORDER BY aa.date_deb DESC
@@ -706,7 +706,7 @@ class Archive
             $sql = "SELECT 
                         COUNT(CASE WHEN r.statut_rapport = 'valider' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as taux
                     FROM rapport_etudiants r
-                    JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
@@ -735,7 +735,7 @@ class Archive
         try {
             $sql = "SELECT AVG(ev.note)
                     FROM evaluer ev
-                    JOIN etudiants e ON ev.num_etudiant = e.num_carte_etud
+                    JOIN etudiants e ON (ev.num_etudiant = e.num_carte_etud OR ev.num_etudiant = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
@@ -765,7 +765,7 @@ class Archive
         try {
             $sql = "SELECT COUNT(DISTINCT p.date_soutenance)
                     FROM {$programmationTable} p
-                    JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                    JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE p.date_soutenance IS NOT NULL";
@@ -799,7 +799,7 @@ class Archive
             if ($this->tableExists('candidature_soutenance')) {
                 $sql = "SELECT MIN(cs.date_candidature) as date, 'Ouverture candidatures' as event
                         FROM candidature_soutenance cs
-                        JOIN etudiants e ON cs.num_etu = e.num_carte_etud
+                        JOIN etudiants e ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
                         LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                         LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                         WHERE 1=1";
@@ -817,7 +817,7 @@ class Archive
             // Start defenses
             $sql = "SELECT MIN(ps.date_soutenance) as date, 'Début des soutenances' as event
                     FROM {$progTable} ps
-                    JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                    JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
@@ -834,7 +834,7 @@ class Archive
             // End defenses
             $sql = "SELECT MAX(ps.date_soutenance) as date, 'Fin des soutenances' as event
                     FROM {$progTable} ps
-                    JOIN etudiants e ON ps.num_etud = e.num_carte_etud
+                    JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
                     LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                     LEFT JOIN annee_academique aa ON i.id_annee_acad = aa.id_annee_acad
                     WHERE 1=1";
@@ -932,7 +932,7 @@ class Archive
             // Update student basic info
             if (isset($data['nom_etu']) || isset($data['prenom_etu']) || isset($data['email_etu'])) {
                 $updateFields = [];
-                $params = ['num_etu' => $numEtu];
+                $params = ['num_etu' => $numEtu, 'num_etu2' => $numEtu];
 
                 if (isset($data['nom_etu'])) {
                     $updateFields[] = "nom_etu = :nom_etu";
@@ -948,7 +948,7 @@ class Archive
                 }
 
                 if (!empty($updateFields)) {
-                    $sql = "UPDATE etudiants SET " . implode(', ', $updateFields) . " WHERE num_carte_etud = :num_etu";
+                    $sql = "UPDATE etudiants SET " . implode(', ', $updateFields) . " WHERE (num_ident_etud = :num_etu OR num_carte_etud = :num_etu2)";
                     $stmt = $this->db->prepare($sql);
                     $stmt->execute($params);
                 }
@@ -1025,5 +1025,172 @@ class Archive
     {
         // Implementation for updating soutenance info
         // Add fields as needed
+    }
+
+    /**
+     * Récupère l'historique des soutenances pour une année avec pagination.
+     */
+    public function getSoutenanceHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                ps.num_soutenance,
+                ps.num_etud,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                ps.theme_soutenance,
+                ps.date_soutenance,
+                ps.heure_soutenance,
+                s.libelle_session,
+                sal.nom_salle,
+                d.lib_domaine
+            FROM programmer_soutenance ps
+            INNER JOIN etudiants e ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
+            LEFT JOIN session s ON ps.id_session = s.id_session
+            LEFT JOIN salle sal ON ps.id_salle = sal.id_salle
+            LEFT JOIN domaine d ON ps.id_domaine = d.id_domaine
+            WHERE ps.id_annee_acad = :annee_acad
+            ORDER BY ps.date_soutenance DESC, ps.heure_soutenance DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getSoutenanceHistory: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Compte le nombre total de soutenances pour une année.
+     */
+    public function countSoutenances($anneeAcad)
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM programmer_soutenance WHERE id_annee_acad = :annee_acad";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->execute();
+            return (int) $stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            error_log('Archive::countSoutenances: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Récupère l'historique des documents (rapports) pour une année.
+     */
+    public function getDocumentHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                re.id_rapport,
+                re.num_etu,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                re.theme_rapport,
+                re.nom_rapport,
+                re.chemin_fichier,
+                re.statut_rapport,
+                re.date_redaction_rapport,
+                re.date_modification,
+                re.version
+            FROM rapport_etudiants re
+            INNER JOIN etudiants e ON (re.num_etu = e.num_carte_etud OR re.num_etu = e.num_ident_etud)
+            INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+            WHERE i.id_annee_acad = :annee_acad
+            ORDER BY COALESCE(re.date_modification, re.date_redaction_rapport) DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getDocumentHistory: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupère l'historique des candidatures pour une année.
+     */
+    public function getCandidatureHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                cs.id_candidature,
+                cs.num_etu,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                cs.date_candidature,
+                cs.statut_candidature,
+                cs.date_traitement,
+                cs.commentaire_admin
+            FROM candidature_soutenance cs
+            INNER JOIN etudiants e ON (cs.num_etu = e.num_carte_etud OR cs.num_etu = e.num_ident_etud)
+            INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+            WHERE i.id_annee_acad = :annee_acad
+            ORDER BY cs.date_candidature DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getCandidatureHistory: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Récupère l'historique des réclamations pour une année.
+     */
+    public function getReclamationHistory($anneeAcad, $limit = 50, $offset = 0)
+    {
+        $sql = "
+            SELECT 
+                r.id_reclamation,
+                r.num_carte_etud,
+                CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                r.objet_reclamation,
+                r.description_reclamation,
+                r.statut_reclamation,
+                sr.libelle_statut_reclamation,
+                r.date_creation,
+                r.date_mise_a_jour
+            FROM reclamations r
+            INNER JOIN etudiants e ON (r.num_carte_etud = e.num_carte_etud OR r.num_carte_etud = e.num_ident_etud)
+            INNER JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
+            LEFT JOIN statut_reclamation sr ON r.statut_reclamation = sr.id_statut_reclamation
+            WHERE i.id_annee_acad = :annee_acad
+            ORDER BY r.date_creation DESC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':annee_acad', $anneeAcad, \PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('Archive::getReclamationHistory: ' . $e->getMessage());
+            return [];
+        }
     }
 }

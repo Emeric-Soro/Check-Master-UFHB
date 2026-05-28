@@ -6,6 +6,11 @@ $etudiants = $data['etudiants'] ?? [];
 $annees = $data['annees'] ?? [];
 $specialites = $data['specialites'] ?? [];
 $filters = $data['filters'] ?? [];
+$isHubContext = (string) ($_GET['page'] ?? '') === 'commissions_archives';
+$listingUrl = $isHubContext
+    ? '?page=commissions_archives&tab=archives_etudiants'
+    : '?page=archives_etudiants';
+$exportUrl = $listingUrl . '&action=exportCsv';
 ?>
 <div class="cm-archive-etudiants">
     <div class="cm-page-header cm-mb-4">
@@ -24,7 +29,10 @@ $filters = $data['filters'] ?? [];
 }
 </style>
 <form method="GET" class="cm-grid-4 cm-gap-3">
-                <input type="hidden" name="page" value="archives_etudiants">
+                <input type="hidden" name="page" value="<?php echo $isHubContext ? 'commissions_archives' : 'archives_etudiants'; ?>">
+                <?php if ($isHubContext): ?>
+                    <input type="hidden" name="tab" value="archives_etudiants">
+                <?php endif; ?>
                 
                 <div class="cm-form-group">
                     <label class="cm-form-label">Spécialité</label>
@@ -60,7 +68,7 @@ $filters = $data['filters'] ?? [];
                     <button type="submit" class="cm-btn cm-btn-primary">
                         <i class="fas fa-filter"></i> Filtrer
                     </button>
-                    <a href="?page=archives_etudiants" class="cm-btn cm-btn-outline cm-ml-2">
+                    <a href="<?php echo htmlspecialchars($listingUrl, ENT_QUOTES, 'UTF-8'); ?>" class="cm-btn cm-btn-outline cm-ml-2">
                         <i class="fas fa-undo"></i>
                     </a>
                 </div>
@@ -74,7 +82,7 @@ $filters = $data['filters'] ?? [];
             <span class="cm-text-muted"><?php echo count($etudiants); ?> étudiant(s) trouvé(s)</span>
         </div>
         <div class="cm-flex cm-gap-2">
-            <a href="?page=archives_etudiants&action=exportCsv" class="cm-btn cm-btn-outline">
+            <a href="<?php echo htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8'); ?>" class="cm-btn cm-btn-outline">
                 <i class="fas fa-download"></i> Export CSV
             </a>
         </div>
@@ -112,7 +120,7 @@ $filters = $data['filters'] ?? [];
                                 <strong><?php echo htmlspecialchars($e->nom_etu . ' ' . $e->prenom_etu); ?></strong><br>
                                 <small class="cm-text-muted"><?php echo htmlspecialchars($e->email_etu); ?></small>
                             </td>
-                            <td><?php echo htmlspecialchars($e->promotion_etu); ?></td>
+                            <td><?php echo htmlspecialchars(FormattingUtils::formatPromotion($e->promotion_etu)); ?></td>
                             <td><?php echo htmlspecialchars($e->lib_specialite ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($e->entreprise ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars(substr($e->theme ?? '', 0, 50)) . (strlen($e->theme ?? '') > 50 ? '...' : ''); ?></td>
@@ -151,4 +159,3 @@ $filters = $data['filters'] ?? [];
         </table>
     </div>
 </div>
-

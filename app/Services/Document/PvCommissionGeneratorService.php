@@ -9,6 +9,8 @@ use App\Utils\PlanningDataUtils;
 use DateTimeImmutable;
 use Throwable;
 
+require_once __DIR__ . '/../../utils/EmailService.php';
+
 /**
  * Service de génération de PV de commission PDF.
  *
@@ -40,7 +42,7 @@ final class PvCommissionGeneratorService
      *
      * @param int $compteRenduId ID du compte-rendu de commission
      * @param int $userId ID de l'utilisateur générant le document
-     * @return array{success: bool, reference?: string, path?: string, error?: string}
+     * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, error?: string}
      */
     public function generate(int $compteRenduId, int $userId): array
     {
@@ -102,12 +104,13 @@ final class PvCommissionGeneratorService
             $filename = $reference;
             $fullPath = $this->pdfGenerator->save($pdf, self::SUBDIR, $filename);
 
-            // 8. Enregistrer le document (no-op car table document_genere n'existe pas)
+            // 8. Enregistrer le document dans document_genere pour traçabilité et compteurs
             $fileSize = file_exists($fullPath) ? filesize($fullPath) : null;
 
             $this->dataUtils->saveDocumentRecord([
                 'reference_document' => $reference,
                 'type_document' => self::TYPE_DOCUMENT,
+                'id_source' => (string) $compteRenduId,
                 'nom_fichier' => $filename . '.pdf',
                 'chemin_fichier' => $fullPath,
                 'taille_fichier' => $fileSize !== false ? (int) $fileSize : null,
@@ -132,6 +135,8 @@ final class PvCommissionGeneratorService
                 'success' => true,
                 'reference' => $reference,
                 'path' => $fullPath,
+                'filename' => basename($fullPath),
+                'size' => $fileSize !== false ? (int) $fileSize : null,
             ];
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -150,28 +155,28 @@ final class PvCommissionGeneratorService
      */
     private function notifyStudentsOfCommissionResult(array $rapportsEvalues, int $userId): void
     {
-        if ($this->notificationService === null) {
-            return;
-        }
-
+        $emailService = new \EmailService();
         foreach ($rapportsEvalues as $r) {
-            if (empty($r['num_carte_etud'])) {
+            $email = $r['email_etudiant'] ?? null;
+            if (empty($email)) {
                 continue;
             }
-
-            $email = $r['email_etudiant'] ?? null;
-
-            $decision = strtoupper((string) ($r['decision_evaluation'] ?? 'OUI'));
+            $nom = ($r['nom_etudiant'] ?? '') . ' ' . ($r['prenom_etudiant'] ?? '');
+            $decision = strtoupper((string)($r['decision_evaluation'] ?? 'OUI'));
+            $isFavorable = $decision === 'OUI' || $decision === 'VALIDER' || $decision === 'VALIDE';
+            $decisionLabel = $isFavorable ? 'ADMIS(E)' : 'AJOURNE(E)';
+            $note = (string)($r['note_moyenne'] ?? $r['moyenne'] ?? '');
             
-            $this->notificationService->dispatchEvent('COMMISSION_DECISION', [
-                'nom_utilisateur' => ($r['nom_etudiant'] ?? '') . ' ' . ($r['prenom_etudiant'] ?? ''),
-                'theme' => $r['theme_rapport'] ?? '',
-                'decision' => $decision === 'OUI' || $decision === 'VALIDER' ? 'FAVORABLE' : 'DÉFAVORABLE',
-                'commentaire' => $r['remarque_specifique'] ?? ''
-            ], [
-                'email' => $email, 
-                'name' => ($r['nom_etudiant'] ?? '') . ' ' . ($r['prenom_etudiant'] ?? '')
-            ], $userId);
+            $emailService->sendTemplate('DECISION_JURY_ETUDIANT', $email, [
+                'nom' => htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8'),
+                'theme' => htmlspecialchars((string)($r['theme_rapport'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'decision' => $decisionLabel,
+                'note' => $note ?: 'N/A',
+                'mention' => '-',
+                'bg_color' => $isFavorable ? '#f0fdf4' : '#fef2f2',
+                'border_color' => $isFavorable ? '#bbf7d0' : '#fecaca',
+                'text_color' => $isFavorable ? '#10b981' : '#ef4444',
+            ]);
         }
     }
 

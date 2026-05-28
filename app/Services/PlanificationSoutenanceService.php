@@ -5,6 +5,9 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Salle.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
+
 use Exception;
 use Salle;
 
@@ -133,11 +136,11 @@ class PlanificationSoutenanceService
             $stmt = $this->pdo->prepare("
                 SELECT ins.id_annee_acad
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 LEFT JOIN LATERAL (
                         SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement, i2.date_inscription
                         FROM inscriptions i2 
-                        WHERE i2.num_carte_etud = e.num_carte_etud 
+                        WHERE (i2.num_carte_etud = e.num_carte_etud OR i2.num_carte_etud = e.num_ident_etud)
                         ORDER BY i2.date_inscription DESC, i2.num_versement DESC LIMIT 1
                     ) ins ON TRUE
                 WHERE p.{$idColumn} = ?
@@ -159,7 +162,7 @@ class PlanificationSoutenanceService
         $selectedYearId = $this->getSelectedAcademicYearId();
 
         if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-            throw new Exception("La soutenance ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("La soutenance ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);
@@ -236,14 +239,14 @@ class PlanificationSoutenanceService
                         ELSE 'none'
                     END as statut_planification
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 {$juryJoin}
                 WHERE 1 = 1
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= "
@@ -315,7 +318,7 @@ class PlanificationSoutenanceService
                     p.id_salle,
                     s.lib_salle as nom_salle
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
                 WHERE p.id_salle IS NOT NULL
                   AND p.date_soutenance IS NOT NULL
@@ -323,7 +326,7 @@ class PlanificationSoutenanceService
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) AND i.id_annee_acad = :id_annee_acad)";
             }
 
             $sql .= " ORDER BY p.date_soutenance ASC, p.heure_soutenance ASC";
@@ -359,7 +362,7 @@ class PlanificationSoutenanceService
 
             $selectedDateTime = new \DateTime($dateSoutenance . ' ' . $heureSoutenance);
             if ($selectedDateTime <= new \DateTime()) {
-                throw new Exception("La date et l'heure de soutenance doivent etre dans le futur");
+                throw new Exception("La date et l'heure de soutenance doivent être dans le futur");
             }
 
             $progTable = $this->requireProgrammationTable();
@@ -369,15 +372,15 @@ class PlanificationSoutenanceService
             $this->pdo->beginTransaction();
             $this->ensureWritableProgrammation($targetId, 'une planification de soutenance');
 
-            $etudiantStmt = $this->pdo->prepare("SELECT num_etud FROM {$progTable} WHERE {$idColumn} = ?");
+            $etudiantStmt = $this->pdo->prepare("SELECT p.num_etud, CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant, p.theme_soutenance FROM {$progTable} p LEFT JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud) WHERE p.{$idColumn} = ?");
             $etudiantStmt->execute([(string) $targetId]);
             $etudiantData = $etudiantStmt->fetch(\PDO::FETCH_ASSOC);
             if (!$etudiantData) {
-                throw new Exception('Programmation non trouvee');
+                throw new Exception('Programmation non trouvée');
             }
 
             if ($this->etudiantDejaPlannifie($etudiantData['num_etud'] ?? '', $editId ?: null)) {
-                throw new Exception('Cet etudiant a deja une soutenance completement planifiee');
+                throw new Exception('Cet étudiant a déjà une soutenance complètement planifiée');
             }
 
             $conflictStmt = $this->pdo->prepare("
@@ -396,7 +399,7 @@ class PlanificationSoutenanceService
             ]);
 
             if ((int) ($conflictStmt->fetch(\PDO::FETCH_ASSOC)['conflicts'] ?? 0) > 0) {
-                throw new Exception('Conflit : cette salle est deja occupee a cette date et heure');
+                throw new Exception('Conflit : cette salle est déjà occupée à cette date et heure');
             }
 
             $stmt = $this->pdo->prepare("
@@ -414,14 +417,39 @@ class PlanificationSoutenanceService
             ]);
 
             if (!$success) {
-                throw new Exception('Erreur lors de la mise a jour en base de donnees');
+                throw new Exception('Erreur lors de la mise à jour en base de données');
             }
 
             $this->pdo->commit();
 
+            try {
+                $emailService = new \EmailService();
+                $stmtEns = $this->pdo->prepare("SELECT id_enseignant FROM enseignants LIMIT 1");
+                $stmtEns->execute();
+                $enseignantRow = $stmtEns->fetch(\PDO::FETCH_ASSOC);
+                $enseignantId = $enseignantRow['id_enseignant'] ?? null;
+                $role = 'encadrant';
+                $etudiantNom = $etudiantData['nom_etudiant'] ?? '';
+                $theme = $etudiantData['theme_soutenance'] ?? '';
+                $entreprise = '';
+                $ensEmail = (new \NotificationService())->getEnseignantEmail($enseignantId);
+                $ensNom = (new \NotificationService())->getEnseignantNom($enseignantId);
+                $templateKey = ($role === 'encadrant') ? 'AFFECTATION_ENCADRANT' : 'AFFECTATION_DIRECTEUR';
+                if ($ensEmail !== null) {
+                    $emailService->sendTemplate($templateKey, $ensEmail, [
+                        'nom_enseignant' => htmlspecialchars($ensNom, ENT_QUOTES, 'UTF-8'),
+                        'nom_etudiant' => htmlspecialchars((string)($etudiantNom ?? ''), ENT_QUOTES, 'UTF-8'),
+                        'theme' => htmlspecialchars((string)($theme ?? ''), ENT_QUOTES, 'UTF-8'),
+                        'entreprise' => htmlspecialchars((string)($entreprise ?? ''), ENT_QUOTES, 'UTF-8'),
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                error_log('Erreur notif affectation: ' . $e->getMessage());
+            }
+
             return [
                 'success' => true,
-                'message' => $editId ? 'Planification modifiee avec succes' : 'Soutenance planifiee avec succes',
+                'message' => $editId ? 'Planification modifiée avec succès' : 'Soutenance planifiée avec succès',
             ];
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -455,12 +483,12 @@ class PlanificationSoutenanceService
             ");
             $success = $stmt->execute([(string) $idProgrammation]);
             if (!$success) {
-                throw new Exception('Erreur lors de la suppression en base de donnees');
+                throw new Exception('Erreur lors de la suppression en base de données');
             }
 
             return [
                 'success' => true,
-                'message' => 'Planification supprimee avec succes',
+                'message' => 'Planification supprimée avec succès',
             ];
         } catch (\Throwable $e) {
             return [
@@ -489,20 +517,20 @@ class PlanificationSoutenanceService
                     p.heure_soutenance,
                     p.id_salle
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 WHERE p.{$idColumn} = ?
                 LIMIT 1
             ");
             $stmt->execute([(string) $id]);
             $planification = $stmt->fetch(\PDO::FETCH_ASSOC);
             if (!$planification) {
-                throw new Exception('Planification non trouvee');
+                throw new Exception('Planification non trouvée');
             }
 
             $selectedYearId = $this->getSelectedAcademicYearId();
             $targetYearId = $this->getProgrammationAcademicYearId($id);
             if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-                throw new Exception("La planification ne correspond pas a l'annee academique actuellement selectionnee.");
+                throw new Exception("La planification ne correspond pas à l'année académique actuellement sélectionnée.");
             }
 
             return [

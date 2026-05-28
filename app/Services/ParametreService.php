@@ -20,6 +20,7 @@ require_once __DIR__ . '/../models/Message.php';
 require_once __DIR__ . '/../models/Attribution.php';
 require_once __DIR__ . '/../models/Enseignant.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../models/ProgrammationSessionSoutenance.php';
 
 use Action;
 use AnneeAcademique;
@@ -39,6 +40,7 @@ use Message;
 use Attribution;
 use Enseignant;
 use AuditLog;
+use ProgrammationSessionSoutenance;
 use PDO;
 use Database;
 use Exception;
@@ -65,6 +67,7 @@ class ParametreService
     private $attribution;
     private $enseignant;
     private $auditLog;
+    private $programmationSessionSoutenance;
 
     public function __construct($db)
     {
@@ -87,6 +90,7 @@ class ParametreService
         $this->attribution = new Attribution($db);
         $this->enseignant = new Enseignant($db);
         $this->auditLog = new AuditLog($db);
+        $this->programmationSessionSoutenance = new ProgrammationSessionSoutenance($db);
     }
 
 
@@ -826,12 +830,12 @@ class ParametreService
         $messageSuccess = '';
 
         if (isset($post['btn_add_entreprise']) || isset($post['btn_modifier_entreprise'])) {
-            $lib_entreprise = trim((string)($post['lib_long_entreprise'] ?? ($post['lib_entreprise'] ?? '')));
-            $lib_court = trim((string)($post['lib_court_en'] ?? ($post['lib_court'] ?? '')));
-            $email = trim((string)($post['email'] ?? ''));
-            $telephone = trim((string)($post['telephone'] ?? ''));
-            $logo = trim((string)($post['logo'] ?? ''));
-            $id_entreprise = isset($post['id_entreprise']) && $post['id_entreprise'] !== '' ? (int)$post['id_entreprise'] : null;
+            $lib_entreprise = trim((string) ($post['lib_long_entreprise'] ?? ($post['lib_entreprise'] ?? '')));
+            $lib_court = trim((string) ($post['lib_court_en'] ?? ($post['lib_court'] ?? '')));
+            $email = trim((string) ($post['email'] ?? ''));
+            $telephone = trim((string) ($post['telephone'] ?? ''));
+            $logo = trim((string) ($post['logo'] ?? ''));
+            $id_entreprise = isset($post['id_entreprise']) && $post['id_entreprise'] !== '' ? (int) $post['id_entreprise'] : null;
 
             if ($lib_entreprise === '') {
                 $messageErreur = "Le libellé de l'entreprise est obligatoire.";
@@ -1904,6 +1908,135 @@ class ParametreService
         ];
     }
 
+    //============================PROGRAMMATION SESSIONS SOUTENANCE==================================
+    public function gestionProgrammationSessionsSoutenance(array $post, array $get, string $userId): array
+    {
+        $messageErreur = '';
+        $messageSuccess = '';
+        $listeAnnees = $this->anneeAcademique->getAllAnneeAcademiques();
+        $selectedYearId = $this->resolveSelectedYearId($post, $get, $listeAnnees);
+        $sessionForm = $this->buildEmptySessionForm();
+
+        if (!$this->programmationSessionSoutenance->tableExists()) {
+            return [
+                'listeAnnees' => $listeAnnees,
+                'selectedYearId' => $selectedYearId,
+                'sessionForm' => $sessionForm,
+                'sessionTableRows' => [],
+                'messageErreur' => "La table 'programmation_sessions_soutenance' n'existe pas.",
+                'messageSuccess' => '',
+            ];
+        }
+
+        if ($selectedYearId !== null) {
+            $existing = $this->programmationSessionSoutenance->getByYear($selectedYearId);
+            foreach ($existing as $row) {
+                $numSession = (int) ($row['num_session'] ?? 0);
+                if ($numSession < 1 || $numSession > 3) {
+                    continue;
+                }
+                $sessionForm[$numSession]['date_debut'] = (string) ($row['date_debut'] ?? '');
+            }
+        }
+
+        $isSave = isset($post['submit_programmation_sessions']);
+        if ($isSave) {
+            $csrfValid = true;
+            if (class_exists('\CheckMaster\\Core\\Csrf')) {
+                $csrfValid = \CheckMaster\Core\Csrf::validate($post['csrf_token'] ?? null);
+            } elseif (isset($post['csrf_token'], $_SESSION['csrf_token'])) {
+                $csrfValid = hash_equals((string) $_SESSION['csrf_token'], (string) $post['csrf_token']);
+            }
+
+            if (!$csrfValid) {
+                $messageErreur = 'Erreur de sécurité CSRF.';
+            }
+
+            $selectedYearId = isset($post['id_annee_acad']) ? (int) $post['id_annee_acad'] : $selectedYearId;
+            if ($messageErreur === '' && ($selectedYearId === null || $selectedYearId <= 0)) {
+                $messageErreur = 'Veuillez sélectionner une année académique.';
+            }
+
+            $payloads = [];
+            if ($messageErreur === '') {
+                for ($i = 1; $i <= 3; $i++) {
+                    $date = trim((string) ($post['session_' . $i . '_debut'] ?? ''));
+
+                    $sessionForm[$i]['date_debut'] = $date;
+
+                    if ($date === '') {
+                        $payloads[$i] = null;
+                        continue;
+                    }
+
+                    $payloads[$i] = $date;
+                }
+            }
+
+            if ($messageErreur === '') {
+                $success = true;
+                foreach ($payloads as $numSession => $data) {
+                    if ($data === null) {
+                        $this->programmationSessionSoutenance->deleteByYearSession($selectedYearId, (int) $numSession);
+                        continue;
+                    }
+
+                    if (
+                        !$this->programmationSessionSoutenance->upsertSession(
+                            $selectedYearId,
+                            (int) $numSession,
+                            $data
+                        )
+                    ) {
+                        $success = false;
+                        break;
+                    }
+                }
+
+                if ($success) {
+                    $messageSuccess = 'Programmation des sessions enregistrée.';
+                    $this->auditLog->logModification($userId, 'programmation_sessions_soutenance', 'Succès');
+                } else {
+                    $messageErreur = 'Erreur lors de la sauvegarde des sessions.';
+                    $this->auditLog->logModification($userId, 'programmation_sessions_soutenance', 'Erreur');
+                }
+            } elseif ($messageErreur !== '') {
+                $this->auditLog->logModification($userId, 'programmation_sessions_soutenance', 'Erreur');
+            }
+        }
+
+        $allSessions = $this->programmationSessionSoutenance->getAll();
+        $sessionsIndex = [];
+        foreach ($allSessions as $row) {
+            $yearId = (int) ($row['id_annee_acad'] ?? 0);
+            $numSession = (int) ($row['num_session'] ?? 0);
+            if ($yearId <= 0 || $numSession <= 0) {
+                continue;
+            }
+            $sessionsIndex[$yearId][$numSession] = $row;
+        }
+
+        $tableRows = [];
+        foreach ($listeAnnees as $annee) {
+            $yearId = (int) ($annee->id_annee_acad ?? 0);
+            $tableRows[] = [
+                'annee_label' => $this->formatAcademicYearLabel($annee),
+                'session_1' => $this->formatSessionRange($sessionsIndex[$yearId][1] ?? null),
+                'session_2' => $this->formatSessionRange($sessionsIndex[$yearId][2] ?? null),
+                'session_3' => $this->formatSessionRange($sessionsIndex[$yearId][3] ?? null),
+            ];
+        }
+
+        return [
+            'listeAnnees' => $listeAnnees,
+            'selectedYearId' => $selectedYearId,
+            'sessionForm' => $sessionForm,
+            'sessionTableRows' => $tableRows,
+            'messageErreur' => $messageErreur,
+            'messageSuccess' => $messageSuccess,
+        ];
+    }
+
     public function gestionSchemaTables(array $get): array
     {
         $tables = [];
@@ -2007,6 +2140,7 @@ class ParametreService
             'niveau_etude' => 'niveaux_etude',
             'permissions' => 'gestion_attribution',
             'qualite_jury' => 'qualite_jury',
+            'programmation_sessions_soutenance' => 'programmation_sessions_soutenance',
             'route_actions' => 'gestion_menus',
             'salles' => 'salles',
             'semestre' => 'semestres',
@@ -2047,7 +2181,8 @@ class ParametreService
             'niveau_approbation' => ['id_niveau_approbation', 'lib_niveau_approbation'],
             'niveau_etude' => ['id_niv_etude', 'lib_niv_etude'],
             'permissions' => ['id_GU', 'id_fonctionnalite', 'peut_voir', 'peut_creer', 'peut_modifier', 'peut_supprimer'],
-            'qualite_jury' => ['id_qualite_jury', 'lib_qualite', 'code_qltjury', 'lib_role'],
+            'qualite_jury' => ['id_role_jury', 'lib_role'],
+            'programmation_sessions_soutenance' => ['id_programmation', 'id_annee_acad', 'num_session', 'date_debut', 'created_at', 'updated_at'],
             'route_actions' => ['id_route_action', 'id_fonctionnalite', 'route_pattern', 'http_method', 'action_crud', 'is_public', 'actif'],
             'salles' => ['id_salle', 'nom_salle', 'capacite'],
             'semestre' => ['id_semestre', 'code_semestre', 'lib_semestre'],
@@ -2164,8 +2299,9 @@ class ParametreService
                 'table' => 'qualite_jury',
                 'id_column' => 'id_role_jury',
                 'id_param' => 'id_role_jury',
-                'fields' => ['code_qltjury', 'lib_role'],
-                'required_fields' => ['code_qltjury', 'lib_role'],
+                'fields' => ['id_role_jury', 'lib_role'],
+                'required_fields' => ['id_role_jury', 'lib_role'],
+                'allow_manual_id' => true,
                 'order_by' => 'lib_role ASC',
                 'audit_entity' => 'qualite_jury',
             ],
@@ -2241,6 +2377,75 @@ class ParametreService
         ];
 
         return $configs[$action] ?? null;
+    }
+
+    private function resolveSelectedYearId(array $post, array $get, array $listeAnnees): ?int
+    {
+        $candidate = null;
+        if (isset($post['id_annee_acad']) && $post['id_annee_acad'] !== '') {
+            $candidate = (int) $post['id_annee_acad'];
+        } elseif (isset($get['id_annee_acad']) && $get['id_annee_acad'] !== '') {
+            $candidate = (int) $get['id_annee_acad'];
+        } elseif (isset($_SESSION['global_annee_id']) && is_numeric($_SESSION['global_annee_id'])) {
+            $candidate = (int) $_SESSION['global_annee_id'];
+        }
+
+        if ($candidate !== null && $candidate > 0) {
+            return $candidate;
+        }
+
+        $today = date('Y-m-d');
+        foreach ($listeAnnees as $annee) {
+            $dateDebut = (string) ($annee->date_deb ?? '');
+            $dateFin = (string) ($annee->date_fin ?? '');
+            if ($dateDebut !== '' && $dateFin !== '' && $today >= $dateDebut && $today <= $dateFin) {
+                return (int) ($annee->id_annee_acad ?? 0);
+            }
+        }
+
+        $fallback = $listeAnnees[0] ?? null;
+        if ($fallback === null) {
+            return null;
+        }
+
+        $fallbackId = (int) ($fallback->id_annee_acad ?? 0);
+        return $fallbackId > 0 ? $fallbackId : null;
+    }
+
+    private function buildEmptySessionForm(): array
+    {
+        return [
+            1 => ['date_debut' => ''],
+            2 => ['date_debut' => ''],
+            3 => ['date_debut' => ''],
+        ];
+    }
+
+    private function formatAcademicYearLabel($annee): string
+    {
+        $dateDebut = (string) ($annee->date_deb ?? '');
+        $dateFin = (string) ($annee->date_fin ?? '');
+
+        if ($dateDebut !== '' && $dateFin !== '') {
+            return date('Y', strtotime($dateDebut)) . '-' . date('Y', strtotime($dateFin));
+        }
+
+        $id = (string) ($annee->id_annee_acad ?? '');
+        return $id !== '' ? $id : '-';
+    }
+
+    private function formatSessionRange($row): string
+    {
+        if ($row === null) {
+            return '-';
+        }
+
+        $date = is_array($row) ? (string) ($row['date_debut'] ?? '') : (string) ($row->date_debut ?? '');
+        if ($date === '') {
+            return '-';
+        }
+
+        return date('d/m/Y', strtotime($date));
     }
 
     private function tableExists(string $table): bool

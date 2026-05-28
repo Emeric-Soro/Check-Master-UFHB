@@ -15,7 +15,7 @@ class QualiteJury
     public function getAllRoles()
     {
         try {
-            $query = "SELECT * FROM qualite_jury ORDER BY id_role_jury";
+            $query = "SELECT id_role_jury, id_role_jury AS code_qltjury, lib_role FROM qualite_jury ORDER BY id_role_jury";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -31,7 +31,7 @@ class QualiteJury
     public function getRoleById($id_role_jury)
     {
         try {
-            $query = "SELECT * FROM qualite_jury WHERE id_role_jury = ?";
+            $query = "SELECT id_role_jury, id_role_jury AS code_qltjury, lib_role FROM qualite_jury WHERE id_role_jury = ?";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$id_role_jury]);
             return $stmt->fetch(PDO::FETCH_OBJ);
@@ -47,7 +47,7 @@ class QualiteJury
     public function getRoleByCode($code_qltjury)
     {
         try {
-            $query = "SELECT * FROM qualite_jury WHERE code_qltjury = ?";
+            $query = "SELECT id_role_jury, id_role_jury AS code_qltjury, lib_role FROM qualite_jury WHERE id_role_jury = ?";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$code_qltjury]);
             return $stmt->fetch(PDO::FETCH_OBJ);
@@ -63,7 +63,7 @@ class QualiteJury
     public function creerRole($code_qltjury, $lib_role)
     {
         try {
-            $query = "INSERT INTO qualite_jury (code_qltjury, lib_role) VALUES (?, ?)";
+            $query = "INSERT INTO qualite_jury (id_role_jury, lib_role) VALUES (?, ?)";
             $stmt = $this->db->prepare($query);
             return $stmt->execute([$code_qltjury, $lib_role]);
         } catch (PDOException $e) {
@@ -78,7 +78,7 @@ class QualiteJury
     public function modifierRole($id_role_jury, $code_qltjury, $lib_role)
     {
         try {
-            $query = "UPDATE qualite_jury SET code_qltjury = ?, lib_role = ? WHERE id_role_jury = ?";
+            $query = "UPDATE qualite_jury SET id_role_jury = ?, lib_role = ? WHERE id_role_jury = ?";
             $stmt = $this->db->prepare($query);
             return $stmt->execute([$code_qltjury, $lib_role, $id_role_jury]);
         } catch (PDOException $e) {

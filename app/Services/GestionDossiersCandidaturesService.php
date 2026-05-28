@@ -5,14 +5,13 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use RapportEtudiant;
 use Etudiant;
-use Approuver;
 use PersAdmin;
 use AuditLog;
 use PDO;
@@ -33,7 +32,6 @@ class GestionDossiersCandidaturesService
     private $db;
     private $rapportModel;
     private $etudiant;
-    private $approuver;
     private $persAdmin;
     private $auditLog;
     private $tableExistsCache = [];
@@ -44,7 +42,6 @@ class GestionDossiersCandidaturesService
         $this->db = $db;
         $this->rapportModel = new RapportEtudiant($db);
         $this->etudiant = new Etudiant($db);
-        $this->approuver = new Approuver($db);
         $this->persAdmin = new PersAdmin($db);
         $this->auditLog = new AuditLog($db);
     }
@@ -106,9 +103,27 @@ class GestionDossiersCandidaturesService
         }
 
         return [
-            'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = {$alias}.num_carte_etud AND i.id_annee_acad = :id_annee_acad)",
+            'sql' => " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = " . $this->studentCarteExpr($alias) . " AND i.id_annee_acad = :id_annee_acad)",
             'params' => [':id_annee_acad' => $selectedYearId],
         ];
+    }
+
+    private function studentJoinCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr(string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
     }
 
     /**
@@ -123,7 +138,7 @@ class GestionDossiersCandidaturesService
             : ($this->columnExists('rapport_etudiants', 'date_redaction_rapport') ? 'r.date_redaction_rapport' : 'NULL');
         $yearFilter = $this->yearCondition('e');
 
-        if ($this->tableExists('approuver')) {
+        if ($this->tableExists('valider')) {
             $sql = "
                 SELECT 
                     r.id_rapport,
@@ -131,47 +146,14 @@ class GestionDossiersCandidaturesService
                     r.theme_rapport,
                     {$dateColumn} as date_depot,
                     r.statut_rapport,
-                    e.num_carte_etud as num_etu,
+                    " . $this->studentCarteExpr('e') . " as num_etu,
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
                     (
                         SELECT i.id_annee_acad
                         FROM inscriptions i
-                        WHERE i.num_carte_etud = e.num_carte_etud
-                        ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
-                        LIMIT 1
-                    ) AS id_annee_acad,
-                    e.promotion_etu,
-                    a.date_approv as date_approbation,
-                    a.commentaire_approv as commentaire,
-                    a.decision as statut_approbation,
-                    pa.nom_pers_admin,
-                    pa.prenom_pers_admin
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-                WHERE a.decision IN ('approuve', 'desapprouve')
-                {$yearFilter['sql']}
-                ORDER BY a.date_approv DESC
-            ";
-        } elseif ($this->tableExists('valider')) {
-            $sql = "
-                SELECT 
-                    r.id_rapport,
-                    {$titleColumn} as titre_rapport,
-                    r.theme_rapport,
-                    {$dateColumn} as date_depot,
-                    r.statut_rapport,
-                    e.num_carte_etud as num_etu,
-                    e.nom_etu,
-                    e.prenom_etu,
-                    e.email_etu,
-                    (
-                        SELECT i.id_annee_acad
-                        FROM inscriptions i
-                        WHERE i.num_carte_etud = e.num_carte_etud
+                        WHERE i.num_carte_etud = " . $this->studentCarteExpr('e') . "
                         ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
                         LIMIT 1
                     ) AS id_annee_acad,
@@ -186,7 +168,7 @@ class GestionDossiersCandidaturesService
                     en.nom_enseignant as nom_pers_admin,
                     en.prenom_enseignant as prenom_pers_admin
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
                 WHERE v.decision_validation IN ('valider', 'rejeter')
@@ -209,50 +191,11 @@ class GestionDossiersCandidaturesService
     public function getStatistiques()
     {
         $yearFilter = $this->yearCondition('e');
-        if ($this->tableExists('approuver')) {
-            // Total des rapports vérifiés
+        if ($this->tableExists('valider')) {
             $sql = "
                 SELECT COUNT(*) as total
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE a.decision IN ('approuve', 'desapprouve')
-                {$yearFilter['sql']}
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($yearFilter['params']);
-            $total = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
-
-            // Rapports approuvés
-            $sql = "
-                SELECT COUNT(*) as approuves
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE a.decision = 'approuve'
-                {$yearFilter['sql']}
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($yearFilter['params']);
-            $approuves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['approuves'] ?? 0);
-
-            // Rapports désapprouvés
-            $sql = "
-                SELECT COUNT(*) as desapprouves
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                WHERE a.decision = 'desapprouve'
-                {$yearFilter['sql']}
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($yearFilter['params']);
-            $desapprouves = (int) ($stmt->fetch(PDO::FETCH_ASSOC)['desapprouves'] ?? 0);
-        } elseif ($this->tableExists('valider')) {
-            $sql = "
-                SELECT COUNT(*) as total
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation IN ('valider', 'rejeter')
                 {$yearFilter['sql']}
@@ -264,7 +207,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as approuves
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation = 'valider'
                 {$yearFilter['sql']}
@@ -276,7 +219,7 @@ class GestionDossiersCandidaturesService
             $sql = "
                 SELECT COUNT(*) as desapprouves
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 WHERE v.decision_validation = 'rejeter'
                 {$yearFilter['sql']}
@@ -310,28 +253,7 @@ class GestionDossiersCandidaturesService
             : ($this->columnExists('rapport_etudiants', 'date_redaction_rapport') ? 'r.date_redaction_rapport' : 'NULL');
         $yearFilter = $this->yearCondition('e');
 
-        if ($this->tableExists('approuver')) {
-            $sql = "
-                SELECT 
-                    r.*,
-                    {$titleColumn} as nom_rapport,
-                    {$dateColumn} as date_rapport,
-                    e.nom_etu,
-                    e.prenom_etu,
-                    e.email_etu,
-                    a.date_approv as date_approbation,
-                    a.commentaire_approv as commentaire,
-                    a.decision as statut_approbation,
-                    pa.nom_pers_admin,
-                    pa.prenom_pers_admin
-                FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
-                INNER JOIN approuver a ON r.id_rapport = a.id_rapport
-                LEFT JOIN personnel_admin pa ON a.id_pers_admin = pa.id_pers_admin
-                WHERE r.id_rapport = :id_rapport
-                {$yearFilter['sql']}
-            ";
-        } elseif ($this->tableExists('valider')) {
+        if ($this->tableExists('valider')) {
             $sql = "
                 SELECT 
                     r.*,
@@ -350,7 +272,7 @@ class GestionDossiersCandidaturesService
                     en.nom_enseignant as nom_pers_admin,
                     en.prenom_enseignant as prenom_pers_admin
                 FROM rapport_etudiants r
-                INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 INNER JOIN valider v ON r.id_rapport = v.id_rapport
                 LEFT JOIN enseignants en ON v.id_enseignant = en.id_enseignant
                 WHERE r.id_rapport = :id_rapport
@@ -378,17 +300,10 @@ class GestionDossiersCandidaturesService
             return null;
         }
 
-        $chemin = $rapport['chemin_fichier'] ?? '';
-        if (empty($chemin)) {
-            $chemin = 'rapport_' . $id_rapport . '.html';
-        }
-        $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/" . $chemin;
-
-        if (!file_exists($fichierContenu)) {
+        $contenu = $this->loadRapportHtmlContent((int) $id_rapport, $rapport);
+        if ($contenu === null) {
             return ['error' => 'file_not_found', 'rapport' => $rapport];
         }
-
-        $contenu = file_get_contents($fichierContenu);
 
         $html = '
         <!DOCTYPE html>
@@ -439,17 +354,10 @@ class GestionDossiersCandidaturesService
             return null;
         }
 
-        $chemin = $rapport['chemin_fichier'] ?? '';
-        if (empty($chemin)) {
-            $chemin = 'rapport_' . $id_rapport . '.html';
-        }
-        $fichierContenu = __DIR__ . "/../../ressources/uploads/rapports/" . $chemin;
-
-        if (!file_exists($fichierContenu)) {
+        $contenu = $this->loadRapportHtmlContent((int) $id_rapport, $rapport);
+        if ($contenu === null) {
             return ['error' => 'file_not_found', 'rapport' => $rapport];
         }
-
-        $contenu = file_get_contents($fichierContenu);
 
         return [
             'rapport' => $rapport,
@@ -473,5 +381,50 @@ class GestionDossiersCandidaturesService
     public function logConsultation($userId)
     {
         $this->auditLog->logAction($userId, 'Consultation', 'rapport_etudiants', 'Succès');
+    }
+
+    private function loadRapportHtmlContent(int $idRapport, array $rapport): ?string
+    {
+        $legacyPath = $this->resolveRapportHtmlPath($idRapport, $rapport);
+        if ($legacyPath !== null) {
+            $contenu = file_get_contents($legacyPath);
+            if (is_string($contenu) && $contenu !== '') {
+                return $contenu;
+            }
+        }
+
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $document = $storage->findLatestByEntity('rapport_etudiants', (string) $idRapport, ['html_doc'], 'rapport');
+            if (is_array($document) && isset($document['contenu']) && is_string($document['contenu']) && $document['contenu'] !== '') {
+                return $document['contenu'];
+            }
+        } catch (Throwable $e) {
+            error_log('Erreur loadRapportHtmlContent: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    private function resolveRapportHtmlPath(int $idRapport, array $rapport): ?string
+    {
+        $chemin = trim((string) ($rapport['chemin_fichier'] ?? ''));
+        if ($chemin === '') {
+            $chemin = 'rapport_' . $idRapport . '.html';
+        }
+
+        $candidates = [
+            __DIR__ . "/../../ressources/uploads/rapports/" . $chemin,
+            __DIR__ . "/../../ressources/uploads/" . ltrim($chemin, '/\\'),
+            __DIR__ . "/../../storage/documents/rapports/" . basename($chemin),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 }

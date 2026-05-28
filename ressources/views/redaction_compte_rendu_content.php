@@ -3,15 +3,25 @@ $rapportsValides = is_array($GLOBALS['rapports_valides'] ?? null) ? $GLOBALS['ra
 $enseignantsRaw = is_array($GLOBALS['enseignants'] ?? null) ? $GLOBALS['enseignants'] : [];
 $allYearsSelected = \AcademicYear::isAllSelectedFromSession();
 $writableYearLabel = \AcademicYear::getWritableLabelFromSession();
+$successMessage = (string) ($_SESSION['success'] ?? '');
+$errorMessage = (string) ($_SESSION['error'] ?? '');
+unset($_SESSION['success'], $_SESSION['error']);
 $academicYearLabels = [];
 foreach (\AcademicYear::fetchAll(Database::getConnection()) as $academicYear) {
     $academicYearLabels[(int) ($academicYear['id'] ?? 0)] = (string) ($academicYear['label'] ?? '');
 }
+$editingState = is_array($GLOBALS['editing_compte_rendu'] ?? null) ? $GLOBALS['editing_compte_rendu'] : null;
+$editingCompteRendu = is_array($editingState['compte_rendu'] ?? null) ? $editingState['compte_rendu'] : null;
+$editingReportIds = is_array($editingState['report_ids'] ?? null) ? array_values(array_map('intval', $editingState['report_ids'])) : [];
+$editingAssignments = is_array($editingState['report_assignments'] ?? null) ? $editingState['report_assignments'] : [];
+$editingLinkedReports = is_array($editingState['linked_reports'] ?? null) ? $editingState['linked_reports'] : [];
+$editingId = (int) ($editingCompteRendu['id_CR'] ?? 0);
+$isEditingExistingCr = $editingId > 0;
 
 $enseignantOptions = [];
 foreach ($enseignantsRaw as $enseignant) {
-    $id = (int) ($enseignant->id_enseignant ?? $enseignant['id_enseignant'] ?? 0);
-    if ($id <= 0) {
+    $id = trim((string) ($enseignant->id_enseignant ?? $enseignant['id_enseignant'] ?? ''));
+    if ($id === '') {
         continue;
     }
     $nom = trim((string) ($enseignant->prenom_enseignant ?? $enseignant['prenom_enseignant'] ?? '') . ' ' .
@@ -32,22 +42,28 @@ foreach ($rapportsValides as $rapport) {
     $theme = (string) ($rapport['theme_rapport'] ?? 'Rapport');
     $decision = strtolower((string) ($rapport['decision_validation'] ?? 'valider'));
     $studentName = trim($prenom . ' ' . $nom);
+    if ($studentName === '') {
+        $studentName = $numEtu !== '' ? $numEtu : 'Etudiant introuvable';
+    }
 
     $reportsById[$idRapport] = [
-        'id_rapport' => $idRapport,
         'num_etu' => $numEtu,
         'theme_rapport' => $theme,
         'student' => $studentName,
         'decision' => $decision,
-        'promotion' => trim((string) ($rapport['promotion_etu'] ?? '')),
+        'existing_cr_id' => (int) ($rapport['existing_cr_id'] ?? 0),
     ];
 
     $reportOptionLabel = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ')';
+    if ((int) ($rapport['existing_cr_id'] ?? 0) > 0) {
+        $reportOptionLabel .= ' - CR #' . (int) $rapport['existing_cr_id'];
+    }
     if ($allYearsSelected) {
         $promotionLabel = trim((string) ($rapport['promotion_etu'] ?? ''));
         if ($promotionLabel === '' && !empty($rapport['id_annee_acad'])) {
             $promotionLabel = $academicYearLabels[(int) $rapport['id_annee_acad']] ?? '';
         }
+        $promotionLabel = \FormattingUtils::formatPromotion($promotionLabel);
         if ($promotionLabel !== '') {
             $reportOptionLabel .= ' - ' . $promotionLabel;
             $reportsById[$idRapport]['promotion'] = $promotionLabel;
@@ -57,7 +73,42 @@ foreach ($rapportsValides as $rapport) {
     $reportSelectOptions[$idRapport] = $reportOptionLabel;
 }
 
-$generatedCrName = 'CR_' . date('Y-m-d');
+foreach ($editingLinkedReports as $linkedReport) {
+    $idRapport = (int) ($linkedReport['id_rapport'] ?? 0);
+    if ($idRapport <= 0 || isset($reportsById[$idRapport])) {
+        continue;
+    }
+
+    $numEtu = (string) ($linkedReport['num_etu'] ?? '');
+    $prenom = (string) ($linkedReport['prenom_etu'] ?? '');
+    $nom = (string) ($linkedReport['nom_etu'] ?? '');
+    $theme = (string) ($linkedReport['theme_rapport'] ?? 'Rapport');
+    $studentName = trim($prenom . ' ' . $nom);
+    if ($studentName === '') {
+        $studentName = $numEtu !== '' ? $numEtu : 'Etudiant introuvable';
+    }
+
+    $reportsById[$idRapport] = [
+        'id_rapport' => $idRapport,
+        'num_etu' => $numEtu,
+        'theme_rapport' => $theme,
+        'student' => $studentName,
+        'logical_key' => mb_strtolower(trim($numEtu)) . '|' . mb_strtolower(trim(preg_replace('/\s+/', ' ', $theme))),
+        'decision' => 'valider',
+        'promotion' => \FormattingUtils::formatPromotion(trim((string) ($linkedReport['promotion_etu'] ?? ''))),
+        'deja_lie_cr' => true,
+        'existing_cr_id' => $editingId,
+        'existing_cr_count' => 1,
+        'current_encadrant_id' => (string) ($linkedReport['current_encadrant_id'] ?? ''),
+        'current_directeur_id' => (string) ($linkedReport['current_directeur_id'] ?? ''),
+    ];
+
+    $reportSelectOptions[$idRapport] = '#' . $idRapport . ' - ' . $theme . ' (' . $studentName . ') - CR #' . $editingId;
+}
+
+$generatedCrName = $isEditingExistingCr
+    ? (string) ($editingCompteRendu['nom_CR'] ?? ('CR_' . date('Y-m-d')))
+    : 'CR_' . date('Y-m-d');
 
 if (!function_exists('cm_cr_build_logo_data_uri')) {
     /**
@@ -108,52 +159,52 @@ $legacyTemplateHtml = <<<HTML
     <tr>
         <td style="width:15%; text-align:left; vertical-align:middle;">%LOGO_LEFT%</td>
         <td style="width:70%; text-align:center; vertical-align:middle;">
-            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">Proces-Verbal de séance de validation de themes</div>
+            <div style="font-size:11pt; font-weight:bold; letter-spacing:0.5px;">Procès-Verbal de séance de validation de thèmes</div>
         </td>
         <td style="width:15%; text-align:right; vertical-align:middle;">%LOGO_RIGHT%</td>
     </tr>
 </table>
 <hr style="border: 1px solid #C4A000; margin: 10px 0;">
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Lieu de réunion : [], le [DATE] s'est tenue de 11 h 00 a 12 h 30 une séance de validation de themes de soutenance des étudiants en fin de cycle de la filiere MIAGE-GI.
+    Lieu de réunion : [], le [DATE] s'est tenue de 11 h 00 à 12 h 30 une séance de validation de thèmes de soutenance des étudiants en fin de cycle de la filière MIAGE-GI.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    La reunion etait animee par Prof KOUA Brou le responsable de ladite filiere. Les membres de la commission de validation ont examine [N] dossiers.
+    La réunion était animée par Prof KOUA Brou le responsable de ladite filière. Les membres de la commission de validation ont examiné [N] dossiers.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:0;">
     L'ordre du jour debattu est le suivant :
 </p>
 <ul style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; margin-left:2em;">
     <li>Informations</li>
-    <li>Validation de themes</li>
+    <li>Validation de thèmes</li>
     <li>Divers</li>
 </ul>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; font-weight:bold; margin-top:20px; margin-bottom:10px;">
     1. Informations
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Le responsable de la filiere a expose sur l'interet des séances de validation. Il a donne des informations sur le choix des themes niveau ingenieur et la tenue mensuelle des séances de validation.
+    Le responsable de la filière a exposé sur l'intérêt des séances de validation. Il a donné des informations sur le choix des thèmes niveau ingénieur et la tenue mensuelle des séances de validation.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
     L'organisation des séances de validation permet de faire le point des encadrements, le contenu potentiel de thèmes, et le suivi des mémoires par des encadreurs pédagogiques.
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; font-weight:bold; margin-top:20px; margin-bottom:10px;">
-    2. Validation de themes
+    2. Validation de thèmes
 </p>
 <div id="casDynamique"></div>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; font-weight:bold; margin-top:20px; margin-bottom:10px;">
     3. Divers
 </p>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    La commission a recommande au Directeur de la filiere d'ameliorer le partenariat avec les entreprises.
+    La commission a recommandé au Directeur de la filière d'améliorer le partenariat avec les entreprises.
 </p>
 <ul style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; margin-left:2em;">
-    <li>Respecter toutes les rubriques du template de presentation de theme.</li>
-    <li>Joindre un CV contenant une photo d'identite.</li>
-    <li>Soutenir au plus tard a la session suivante.</li>
+    <li>Respecter toutes les rubriques du template de présentation de thème.</li>
+    <li>Joindre un CV contenant une photo d'identité.</li>
+    <li>Soutenir au plus tard à la session suivante.</li>
 </ul>
 <p style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5; text-indent:1.5em;">
-    Les travaux de la commission ont pris fin a 12 h 30.
+    Les travaux de la commission ont pris fin à 12 h 30.
 </p>
 <div style="text-align:right; margin-top:30px; font-family:'Times New Roman', Times, serif; font-size:12pt; font-weight:bold;">
     La commission
@@ -163,16 +214,17 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     '%LOGO_LEFT%' => $logoLeftHtml,
     '%LOGO_RIGHT%' => $logoRightHtml,
 ]);
+$initialEditorHtml = $isEditingExistingCr
+    ? (string) ($editingCompteRendu['contenu_CR'] ?? $legacyTemplateHtml)
+    : $legacyTemplateHtml;
 ?>
 
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <?php if (!empty($_SESSION['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
-        <?php unset($_SESSION['success']); ?>
+    <?php if ($successMessage !== ''): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $successMessage]); ?>
     <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
-        <?php unset($_SESSION['error']); ?>
+    <?php if ($errorMessage !== ''): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $errorMessage]); ?>
     <?php endif; ?>
     <?php if ($allYearsSelected): ?>
         <?php cm_component('ui/alert-box', [
@@ -185,6 +237,16 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         <div class="cm-pole-inferieur cm-cr-workspace">
             <div class="cm-grid-2 cm-cr-workspace-grid">
                 <div class="cm-card cm-p-md cm-cr-workspace-panel">
+                    <?php if ($isEditingExistingCr): ?>
+                        <div class="cm-alert is-info cm-mb-sm">
+                            <div class="cm-alert__content">
+                                <span class="cm-alert__message">
+                                    Modification du compte rendu #<?= htmlspecialchars((string) $editingId, ENT_QUOTES, 'UTF-8') ?>.
+                                    Les rapports liés sont préchargés et l'enregistrement mettra ce CR à jour.
+                                </span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
 
                     <div class="cm-form-group">
@@ -239,29 +301,74 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 #cmCompteRenduForm .cm-form-buttons.cm-cr-actions {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8.25rem, 1fr));
+    gap: 0.85rem;
+}
+
+#cmCompteRenduForm .cm-cr-action-group {
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.8rem;
+    border: 1px solid rgba(43, 92, 132, 0.14);
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+#cmCompteRenduForm .cm-cr-action-group--primary {
+    background: rgba(60, 132, 197, 0.08);
+    border-color: rgba(60, 132, 197, 0.22);
+}
+
+#cmCompteRenduForm .cm-cr-action-group__title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1d4d77;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+#cmCompteRenduForm .cm-cr-action-group__hint {
+    font-size: 0.78rem;
+    color: #607d98;
+    line-height: 1.35;
+}
+
+#cmCompteRenduForm .cm-cr-action-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
     gap: 0.55rem;
-    justify-content: stretch;
     align-items: stretch;
 }
 
-#cmCompteRenduForm .cm-form-buttons.cm-cr-actions .cm-btn {
+#cmCompteRenduForm .cm-cr-action-row--publish {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+#cmCompteRenduForm .cm-form-buttons.cm-cr-actions .cm-btn,
+#cmCompteRenduForm .cm-form-buttons.cm-cr-actions .cm-form-control {
     width: 100%;
     min-width: 0;
     white-space: normal;
     line-height: 1.15;
-    justify-content: center;
-    text-align: center;
 }
 
 #cmCompteRenduForm .cm-form-buttons.cm-cr-actions .cm-btn i {
     flex: 0 0 auto;
 }
+
+@media (max-width: 920px) {
+    #cmCompteRenduForm .cm-cr-action-row,
+    #cmCompteRenduForm .cm-cr-action-row--publish {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 <form id="cmCompteRenduForm" method="POST" action="?page=redaction_compte_rendu" data-cm-ajax-form="true">
                         <?php cm_component('form/csrf-token'); ?>
+                        <input type="hidden" name="id_CR_edit" id="cmCrEditId" value="<?= htmlspecialchars((string) $editingId, ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="num_etu" id="cmCrNumEtu" value="">
                         <input type="hidden" name="cm_reports_payload" id="cmCrReportsPayload" value="">
+                        <input type="hidden" name="submit_action" id="cmCrSubmitAction" value="save">
+                        <div id="cmCrReportInputs" hidden></div>
 
                         <?php
                         cm_component('form/input-text', [
@@ -279,7 +386,7 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                             'label' => '',
                             'height' => 'xl',
                             'placeholder' => 'Redigez le compte rendu...',
-                            'value' => $legacyTemplateHtml,
+                            'value' => $initialEditorHtml,
                         ]);
                         ?>
 
@@ -287,28 +394,65 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                             <span id="cmCrAutoSaveLabel">Sauvegarde auto: inactive</span>
                             <span id="cmCrLastSaveLabel">Derniere sauvegarde: --:--</span>
                         </div>
+                        <div class="cm-text-xs cm-text-muted cm-mb-sm">
+                            Les brouillons restent locaux à ce navigateur. Les actions de publication enregistrent le compte rendu en base, avec ou sans notification.
+                        </div>
 
                         <div class="cm-form-buttons cm-cr-actions">
-                            <button class="cm-btn is-info" type="button" id="cmCrSaveDraftBtn">
-                                <i class="fas fa-save" aria-hidden="true"></i>
-                                Sauv. brouillon
-                            </button>
-                            <button class="cm-btn is-info" type="button" id="cmCrToggleAutoSaveBtn">
-                                <i class="fas fa-clock" aria-hidden="true"></i>
-                                Sauvegarde auto
-                            </button>
-                            <button class="cm-btn is-info" type="button" id="cmCrPreviewBtn">
-                                <i class="fas fa-eye" aria-hidden="true"></i>
-                                Aperçu
-                            </button>
-                            <button class="cm-btn is-light" type="button" id="cmCrPrintBtn" onclick="window.print()">
-                                <i class="fas fa-print" aria-hidden="true"></i>
-                                Imprimer
-                            </button>
-                            <button class="cm-btn is-primary" type="submit" id="cmCrSubmitBtn">
-                                <i class="fas fa-check" aria-hidden="true"></i>
-                                Enregistrer PDF
-                            </button>
+                            <div class="cm-cr-action-group">
+                                <div class="cm-cr-action-group__title">Brouillons</div>
+                                <div class="cm-cr-action-group__hint">Sauvegarde locale uniquement, sans envoi ni publication.</div>
+                                <div class="cm-cr-action-row">
+                                    <button class="cm-btn is-info" type="button" id="cmCrSaveDraftBtn">
+                                        <i class="fas fa-save" aria-hidden="true"></i>
+                                        Sauver le brouillon
+                                    </button>
+                                    <button class="cm-btn is-info" type="button" id="cmCrToggleAutoSaveBtn">
+                                        <i class="fas fa-clock" aria-hidden="true"></i>
+                                        Activer l'auto-save
+                                    </button>
+                                    <button class="cm-btn is-light" type="button" id="cmCrResetBtn">
+                                        <i class="fas fa-undo" aria-hidden="true"></i>
+                                        Vider la rédaction
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="cm-cr-action-group">
+                                <div class="cm-cr-action-group__title">Aperçu</div>
+                                <div class="cm-cr-action-group__hint">Contrôle visuel avant l'enregistrement définitif.</div>
+                                <div class="cm-cr-action-row">
+                                    <button class="cm-btn is-info" type="button" id="cmCrPreviewBtn">
+                                        <i class="fas fa-eye" aria-hidden="true"></i>
+                                        Ouvrir l'aperçu PDF
+                                    </button>
+                                    <button class="cm-btn is-light" type="button" id="cmCrPrintBtn" onclick="window.print()">
+                                        <i class="fas fa-print" aria-hidden="true"></i>
+                                        Imprimer la page
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="cm-cr-action-group cm-cr-action-group--primary">
+                                <div class="cm-cr-action-group__title">Publication</div>
+                                <div class="cm-cr-action-group__hint">Enregistrer seul, ou enregistrer puis notifier une cible précise.</div>
+                                <div class="cm-cr-action-row cm-cr-action-row--publish">
+                                    <button class="cm-btn is-primary" type="submit" id="cmCrSubmitBtn" data-submit-action="save">
+                                        <i class="fas fa-check" aria-hidden="true"></i>
+                                        Enregistrer sans notifier
+                                    </button>
+                                    <select id="cmCrNotifyTarget" class="cm-form-control cm-form-select" aria-label="Cible de notification">
+                                        <option value="save_notify_students">Notifier les étudiants</option>
+                                        <option value="save_notify_commission">Notifier la commission</option>
+                                        <option value="save_notify_responsables">Notifier les responsables</option>
+                                        <option value="save_notify_all">Notifier tout le monde</option>
+                                    </select>
+                                    <button class="cm-btn is-info" type="submit" id="cmCrNotifySubmitBtn" data-submit-action="notify-selected">
+                                        <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                                        Enregistrer et notifier
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -322,7 +466,20 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     const reports = <?php echo json_encode($reportsById, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const enseignantOptions = <?php echo json_encode($enseignantOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const legacyTemplate = <?php echo json_encode($legacyTemplateHtml, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-    const storageKey = 'cm_cr_draft_v1';
+    const editingState = <?php echo json_encode([
+        'id_CR' => $editingId,
+        'report_ids' => $editingReportIds,
+        'report_assignments' => $editingAssignments,
+        'nom_CR' => $generatedCrName,
+        'contenu_CR' => $initialEditorHtml,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const isEditingExistingCr = !!(editingState && parseInt(editingState.id_CR || 0, 10) > 0);
+    const storageKey = isEditingExistingCr
+        ? 'cm_cr_draft_v3_edit_' + String(editingState.id_CR)
+        : 'cm_cr_draft_v3_new';
+    const legacyStorageKeys = ['cm_cr_draft_v1', 'cm_cr_draft_v2'];
+    const flashSuccess = <?php echo json_encode($successMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const flashError = <?php echo json_encode($errorMessage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
     const form = document.getElementById('cmCompteRenduForm');
     const reportPicker = document.getElementById('cmCrReportPicker');
@@ -332,6 +489,8 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     const assignmentsContainer = document.getElementById('cmCrAssignments');
     const hiddenNumEtu = document.getElementById('cmCrNumEtu');
     const hiddenPayload = document.getElementById('cmCrReportsPayload');
+    const hiddenSubmitAction = document.getElementById('cmCrSubmitAction');
+    const reportInputsHost = document.getElementById('cmCrReportInputs');
     const editorInput = document.getElementById('cmCrContenu');
     const nomInput = document.getElementById('cmCrNom');
 
@@ -339,6 +498,8 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     const autoSaveBtn = document.getElementById('cmCrToggleAutoSaveBtn');
     const previewBtn = document.getElementById('cmCrPreviewBtn');
     const loadTemplateBtn = document.getElementById('cmCrLoadTemplateBtn');
+    const resetBtn = document.getElementById('cmCrResetBtn');
+    const notifyTarget = document.getElementById('cmCrNotifyTarget');
     const draftCountEl = document.getElementById('cmCrDraftCount');
     const autoSaveLabel = document.getElementById('cmCrAutoSaveLabel');
     const lastSaveLabel = document.getElementById('cmCrLastSaveLabel');
@@ -346,6 +507,56 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     let selectedIds = [];
     let autoSaveTimer = null;
     let draftState = {};
+
+    legacyStorageKeys.forEach(function (legacyKey) {
+        try {
+            localStorage.removeItem(legacyKey);
+            localStorage.removeItem(legacyKey + '_count');
+        } catch (error) {
+            // Ignore legacy draft cleanup failures.
+        }
+    });
+
+    function normalizeSelectedIds(ids) {
+        const unique = [];
+        const seen = {};
+        const seenLogicalKeys = {};
+        (Array.isArray(ids) ? ids : []).forEach(function (rawId) {
+            const id = parseInt(rawId, 10);
+            const report = reports[id];
+            const logicalKey = report ? String(report.logical_key || '') : '';
+            if (!id || !report || seen[id] || (logicalKey && seenLogicalKeys[logicalKey])) {
+                return;
+            }
+            seen[id] = true;
+            if (logicalKey) {
+                seenLogicalKeys[logicalKey] = true;
+            }
+            unique.push(id);
+        });
+        return unique;
+    }
+
+    function syncEditorValue() {
+        const editorDiv = document.getElementById('cmCrContenu_editor');
+        if (!editorDiv || !editorInput) {
+            return;
+        }
+        editorInput.value = editorDiv.innerHTML;
+    }
+
+    function getValidationSectionRegex() {
+        return /(<p[^>]*>\s*2\.\s*Validation de thèmes\s*<\/p>)[\s\S]*?(<p[^>]*>\s*3\.\s*Divers\s*<\/p>)/i;
+    }
+
+    function sanitizeEditorHtml(html) {
+        const source = String(html || '');
+        if (source.trim() === '') {
+            return source;
+        }
+
+        return source.replace(/<div id=(['"])casDynamique\1>[\s\S]*?<\/div>/i, '<div id=\"casDynamique\"></div>');
+    }
 
     function buildCasesHtml() {
         let html = '';
@@ -363,18 +574,18 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                 ? dirSelect.selectedOptions[0].text
                 : '[Non attribué]';
 
-            html += '' +
-                '<div style="text-align:center; margin:15px 0;"><div style="border:1px solid #000; padding:8px 15px; display:inline-block;">Cas ' + (index + 1) + '</div></div>' +
-                '<div style="margin-bottom:15px; font-family:\\'Times New Roman\\', Times, serif; font-size:12pt; line-height:1.5;">' +
+             html += '' +
+                 '<div style="text-align:center; margin:15px 0;"><div style="border:1px solid #000; padding:8px 15px; display:inline-block;">Cas ' + (index + 1) + '</div></div>' +
+                 '<div style="margin-bottom:15px; font-family:\\"Times New Roman\\", Times, serif; font-size:12pt; line-height:1.5;">' +
                 '<p style="text-indent:0;"><strong>Etudiant :</strong> ' + String(report.student || '').replace(/[<>]/g, '') + '</p>' +
-                '<p style="text-indent:0;"><strong>Theme :</strong> ' + String(report.theme_rapport || '').replace(/[<>]/g, '') + '</p>' +
+                '<p style="text-indent:0;"><strong>Thème :</strong> ' + String(report.theme_rapport || '').replace(/[<>]/g, '') + '</p>' +
                 '<p style="text-indent:0; font-weight:bold;">Recommandations de la commission :</p>' +
                 '<ul style="list-style-type:none; margin-left:1em;">' +
                 '<li>- thème validé ;</li>' +
-                '<li>- bien decrire le processus ;</li>' +
-                '<li>- decrire exactement le contexte.</li>' +
+                '<li>- bien décrire le processus ;</li>' +
+                '<li>- décrire exactement le contexte.</li>' +
                 '</ul>' +
-                '<p style="text-indent:0; margin-top:15px;"><strong>Directeur de memoire :</strong> ' + String(dirText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
+                '<p style="text-indent:0; margin-top:15px;"><strong>Directeur de mémoire :</strong> ' + String(dirText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
                 '<p style="text-indent:0;"><strong>Encadreur pédagogique :</strong> ' + String(encText || '[Non attribué]').replace(/[<>]/g, '') + '</p>' +
                 '</div>';
         });
@@ -386,12 +597,29 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         if (!editorDiv || !editorInput) {
             return;
         }
-        const currentHtml = editorDiv.innerHTML || '';
-        if (currentHtml.indexOf('id=\"casDynamique\"') === -1) {
+        let currentHtml = String(editorDiv.innerHTML || '');
+        const casesHtml = buildCasesHtml();
+        let updated = currentHtml;
+        const sectionRegex = getValidationSectionRegex();
+
+        if (sectionRegex.test(currentHtml)) {
+            updated = currentHtml.replace(
+                sectionRegex,
+                '$1<div id="casDynamique">' + casesHtml + '</div>$2'
+            );
+        } else if (/id=(["'])casDynamique\1/i.test(currentHtml)) {
+            updated = sanitizeEditorHtml(currentHtml).replace(
+                /<div id=(["'])casDynamique\1><\/div>/i,
+                '<div id="casDynamique">' + casesHtml + '</div>'
+            );
+        } else {
+            const dynamicContainer = editorDiv.querySelector('#casDynamique');
+            if (dynamicContainer) {
+                dynamicContainer.innerHTML = casesHtml;
+                editorInput.value = editorDiv.innerHTML;
+            }
             return;
         }
-        const casesHtml = buildCasesHtml();
-        const updated = currentHtml.replace(/<div id=\"casDynamique\">[\s\S]*?<\/div>/, '<div id=\"casDynamique\">' + casesHtml + '</div>');
         editorDiv.innerHTML = updated;
         editorInput.value = updated;
     }
@@ -407,11 +635,22 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
     }
 
     function syncHiddenData() {
+        selectedIds = normalizeSelectedIds(selectedIds);
         const payload = [];
         const firstReport = selectedIds.length > 0 ? reports[selectedIds[0]] : null;
         hiddenNumEtu.value = firstReport ? (firstReport.num_etu || '') : '';
+        if (reportInputsHost) {
+            reportInputsHost.innerHTML = '';
+        }
 
         selectedIds.forEach(function (id) {
+            if (reportInputsHost) {
+                const reportInput = document.createElement('input');
+                reportInput.type = 'hidden';
+                reportInput.name = 'rapports[]';
+                reportInput.value = String(id);
+                reportInputsHost.appendChild(reportInput);
+            }
             payload.push({
                 id_rapport: id,
                 num_etu: reports[id] ? reports[id].num_etu : '',
@@ -429,12 +668,16 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         }
         const r = reports[selectedIds[0]];
         const status = r && r.decision === 'valider' ? 'Validé' : 'Rejeté';
+        const existingCr = r && r.existing_cr_id ? ('<div class=\"cm-text-sm\"><strong>CR existant:</strong> #' + r.existing_cr_id + '</div>') : '';
         reportInfo.innerHTML = '<div class=\"cm-text-sm\"><strong>Theme:</strong> ' + (r ? r.theme_rapport : '-') + '</div>' +
             '<div class=\"cm-text-sm\"><strong>Etudiant:</strong> ' + (r ? r.student : '-') + '</div>' +
-            '<div class=\"cm-text-sm\"><strong>Statut:</strong> ' + status + '</div>';
+            '<div class=\"cm-text-sm\"><strong>Statut:</strong> ' + status + '</div>' +
+            existingCr;
     }
 
-    function renderSelected() {
+    function renderSelected(options) {
+        const shouldRefreshCases = !options || options.refreshCases !== false;
+        selectedIds = normalizeSelectedIds(selectedIds);
         selectedContainer.innerHTML = '';
         assignmentsContainer.innerHTML = '';
 
@@ -446,20 +689,23 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 
             const item = document.createElement('div');
             item.className = 'cm-card cm-p-sm';
-            item.innerHTML = '<input type=\"hidden\" name=\"rapports[]\" value=\"' + id + '\">' +
-                '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:0.5rem;\">' +
+            const existingCrNotice = report.existing_cr_id
+                ? '<div class=\"cm-text-xs cm-text-muted\" style=\"margin-top:0.35rem;\">Ce rapport est déjà lié au CR #' + report.existing_cr_id + '. Un nouvel enregistrement mettra ce CR à jour.</div>'
+                : '';
+            item.innerHTML = '<div style=\"display:flex;justify-content:space-between;align-items:center;gap:0.5rem;\">' +
                     '<div class=\"cm-text-sm\"><strong>#' + id + '</strong> - ' + String(report.theme_rapport || '').replace(/[<>]/g, '') +
-                    '<br><span class=\"cm-text-muted\">' + String(report.student || '').replace(/[<>]/g, '') + '</span></div>' +
+                    '<br><span class=\"cm-text-muted\">' + String(report.student || '').replace(/[<>]/g, '') + '</span>' + existingCrNotice + '</div>' +
                     '<button type=\"button\" class=\"cm-btn-action is-delete\" data-remove-id=\"' + id + '\"><i class=\"fas fa-times\" aria-hidden=\"true\"></i></button>' +
                 '</div>';
             selectedContainer.appendChild(item);
 
             const block = document.createElement('div');
             block.className = 'cm-card cm-p-sm';
+            const assignmentState = (draftState.assignments && draftState.assignments[id]) || {};
             block.innerHTML = '<div class=\"cm-text-sm cm-text-semibold cm-mb-sm\">Rapport #' + id + '</div>' +
                 '<div class=\"cm-grid-2\">' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pédagogique[' + id + ']\">' + formatOptionHtml(draftState['enc_' + id] || '') + '</select></div>' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur memoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(draftState['dir_' + id] || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(assignmentState.encadrant || report.current_encadrant_id || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(assignmentState.directeur || report.current_directeur_id || '') + '</select></div>' +
                 '</div>';
             assignmentsContainer.appendChild(block);
         });
@@ -482,22 +728,28 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 
         renderInfoCard();
         syncHiddenData();
-        refreshTemplateCases();
+        if (shouldRefreshCases) {
+            refreshTemplateCases();
+        }
     }
 
     function saveDraft(notify) {
+        syncEditorValue();
         const payload = {
             nom: nomInput ? nomInput.value : '',
             contenu: editorInput ? editorInput.value : '',
             selectedIds: selectedIds,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            assignments: {}
         };
 
         selectedIds.forEach(function (id) {
             const enc = document.getElementById('cmCrEnc_' + id);
             const dir = document.getElementById('cmCrDir_' + id);
-            payload['enc_' + id] = enc ? enc.value : '';
-            payload['dir_' + id] = dir ? dir.value : '';
+            payload.assignments[id] = {
+                encadrant: enc ? enc.value : '',
+                directeur: dir ? dir.value : ''
+            };
         });
 
         localStorage.setItem(storageKey, JSON.stringify(payload));
@@ -522,13 +774,17 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         try {
             draftState = JSON.parse(raw) || {};
             if (Array.isArray(draftState.selectedIds)) {
-                selectedIds = draftState.selectedIds.map(function (id) { return parseInt(id, 10); }).filter(Boolean);
+                selectedIds = normalizeSelectedIds(draftState.selectedIds);
+            }
+            if (nomInput && draftState.nom) {
+                nomInput.value = draftState.nom;
             }
             if (editorInput && draftState.contenu) {
-                editorInput.value = draftState.contenu;
+                const draftContent = String(draftState.contenu || '');
+                editorInput.value = draftContent;
                 const editorDiv = document.getElementById('cmCrContenu_editor');
                 if (editorDiv) {
-                    editorDiv.innerHTML = draftState.contenu;
+                    editorDiv.innerHTML = draftContent;
                 }
             }
             renderSelected();
@@ -538,6 +794,33 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
             }
         } catch (e) {
             draftState = {};
+        }
+    }
+
+    function applyEditingState() {
+        if (!isEditingExistingCr) {
+            return;
+        }
+
+        draftState = { assignments: {} };
+        if (nomInput && editingState.nom_CR) {
+            nomInput.value = editingState.nom_CR;
+        }
+        if (editorInput && editingState.contenu_CR) {
+            const editingContent = String(editingState.contenu_CR || '');
+            editorInput.value = editingContent;
+            const editorDiv = document.getElementById('cmCrContenu_editor');
+            if (editorDiv) {
+                editorDiv.innerHTML = editingContent;
+            }
+        }
+
+        if (Array.isArray(editingState.report_ids)) {
+            selectedIds = normalizeSelectedIds(editingState.report_ids);
+        }
+
+        if (editingState.report_assignments && typeof editingState.report_assignments === 'object') {
+            draftState.assignments = editingState.report_assignments;
         }
     }
 
@@ -552,6 +835,43 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         refreshTemplateCases();
     }
 
+    function resetWorkspace() {
+        if (autoSaveTimer) {
+            clearInterval(autoSaveTimer);
+            autoSaveTimer = null;
+        }
+        if (autoSaveLabel) {
+            autoSaveLabel.textContent = 'Sauvegarde auto: inactive';
+        }
+
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(storageKey + '_count');
+        draftState = {};
+        selectedIds = [];
+
+        if (reportPicker) {
+            reportPicker.value = '';
+        }
+        if (hiddenNumEtu) {
+            hiddenNumEtu.value = '';
+        }
+        if (hiddenPayload) {
+            hiddenPayload.value = '';
+        }
+        if (nomInput) {
+            nomInput.value = <?php echo json_encode($generatedCrName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        }
+        if (lastSaveLabel) {
+            lastSaveLabel.textContent = 'Derniere sauvegarde: --:--';
+        }
+        if (draftCountEl) {
+            draftCountEl.textContent = '0';
+        }
+
+        loadTemplate();
+        renderSelected();
+    }
+
     if (addBtn && reportPicker) {
         addBtn.addEventListener('click', function () {
             const id = parseInt(reportPicker.value || '0', 10);
@@ -562,6 +882,8 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
                 return;
             }
             selectedIds.push(id);
+            selectedIds = normalizeSelectedIds(selectedIds);
+            reportPicker.value = '';
             renderSelected();
         });
     }
@@ -591,8 +913,18 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         loadTemplateBtn.addEventListener('click', loadTemplate);
     }
 
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+            if (!window.confirm('Réinitialiser la rédaction en cours et vider les rapports sélectionnés ?')) {
+                return;
+            }
+            resetWorkspace();
+        });
+    }
+
     if (previewBtn && form) {
         previewBtn.addEventListener('click', function () {
+            syncEditorValue();
             const tokenInput = form.querySelector('input[name=\"csrf_token\"]');
             if (!tokenInput || !nomInput || !editorInput) {
                 return;
@@ -623,6 +955,14 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
 
     if (form) {
         form.addEventListener('submit', function (event) {
+            syncEditorValue();
+            if (hiddenSubmitAction) {
+                const submitter = event.submitter || null;
+                const submitAction = submitter && submitter.getAttribute('data-submit-action') === 'notify-selected'
+                    ? (notifyTarget ? notifyTarget.value : 'save_notify_students')
+                    : (submitter && submitter.getAttribute('data-submit-action')) || 'save';
+                hiddenSubmitAction.value = submitAction;
+            }
             if (selectedIds.length === 0) {
                 event.preventDefault();
                 window.alert('Sélectionnez au moins un rapport.');
@@ -641,13 +981,27 @@ $legacyTemplateHtml = strtr($legacyTemplateHtml, [
         draftCountEl.textContent = localStorage.getItem(storageKey + '_count') || '0';
     }
 
-    loadDraft();
-    if ((editorInput.value || '').trim() === '') {
-        loadTemplate();
-    } else {
-        refreshTemplateCases();
+    if (flashSuccess) {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(storageKey + '_count');
+        draftState = {};
+        selectedIds = [];
     }
-    renderSelected();
+
+    if (isEditingExistingCr) {
+        applyEditingState();
+        if ((editorInput.value || '').trim() === '') {
+            loadTemplate();
+        }
+        renderSelected({ refreshCases: false });
+    } else {
+        loadDraft();
+        if ((editorInput.value || '').trim() === '') {
+            loadTemplate();
+        } else {
+            refreshTemplateCases();
+        }
+        renderSelected();
+    }
 })();
 </script>
-

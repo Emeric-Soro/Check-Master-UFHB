@@ -99,6 +99,17 @@ class GestionReclamationsController {
             );
 
             if ($resultat['success']) {
+                try {
+                    $this->service->notifierReclamationSoumise(
+                        $resultat['reclamationId'], 
+                        $donneesReclamation['titre'], 
+                        $donneesReclamation['type'], 
+                        $_SESSION['num_etu']
+                    );
+                } catch (\Throwable $e) {
+                    error_log('Erreur notif reclamation: ' . $e->getMessage());
+                }
+                
                 $this->afficherMessage($resultat['message'], 'success');
                 header('Location: ?page=gestion_reclamations');
                 exit;
@@ -119,9 +130,17 @@ class GestionReclamationsController {
     //=============================SUIVI RECLAMATION=============================
     public function suiviHistoriqueReclamations()
     {
-        try {
-            global $reclamations, $statistiques, $totalPages, $page, $totalReclamations, $filtresActuels;
+        // Initialiser les variables globales AVANT le try pour garantir
+        // leur existence en cas d'exception (évite "undefined variable")
+        global $reclamations, $statistiques, $totalPages, $page, $totalReclamations, $filtresActuels;
+        $reclamations = [];
+        $statistiques = ['total' => 0, 'en_attente' => 0, 'en_cours' => 0, 'resolue' => 0, 'rejetee' => 0];
+        $totalPages = 1;
+        $page = 1;
+        $totalReclamations = 0;
+        $filtresActuels = [];
 
+        try {
             $page = isset($_GET['p']) ? (int)$_GET['p'] : 1;
             $limit = 10;
 
@@ -217,6 +236,9 @@ class GestionReclamationsController {
         }
 
         $reclamation = $result['reclamation'];
+
+        // Récupérer l'historique des actions pour cette réclamation
+        $historique = $this->service->getHistoriqueReclamation((int) $_GET['id']);
 
         // Générer le HTML pur sans layout
         ob_start();

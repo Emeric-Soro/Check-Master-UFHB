@@ -12,7 +12,7 @@ $messageSuccess = '';
 if (isset($_POST['btn_add_salle']) || isset($_POST['btn_modifier_salle'])) {
     $result = $gestionSallesController->ajouterOuModifierSalle($_POST);
     if (!empty($result['success'])) {
-        $messageSuccess = (string) ($result['message'] ?? 'Operation reussie.');
+        $messageSuccess = (string) ($result['message'] ?? 'Opération réussie.');
     } else {
         $messageErreur = (string) ($result['message'] ?? 'Erreur operation.');
     }
@@ -22,7 +22,7 @@ if (isset($_POST['submit_delete_multiple']) && (string) ($_POST['submit_delete_m
     $selectedIds = is_array($_POST['selected_ids'] ?? null) ? $_POST['selected_ids'] : [];
     $result = $gestionSallesController->supprimerSallesMultiples($selectedIds);
     if (!empty($result['success'])) {
-        $messageSuccess = (string) ($result['message'] ?? 'Suppression reussie.');
+        $messageSuccess = (string) ($result['message'] ?? 'Suppression réussie.');
     } else {
         $messageErreur = (string) ($result['message'] ?? 'Erreur suppression.');
     }

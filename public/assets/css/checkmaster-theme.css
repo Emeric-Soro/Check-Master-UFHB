@@ -40,6 +40,9 @@
     --cm-pole-sup-bg: rgba(236, 246, 255, 0.78);
     --cm-barre-bg: rgba(224, 239, 252, 0.82);
     --cm-pole-inf-bg: rgba(230, 241, 253, 0.76);
+    --cm-scrollbar-track: rgba(190, 218, 241, 0.95);
+    --cm-scrollbar-thumb: rgba(86, 133, 171, 0.92);
+    --cm-scrollbar-thumb-hover: rgba(64, 108, 145, 0.96);
 
     /* Text */
     --cm-text-main: #163247;

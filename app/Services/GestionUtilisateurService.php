@@ -150,6 +150,24 @@ class GestionUtilisateurService
         return $scheme . $host . $base . '/reset_password.php?token=' . urlencode($token);
     }
 
+    private function buildLoginLink(): string
+    {
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '/public/layout.php');
+        $base = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+
+        if (preg_match('#/public/app$#', $base)) {
+            return $scheme . $host . $base . '/index.php?_path=/login';
+        }
+
+        if ($base === '' || $base === '.') {
+            $base = '/public';
+        }
+
+        return $scheme . $host . $base . '/app/index.php?_path=/login';
+    }
+
     private function normalizeEmailValue($email): ?string
     {
         $email = trim((string) $email);
@@ -258,11 +276,12 @@ class GestionUtilisateurService
         }
 
         if ($this->utilisateur->isLoginUsed($login_utilisateur)) {
-            return ['success' => false, 'message' => 'Ce login (email) est déjà utilisé par un autre utilisateur.'];
+            return ['success' => false, 'message' => 'Ce login est déjà utilisé par un autre utilisateur.'];
         }
 
         $invitationEmail = $this->resolveInvitationEmail($data, $nom_utilisateur, $id_type_utilisateur, $login_utilisateur);
-        $mdp_hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+        $temporaryPassword = $this->generateRandomPassword(12);
+        $mdp_hash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
         $resetLink = null;
         $manageTransaction = !$this->db->inTransaction();
 
@@ -315,7 +334,7 @@ class GestionUtilisateurService
             ];
         }
 
-        $emailResult = $this->envoyerEmailInscriptionPHPMailer($invitationEmail, $nom_utilisateur, $login_utilisateur, null, $resetLink);
+        $emailResult = $this->envoyerEmailInscriptionPHPMailer($invitationEmail, $nom_utilisateur, $login_utilisateur, $temporaryPassword, $resetLink);
         if ($emailResult['success']) {
             $this->safeAudit(function () use ($userId) {
                 $this->auditLog->logCreation($userId, 'utilisateur', 'Succès');
@@ -349,9 +368,25 @@ class GestionUtilisateurService
     {
         $utilisateurs = [];
         $utilisateurModel = new Utilisateur($this->db);
+        $selectedTypeId = (int) ($commonData['id_type_utilisateur'] ?? 0);
+        $allowedPersonTypes = [];
+        if ($selectedTypeId === 4) {
+            $allowedPersonTypes = ['pers'];
+        } elseif ($selectedTypeId === 5 || $selectedTypeId === 6) {
+            $allowedPersonTypes = ['ens'];
+        } elseif ($selectedTypeId === 7) {
+            $allowedPersonTypes = ['etu'];
+        }
 
         foreach ($selectedPersons as $person) {
-            list($type, $id) = explode('_', $person);
+            $parts = explode('_', (string) $person, 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+            [$type, $id] = $parts;
+            if (!empty($allowedPersonTypes) && !in_array($type, $allowedPersonTypes, true)) {
+                continue;
+            }
             $login = '';
             $nom = '';
 
@@ -403,11 +438,17 @@ class GestionUtilisateurService
             foreach ($utilisateursAjoutes as $utilisateur) {
                 $token = $this->createPasswordResetToken($utilisateur['login']);
                 $resetLink = $this->buildResetLink($token);
+                $temporaryPassword = $this->generateRandomPassword(12);
+                $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
+                if (!$utilisateurModel->updatePasswordByLogin($utilisateur['login'], $passwordHash)) {
+                    $emailErrors[] = $utilisateur['nom'] . ': mise à jour du mot de passe impossible';
+                    continue;
+                }
                 $emailResult = $this->envoyerEmailInscriptionPHPMailer(
                     $utilisateur['login'],
                     $utilisateur['nom'],
                     $utilisateur['login'],
-                    null,
+                    $temporaryPassword,
                     $resetLink
                 );
                 if (!$emailResult['success']) {
@@ -543,12 +584,20 @@ class GestionUtilisateurService
                     $token = $this->createPasswordResetToken($email);
                     $resetLink = $this->buildResetLink($token);
 
-                    // Envoyer l'email avec le lien de définition du mot de passe
+                    $temporaryPassword = $this->generateRandomPassword(12);
+                    $passwordHash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
+                    if (!$this->utilisateur->updatePasswordByLogin($user->login_utilisateur, $passwordHash)) {
+                        $errorCount++;
+                        $errors[] = $user->nom_utilisateur . ' (mise à jour du mot de passe impossible)';
+                        continue;
+                    }
+
+                    // Envoyer l'email avec le mot de passe temporaire et le lien de définition du mot de passe
                     $emailResult = $this->envoyerEmailInscriptionPHPMailer(
                         $email,
                         $user->nom_utilisateur,
                         $user->login_utilisateur,
-                        null,
+                        $temporaryPassword,
                         $resetLink
                     );
 
@@ -650,14 +699,19 @@ class GestionUtilisateurService
             $emailService = new \EmailService();
             
             // Build the dynamic variables
-            $login_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/public/app/index.php?_path=/login';
+            $login_url = $this->buildLoginLink();
             
             $password_row = '';
             if ($motDePasse) {
                 $password_row = '
                 <tr>
-                    <td style="padding-bottom: 10px; color: #64748b;">Mot de passe :</td>
-                    <td style="padding-bottom: 10px;"><span class="password-box">' . htmlspecialchars($motDePasse) . '</span></td>
+                    <td style="padding-bottom: 12px;" class="info-label">Mot de passe :</td>
+                    <td style="padding-bottom: 12px;">
+                        <div class="copyable-container">
+                            <code class="copy-value">' . htmlspecialchars($motDePasse) . '</code>
+                            <span class="copy-btn" data-copy="' . htmlspecialchars($motDePasse) . '">Copier</span>
+                        </div>
+                    </td>
                 </tr>';
             }
 

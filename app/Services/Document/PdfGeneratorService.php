@@ -9,23 +9,6 @@ use DateTimeImmutable;
 use RuntimeException;
 use TCPDF;
 
-final class SilentTcpdf extends TCPDF
-{
-    public function __construct($orientation = 'P', $unit = 'mm', $format = 'A4', $unicode = true, $encoding = 'UTF-8', $diskcache = false, $pdfa = false)
-    {
-        parent::__construct($orientation, $unit, $format, $unicode, $encoding, $diskcache, $pdfa);
-        $this->tcpdflink = false;
-    }
-
-    public function Header()
-    {
-    }
-
-    public function Footer()
-    {
-    }
-}
-
 /**
  * Service de génération de documents PDF basé sur TCPDF.
  *
@@ -41,16 +24,23 @@ final class PdfGeneratorService
     private const DEFAULT_FONT_FAMILY = 'dejavuserif';
     private const TITLE_FONT_SIZE = 18;
     private const HEADER_HEIGHT = 30; // mm
+    private const FOOTER_HEIGHT = 18; // mm
     private const MARGIN_LEFT = 15; // mm
     private const MARGIN_RIGHT = 15; // mm
     private const MARGIN_TOP = 20; // mm
     private const MARGIN_BOTTOM = 25; // mm
 
-    public function __construct(
-        private readonly string $storagePath,
-        private readonly string $logoPath,
-        private readonly ?object $configService = null
-    ) {
+    private const DEFAULT_FOOTER_TEXT = 'UFR MI, Filière Professionnalisées MIAGE-GI, 22.BP. 582 Abidjan 22, email: miage-gi.mi@univ-fhb.edu.ci';
+
+    private string $storagePath;
+    private string $logoPath;
+    private ?object $configService;
+
+    public function __construct(string $storagePath, string $logoPath, ?object $configService = null)
+    {
+        $this->storagePath = $storagePath;
+        $this->logoPath = $logoPath;
+        $this->configService = $configService;
     }
 
     /**
@@ -95,6 +85,68 @@ final class PdfGeneratorService
 
         // Police par défaut
         $pdf->SetFont(self::DEFAULT_FONT_FAMILY, '', self::DEFAULT_FONT_SIZE);
+
+        return $pdf;
+    }
+
+    /**
+     * Crée un document PDF avec en-tête/pied de page sur TOUTES les pages.
+     *
+     * Header:
+     * - logo gauche: public/image/logo_civ.png 
+     * - logo droite: public/image/logo_ufhb.png
+     * - titre du document (centre)
+     * - imprimé par + date/heure (centre)
+     *
+     * Footer:
+     * - texte institutionnel (centre)
+     * - pagination (droite)
+     */
+    public function createBrandedDocument(
+        string $orientation = 'P',
+        string $format = 'A4',
+        string $documentName = '',
+        string $printedBy = '',
+        ?DateTimeImmutable $printedAt = null,
+        ?string $footerText = null,
+        ?string $author = null
+    ): TCPDF {
+        $appName = 'CheckMaster UFRMI';
+        if ($this->configService !== null) {
+            $appName = $this->configService->getString('app_name', 'CheckMaster UFRMI') ?? 'CheckMaster UFRMI';
+        }
+        $authorName = (string)($author ?? $appName);
+
+        $pdf = new BrandedTcpdf($orientation, 'mm', $format, true, 'UTF-8', false);
+        $pdf->setFontSubsetting(true);
+
+        $pdf->SetCreator((string)$appName);
+        $pdf->SetAuthor((string)$authorName);
+        $pdf->SetTitle((string)$documentName);
+        $pdf->SetSubject('Document genere par ' . (string)$appName);
+
+        // Activer header/footer TCPDF (sur toutes les pages)
+        $pdf->setPrintHeader(true);
+        $pdf->setPrintFooter(true);
+
+        // Marges (tenir compte du header/footer)
+        $pdf->SetMargins(self::MARGIN_LEFT, self::MARGIN_TOP + self::HEADER_HEIGHT, self::MARGIN_RIGHT);
+        $pdf->SetAutoPageBreak(true, self::MARGIN_BOTTOM + self::FOOTER_HEIGHT);
+
+        $pdf->SetFont('dejavusans', '', self::DEFAULT_FONT_SIZE);
+
+        $printedAt = $printedAt ?? new DateTimeImmutable();
+        $printedAtStr = $printedAt->format('d/m/Y H:i');
+
+        [$logoLeft, $logoRight] = $this->resolveHeaderLogoPaths();
+        $pdf->setHeaderFooterData(
+            $documentName,
+            $printedBy,
+            $printedAtStr,
+            $logoLeft,
+            $logoRight,
+            (string)($footerText ?? self::DEFAULT_FOOTER_TEXT)
+        );
 
         return $pdf;
     }
@@ -345,13 +397,17 @@ final class PdfGeneratorService
             $projectRoot . '/public/uploads/logos',
             $projectRoot . '/public/image',
             $projectRoot . '/public/images',
-        ], static fn (string $path): bool => $path !== ''));
+        ], static function (string $path): bool {
+            return $path !== '';
+        }));
 
-        $filenames = match ($kind) {
-            'logo_universite' => ['logo_ufhb.png', 'logo_ufhb.jpg', 'logo_universite.png', 'logo_universite.jpg', 'ufhb.png', 'ufhb.jpg'],
-            'logo_filiere' => ['logo_mi.png', 'logo_ufrmi.png', 'logo_ufr_mi.png', 'logo_filiere.png', 'logo_filiere.jpg', 'ufrmi.png', 'ufrmi.jpg'],
-            default => ['logo_mairie.png', 'logo_mairie.jpg', 'mairie.png', 'mairie.jpg'],
-        };
+        if ($kind === 'logo_universite') {
+            $filenames = ['logo_ufhb.png', 'logo_ufhb.jpg', 'logo_universite.png', 'logo_universite.jpg', 'ufhb.png', 'ufhb.jpg'];
+        } elseif ($kind === 'logo_filiere') {
+            $filenames = ['logo_mi.png', 'logo_ufrmi.png', 'logo_ufr_mi.png', 'logo_filiere.png', 'logo_filiere.jpg', 'ufrmi.png', 'ufrmi.jpg'];
+        } else {
+            $filenames = ['logo_mairie.png', 'logo_mairie.jpg', 'mairie.png', 'mairie.jpg'];
+        }
         foreach ($candidateDirs as $dir) {
             foreach ($filenames as $name) {
                 $path = rtrim($dir, '/\\') . '/' . $name;
@@ -396,5 +452,29 @@ final class PdfGeneratorService
     private function guessProjectRoot(): string
     {
         return str_replace('\\', '/', dirname(__DIR__, 3));
+    }
+
+    /**
+     * @return array{0: string, 1: string} [logoLeft, logoRight]
+     */
+    private function resolveHeaderLogoPaths(): array
+    {
+        $projectRoot = $this->guessProjectRoot();
+
+        $logoLeft = $this->toExistingPath($projectRoot . '/public/image/logo_civ.png');
+        $logoRight = $this->toExistingPath($projectRoot . '/public/image/logo_ufhb.png');
+
+        // Fallback: utiliser les logos résolus (si disponibles) si les fichiers demandés n'existent pas.
+        if ($logoLeft === '' || $logoRight === '') {
+            $logos = $this->resolveLogoPaths();
+            if ($logoLeft === '') {
+                $logoLeft = $logos['logo_mairie'] ?? '';
+            }
+            if ($logoRight === '') {
+                $logoRight = $logos['logo_universite'] ?? '';
+            }
+        }
+
+        return [$logoLeft, $logoRight];
     }
 }

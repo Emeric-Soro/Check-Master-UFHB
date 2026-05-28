@@ -27,7 +27,10 @@ $countByStatut = static function (array $rows, string $needle): int {
     return $count;
 };
 
-$valides = $countByStatut($repartition, 'valider');
+// Priorité : clé rapports_valides (basée sur statut_rapport) > repartition_statuts (basée sur table valider)
+$valides = isset($dashboardData['rapports_valides'])
+    ? (int) $dashboardData['rapports_valides']
+    : $countByStatut($repartition, 'valider');
 $rejetes = $rapportsRejetes;
 $crRediges = count($rapportsDetails);
 $totalRapports = max(1, $enAttente + $valides + $rejetes);
@@ -87,11 +90,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($enAttente, 0, ',', ' '),
                 'label' => 'En attente',
                 'icon' => 'fa-clipboard-list',
-                'color' => 'info'
+                'color' => 'info',
+                'url' => canView() ? '?page=reception_rapport_com' : ''
             ]); ?>
-            <?php if (canView()): ?>
-                <a class="cm-stat-card__link" href="?page=reception_rapport_com" data-cm-ajax-link="true">Voir ▸</a>
-            <?php endif; ?>
         </div>
 
         <div>
@@ -99,11 +100,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($valides, 0, ',', ' '),
                 'label' => 'Validés',
                 'icon' => 'fa-circle-check',
-                'color' => 'success'
+                'color' => 'success',
+                'url' => canView() ? '?page=processus_validation' : ''
             ]); ?>
-            <?php if (canView()): ?>
-                <a class="cm-stat-card__link" href="?page=processus_validation" data-cm-ajax-link="true">Voir ▸</a>
-            <?php endif; ?>
         </div>
 
         <div>
@@ -111,12 +110,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($rejetes, 0, ',', ' '),
                 'label' => 'Rejetés',
                 'icon' => 'fa-circle-xmark',
-                'color' => 'danger'
+                'color' => 'danger',
+                'url' => canView() ? '?page=processus_validation&status=rejete' : ''
             ]); ?>
-            <?php if (canView()): ?>
-                <a class="cm-stat-card__link" href="?page=processus_validation&status=rejete" data-cm-ajax-link="true">Voir
-                    ▸</a>
-            <?php endif; ?>
         </div>
 
         <div>
@@ -124,12 +120,9 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
                 'value' => number_format($crRediges, 0, ',', ' '),
                 'label' => 'CR rédigés',
                 'icon' => 'fa-file-signature',
-                'color' => 'primary'
+                'color' => 'primary',
+                'url' => canCreate() ? '?page=redaction_compte_rendu&cr_view=redaction' : ''
             ]); ?>
-            <?php if (canCreate()): ?>
-                <a class="cm-stat-card__link" href="?page=redaction_compte_rendu&cr_view=redaction"
-                    data-cm-ajax-link="true">Rédiger ▸</a>
-            <?php endif; ?>
         </div>
     </div>
 
@@ -236,23 +229,23 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
             <div class="cm-chart-container__body">
                 <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                     <?php if (canView()): ?>
-                        <a class="cm-btn is-info" href="?page=reception_rapport_com" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-accent" href="?page=reception_rapport_com" data-cm-ajax-link="true">
                             <i class="fas fa-inbox" aria-hidden="true"></i>
                             Réception rapports
                         </a>
-                        <a class="cm-btn is-primary" href="?page=processus_validation" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-deep" href="?page=processus_validation" data-cm-ajax-link="true">
                             <i class="fas fa-check-double" aria-hidden="true"></i>
                             Processus validation
                         </a>
                     <?php endif; ?>
                     <?php if (canCreate()): ?>
-                        <a class="cm-btn is-primary" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-dark" href="?page=redaction_compte_rendu" data-cm-ajax-link="true">
                             <i class="fas fa-pen-to-square" aria-hidden="true"></i>
                             Rédaction CR
                         </a>
                     <?php endif; ?>
                     <?php if (canView()): ?>
-                        <a class="cm-btn is-warning" href="?page=programmation_soutenance" data-cm-ajax-link="true">
+                        <a class="cm-btn is-primary-sky" href="?page=programmation_soutenance" data-cm-ajax-link="true">
                             <i class="fas fa-calendar-days" aria-hidden="true"></i>
                             Soutenances
                         </a>

@@ -226,22 +226,19 @@ class ExcelImportService
     {
         [$startYear,] = $this->parseAcademicYear($anneeAcad);
 
-        $stmt = $this->db->prepare("SELECT id_inscription FROM inscriptions WHERE id_etudiant = :num AND id_annee_acad = :annee");
+        $stmt = $this->db->prepare("SELECT num_carte_etud FROM inscriptions WHERE num_carte_etud = :num AND id_annee_acad = :annee");
         $stmt->execute(['num' => $numEtu, 'annee' => $idAnneeAcad]);
         if ($stmt->fetch()) {
             return;
         }
 
         $dateInscription = $startYear . '-09-01 00:00:00';
-        $insert = $this->db->prepare("INSERT INTO inscriptions (num_carte_etud, id_niveau, id_annee_acad, date_inscription, statut_inscription, nombre_tranche, reste_a_payer, montant_paye) VALUES (:etudiant, NULL, :annee, :date_inscription, :statut, :tranches, :reste, :paye)");
+        // Utiliser les colonnes réelles du schéma inscriptions
+        $insert = $this->db->prepare("INSERT INTO inscriptions (num_carte_etud, id_niv_etude, id_annee_acad, date_inscription, num_versement, montant_verser, solde) VALUES (:etudiant, NULL, :annee, :date_inscription, 1, 0, 0)");
         $insert->execute([
             'etudiant' => $numEtu,
             'annee' => $idAnneeAcad,
             'date_inscription' => $dateInscription,
-            'statut' => 'En cours',
-            'tranches' => 1,
-            'reste' => 0,
-            'paye' => 0
         ]);
     }
 
@@ -255,14 +252,14 @@ class ExcelImportService
             $parts = explode('/', $anneeAcad);
         }
         if (count($parts) !== 2) {
-            throw new Exception("Format d'annee academique invalide: $anneeAcad");
+            throw new Exception("Format d'année académique invalide: $anneeAcad");
         }
 
         $startYear = trim($parts[0]);
         $endYear = trim($parts[1]);
 
         if (!is_numeric($startYear) || !is_numeric($endYear)) {
-            throw new Exception("Format d'annee academique invalide: $anneeAcad");
+            throw new Exception("Format d'année académique invalide: $anneeAcad");
         }
 
         return [$startYear, $endYear];

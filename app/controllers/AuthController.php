@@ -41,11 +41,45 @@ class AuthController
 
         if ($result['success']) {
             $GLOBALS['messageSuccess'] = $result['message'];
+            try {
+                $this->authService->notifierMdpChange($idUtilisateur);
+            } catch (\Throwable $e) {
+                error_log('Erreur notif mdp change: ' . $e->getMessage());
+            }
             return true;
         }
 
         $GLOBALS['messageErreur'] = $result['message'];
         $GLOBALS['messageSuccess'] = '';
         return false;
+    }
+
+    public function updateEmail($newEmail, $confirmEmail)
+    {
+        $idUtilisateur = $_SESSION['id_utilisateur'] ?? null;
+        
+        $ancienEmail = $this->getContactEmail(); // Get before update
+
+        $result = $this->authService->updateEmail($idUtilisateur, $newEmail, $confirmEmail);
+
+        if ($result['success']) {
+            $GLOBALS['messageSuccess'] = $result['message'];
+            try {
+                $this->authService->notifierEmailModifie($idUtilisateur, $ancienEmail ?? '', $newEmail);
+            } catch (\Throwable $e) {
+                error_log('Erreur notif email modifie: ' . $e->getMessage());
+            }
+            return true;
+        }
+
+        $GLOBALS['messageErreur'] = $result['message'];
+        $GLOBALS['messageSuccess'] = '';
+        return false;
+    }
+
+    public function getContactEmail()
+    {
+        $idUtilisateur = $_SESSION['id_utilisateur'] ?? null;
+        return $this->authService->getContactEmail($idUtilisateur);
     }
 }

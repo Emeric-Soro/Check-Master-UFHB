@@ -6,6 +6,7 @@ require_once __DIR__ . "/../models/Enseignant.php";
 require_once __DIR__ . "/../models/PersAdmin.php";
 require_once __DIR__ . "/../models/Grade.php";
 require_once __DIR__ . "/../models/Fonction.php";
+require_once __DIR__ . "/../models/Genre.php";
 require_once __DIR__ . "/../models/Specialite.php";
 require_once __DIR__ . "/../models/AuditLog.php";
 
@@ -13,6 +14,7 @@ use Enseignant;
 use PersAdmin;
 use Grade;
 use Fonction;
+use Genre;
 use Specialite;
 use AuditLog;
 
@@ -39,6 +41,9 @@ class GestionRhService
     /** @var Fonction */
     private $fonctionModel;
 
+    /** @var Genre */
+    private $genreModel;
+
     /** @var Specialite */
     private $specialiteModel;
 
@@ -54,6 +59,7 @@ class GestionRhService
         $this->persAdminModel = new PersAdmin($db);
         $this->gradeModel = new Grade($db);
         $this->fonctionModel = new Fonction($db);
+        $this->genreModel = new Genre($db);
         $this->specialiteModel = new Specialite($db);
         $this->auditLog = new AuditLog($db);
     }
@@ -70,20 +76,25 @@ class GestionRhService
         $nom = $data['nom'] ?? '';
         $prenom = $data['prenom'] ?? '';
         $email = $data['email'] ?? '';
+        $telephone = $data['telephone'] ?? '';
         $id_grade = $data['id_grade'] ?? null;
         $id_specialite = $data['id_specialite'] ?? null;
         $id_fonction = $data['id_fonction'] ?? null;
         $date_grade = $data['date_grade'] ?? null;
-        $date_fonction = $data['date_fonction'] ?? null;
-        $type_enseignant = $data['type_enseignant'];
+        $date_occupation = $data['date_occupation'] ?? null;
+        $type_enseignant = $data['type_enseignant'] ?? null;
 
         $id_enseignant = trim((string) ($data['id_enseignant'] ?? $data['matricule'] ?? ''));
+
+        if ($id_enseignant === '' || $nom === '' || $prenom === '' || $email === '' || $id_grade === null || $id_specialite === null || $id_fonction === null || $date_grade === null || $date_occupation === null || $type_enseignant === null) {
+            return ['success' => false, 'message' => 'Tous les champs obligatoires de l’enseignant doivent être renseignés.'];
+        }
 
         if ($id_enseignant !== '') {
             // Modification
             if ($this->enseignantModel->modifierEnseignant(
-                $id_enseignant, $nom, $prenom, $email,
-                $id_grade, $id_specialite, $id_fonction, $date_grade, $date_fonction, $type_enseignant
+                $id_enseignant, $nom, $prenom, $email, $telephone,
+                $id_grade, $id_specialite, $id_fonction, $date_grade, $date_occupation, $type_enseignant
             )) {
                 $this->auditLog->logModification($userId, 'enseignant', 'Succès');
                 return ['success' => true, 'message' => 'Enseignant modifié avec succès.'];
@@ -94,8 +105,8 @@ class GestionRhService
 
         // Ajout
         if ($this->enseignantModel->ajouterEnseignant(
-            $id_enseignant, $nom, $prenom, $email, $id_grade,
-            $id_specialite, $id_fonction, $date_grade, $date_fonction, $type_enseignant
+            $id_enseignant, $nom, $prenom, $email, $telephone, $id_grade,
+            $id_specialite, $id_fonction, $date_grade, $date_occupation, $type_enseignant
         )) {
             $this->auditLog->logCreation($userId, 'enseignant', 'Succès');
             return ['success' => true, 'message' => 'Enseignant ajouté avec succès.'];
@@ -210,12 +221,24 @@ class GestionRhService
      */
     public function getReferenceLists(): array
     {
+        $listeTypeEnseignants = [];
+        $reflection = new \ReflectionObject($this->enseignantModel);
+        $dbProperty = $reflection->getProperty('db');
+        $dbProperty->setAccessible(true);
+        $db = $dbProperty->getValue($this->enseignantModel);
+        $stmt = $db->query('SELECT id_type_enseignant, libelle FROM type_enseignant ORDER BY libelle ASC');
+        if ($stmt !== false) {
+            $listeTypeEnseignants = $stmt->fetchAll(\PDO::FETCH_OBJ) ?: [];
+        }
+
         return [
             'listeEnseignants' => $this->enseignantModel->getAllEnseignants(),
             'listePersAdmin' => $this->persAdminModel->getAllPersAdmin(),
             'listeGrades' => $this->gradeModel->getAllGrades(),
             'listeFonctions' => $this->fonctionModel->getAllFonctions(),
+            'listeGenres' => $this->genreModel->getAllGenres(),
             'listeSpecialites' => $this->specialiteModel->getAllSpecialites(),
+            'listeTypeEnseignants' => $listeTypeEnseignants,
         ];
     }
 }

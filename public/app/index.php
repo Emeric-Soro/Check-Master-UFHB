@@ -20,36 +20,6 @@ use CheckMaster\Core\Bootstrap;
 Bootstrap::init();
 Session::start();
 
-// [INJECTED_LOGGER]
-register_shutdown_function(function() {
-    $files = get_included_files();
-    $logFile = __DIR__ . '/../../../views_used.log';
-    if (!file_exists($logFile)) {
-        touch($logFile);
-        chmod($logFile, 0777);
-    }
-    $usedViews = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if ($usedViews === false) $usedViews = [];
-    
-    $updated = false;
-    foreach ($files as $f) {
-        $f = str_replace(DIRECTORY_SEPARATOR, '/', $f);
-        if (strpos($f, 'ressources/views') !== false) {
-            if (!in_array($f, $usedViews)) {
-                $usedViews[] = $f;
-                $updated = true;
-            }
-        }
-    }
-    
-    if ($updated) {
-        file_put_contents($logFile, implode("\n", $usedViews) . "\n");
-    }
-});
-// [/INJECTED_LOGGER]
-
-
-
 $router = new Router();
 
 /**
@@ -69,7 +39,7 @@ function renderAccessDenied(string $message = ''): Response
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Accès refusé</title>
         <link rel="stylesheet" href="../css/output.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="../assets/vendor/font-awesome/css/all.min.css">
     </head>
     <body style="background-color:#DFF2FF;" class="font-poppins">
         <div class="min-h-screen flex items-center justify-center p-6">
@@ -272,7 +242,7 @@ $router->get('/admin/users', function (): Response {
 });
 
 $router->get('/access-denied', function (): Response {
-    return renderAccessDenied($_SESSION['error_message'] ?? '');
+    return renderAccessDenied($_SESSION['error'] ?? '');
 });
 
 // Accueil "application"

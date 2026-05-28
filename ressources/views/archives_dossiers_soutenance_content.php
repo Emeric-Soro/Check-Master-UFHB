@@ -307,7 +307,7 @@ function getTimeAgo($date)
                                         </p>
                                         <p class="text-sm text-gray-600">
                                             <i class="fas fa-calendar mr-1"></i>
-                                            Promotion : <?php echo htmlspecialchars($rapport['promotion_etu'] ?? 'N/A'); ?>
+                                            Promotion : <?php echo htmlspecialchars(\FormattingUtils::formatPromotion($rapport['promotion_etu'] ?? 'N/A')); ?>
                                         </p>
                                     </div>
                                     <div class="ml-4">
@@ -522,7 +522,7 @@ function getTimeAgo($date)
         }
 
         function downloadRapport(idRapport) {
-            window.open(`?page=archives_dossiers_soutenance&action=download_rapport&id=${idRapport}`, '_blank');
+            CM.openDocViewer('rapport', idRapport, {title: 'Rapport #' + idRapport});
         }
 
         function exportArchives() {

@@ -7,11 +7,11 @@ $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SER
 $message = '';
 $messageType = 'success';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'evaluer') {
+    if ($_POST['action'] === 'evaluerSoutenance') {
         $result = $controller->enregistrerEvaluation();
         $message = (string) ($result['message'] ?? '');
         $messageType = !empty($result['success']) ? 'success' : 'error';
-    } elseif ($_POST['action'] === 'supprimer') {
+    } elseif ($_POST['action'] === 'supprimerEvaluation') {
         $result = $controller->supprimerEvaluation();
         $message = (string) ($result['message'] ?? '');
         $messageType = !empty($result['success']) ? 'success' : 'error';
@@ -27,7 +27,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action']))
     }
 }
 
-$soutenances = $controller->getSoutenancesProgrammeesForView();
+$soutenances = array_map(static function (array $row): array {
+    $row['promotion_etu'] = FormattingUtils::formatPromotion((string) ($row['promotion_etu'] ?? ''));
+    $row['promotion_label'] = FormattingUtils::formatPromotion((string) ($row['promotion_label'] ?? ''));
+    return $row;
+}, $controller->getSoutenancesProgrammeesForView());
 $criteres = $controller->getCriteresEvaluation();
 
 $anneesAcademiques = $controller->getAnneesAcademiques();
@@ -73,7 +77,7 @@ foreach ($soutenances as $soutenance) {
     if ($num === '') {
         continue;
     }
-    $label = trim((string) ($soutenance['nom_etudiant'] ?? 'Etudiant')) . ' - ' . trim((string) ($soutenance['matricule_etudiant'] ?? $num));
+    $label = trim((string) ($soutenance['nom_etudiant'] ?? 'Étudiant')) . ' - ' . trim((string) ($soutenance['matricule_etudiant'] ?? $num));
     $soutenanceOptions[$num] = $label;
 }
 ?>
@@ -90,73 +94,55 @@ foreach ($soutenances as $soutenance) {
 
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
-            <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#cmEvalSoutForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
-}
 
-.cm-eval-sout-toolbar .cm-toolbar-left {
-    flex: 1 1 20rem !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-center {
-    flex: 1 1 28rem !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-right {
-    flex: 0 0 auto !important;
-}
-
-.cm-eval-sout-toolbar .cm-toolbar-left .cm-toolbar-field-lg {
-    min-width: 13rem !important;
-    max-width: 18rem !important;
-}
-</style>
 <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
-                <input type="hidden" name="action" value="evaluer">
+                <input type="hidden" name="action" value="evaluerSoutenance">
                 <input type="hidden" name="num_etu" id="cmEvalNumEtu" value="">
 
-                <div class="cm-grid-2">
-                    <?php
-                    cm_component('form/select', [
-                        'name' => 'cm_eval_soutenance',
-                        'id' => 'cmEvalSoutenanceSelect',
-                        'label' => 'Etudiant',
-                        'required' => true,
-                        'options' => $soutenanceOptions,
-                        'control_class' => 'cm-field-lg cm-size-personne',
-                    ]);
-                    cm_component('form/input-text', [
-                        'name' => 'cm_eval_promotion',
-                        'id' => 'cmEvalPromotion',
-                        'label' => 'Promotion',
-                        'readonly' => true,
-                        'control_class' => 'cm-field-sm cm-size-salle',
-                    ]);
-                    ?>
+                <div class="cm-grid-4">
+                    <div style="grid-column: span 3;">
+                        <?php
+                        cm_component('form/select', [
+                            'name' => 'cm_eval_soutenance',
+                            'id' => 'cmEvalSoutenanceSelect',
+                            'label' => 'Étudiant',
+                            'required' => true,
+                            'options' => $soutenanceOptions,
+                            'control_class' => 'cm-field-lg cm-size-personne',
+                        ]);
+                        ?>
+                    </div>
+                    <div>
+                        <?php
+                        cm_component('form/input-text', [
+                            'name' => 'cm_eval_promotion',
+                            'id' => 'cmEvalPromotion',
+                            'label' => 'Promotion',
+                            'readonly' => true,
+                            'control_class' => 'cm-field-sm cm-size-salle',
+                        ]);
+                        ?>
+                    </div>
                 </div>
                 <?php
                 cm_component('form/textarea', [
                     'name' => 'cm_eval_theme',
                     'id' => 'cmEvalTheme',
-                    'label' => 'Theme',
+                    'label' => 'Thème',
                     'readonly' => true,
-                    'rows' => 2,
+                    'rows' => 1,
                     'control_class' => 'cm-field-full cm-size-theme',
                 ]);
                 ?>
 
-                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance selectionnee: -</p>
+                <p class="cm-text-sm cm-text-muted cm-m-0" id="cmEvalSelectedLabel">Soutenance sélectionnée: -</p>
                 <div class="cm-grid-3">
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_prog_president',
                         'id' => 'cmProgPresident',
-                        'label' => 'President du jury',
+                        'label' => 'Président du jury',
                         'required' => true,
                         'readonly' => true,
                         'control_class' => 'cm-field-lg cm-size-personne',
@@ -199,7 +185,7 @@ foreach ($soutenances as $soutenance) {
                 <?php
                 $criteriaForGrid = array_map(static function (array $c): array {
                     return [
-                        'id' => (int) ($c['id_critere'] ?? 0),
+                        'id' => (string) ($c['id_critere'] ?? ''),
                         'label' => (string) ($c['lib_critere'] ?? ''),
                         'abbrev' => (string) ($c['code_critere'] ?? ''),
                         'bareme' => (float) ($c['bareme_max'] ?? 20),
@@ -210,26 +196,26 @@ foreach ($soutenances as $soutenance) {
                     'name_prefix' => 'criteres',
                     'id_prefix' => 'cmEval',
                     'commentaire_name' => 'commentaire_general',
-                    'commentaire_label' => 'Commentaire general',
+                    'commentaire_label' => 'Commentaire général',
                     'show_header' => false,
                     'show_buttons' => false,
                     'show_commentaire' => false,
                 ]);
                 ?>
 
-                <div class="cm-grid-2">
+                <div class="cm-grid-4">
                     <div class="cm-form-group">
                         <?php cm_component('form/select', [
                             'name' => 'cm_eval_decision',
                             'id' => 'cmEvalDecision',
-                            'label' => 'Decision',
-                            'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourne'],
+                            'label' => 'Décision',
+                            'options' => ['admis' => 'Admis', 'ajourne' => 'Ajourné'],
                             'control_class' => 'cm-field-sm cm-size-salle',
                         ]); ?>
                     </div>
 
-                    <div class="cm-form-group">
-                        <label class="cm-form-label" for="cmEvalComment">Commentaire general</label>
+                    <div class="cm-form-group" style="grid-column: span 3;">
+                        <label class="cm-form-label" for="cmEvalComment">Commentaire général</label>
                         <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control cm-field-full cm-size-commentaire"
                             rows="2"></textarea>
                     </div>
@@ -255,49 +241,23 @@ foreach ($soutenances as $soutenance) {
         </div>
 
         <div class="cm-barre-intermediaire">
-            <div class="cm-toolbar cm-eval-sout-toolbar">
-                <div class="cm-toolbar-left">
-                    <label for="cmEvalSoutLimit"><strong>Afficher:</strong></label>
-                    <select id="cmEvalSoutLimit" class="cm-form-control cm-form-select is-sm cm-toolbar-field-xs"
-                        data-cm-ajax-param="limit_eval_sout" data-cm-ajax-reset-param="page_eval_sout"
-                        data-cm-ajax-reset-value="1">
-                        <?php foreach ($allowedLimits as $limit): ?>
-                            <option value="<?php echo $limit; ?>" <?php echo $limit === $perPage ? 'selected' : ''; ?>>
-                                <?php echo $limit; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <input type="text" id="cmEvalSoutSearch" class="cm-form-control cm-toolbar-field-lg"
-                        placeholder="Rechercher une soutenance...">
-                </div>
-
-                <div class="cm-toolbar-center">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutSelectAllBtn">
-                        <i class="fas fa-square-check" aria-hidden="true"></i>
-                        Select. tout
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalSoutDeselectBtn">
-                        <i class="fas fa-square" aria-hidden="true"></i>
-                        Deselect.
-                    </button>
-                    <button type="button" class="cm-btn is-light is-sm" id="cmEvalSoutDeleteBtn" disabled>
-                        <i class="fas fa-trash" aria-hidden="true"></i>
-                        Supprimer (0)
-                    </button>
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutExport">
-                        <i class="fas fa-file-export" aria-hidden="true"></i>
-                        Export
-                    </button>
-                </div>
-
-                <div class="cm-toolbar-right">
-                    <button type="button" class="cm-btn is-info is-sm" id="cmEvalSoutPrint">
-                        <i class="fas fa-print" aria-hidden="true"></i>
-                        Imprimer
-                    </button>
-                </div>
-            </div>
+            <?php cm_toolbar([
+                'screen' => 'evaluation_soutenance',
+                'id_prefix' => 'cmEvalSout',
+                'limit' => $perPage,
+                'limit_options' => $allowedLimits,
+                'search_placeholder' => 'Rechercher une soutenance...',
+                'custom_actions' => [
+                    [
+                        'tag' => 'button',
+                        'id' => 'cmEvalSoutExport',
+                        'label' => 'Export',
+                        'icon' => 'fa-file-export',
+                        'class' => 'cm-btn is-info is-sm',
+                        'attrs' => ['data-cm-toolbar-action' => 'export']
+                    ]
+                ]
+            ]); ?>
         </div>
 
         <div class="cm-pole-inferieur">
@@ -307,7 +267,7 @@ foreach ($soutenances as $soutenance) {
                     <thead>
                         <tr>
                             <th class="cm-data-table__th cm-data-table__th--check">
-                                <input type="checkbox" id="cmEvalSoutCheckAll" aria-label="Tout selectionner">
+                                <input type="checkbox" id="cmEvalSoutCheckAll" class="cm-table-check-all" aria-label="Tout selectionner">
                             </th>
                             <th class="cm-data-table__th">N</th>
                             <th class="cm-data-table__th">Etudiant</th>
@@ -324,7 +284,7 @@ foreach ($soutenances as $soutenance) {
                                 'in_table' => true,
                                 'colspan' => 8,
                                 'title' => 'Aucune soutenance',
-                                'message' => 'Aucune soutenance programmee disponible.',
+                                'message' => 'Aucune soutenance programmée disponible.',
                             ]); ?>
                         <?php else: ?>
                             <?php foreach ($rowsToShow as $index => $soutenance): ?>
@@ -363,14 +323,14 @@ foreach ($soutenances as $soutenance) {
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>"
                                     data-num-etu="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td cm-data-table__td--check">
-                                        <input type="checkbox" class="cm-eval-sout-check-row"
+                                        <input type="checkbox" class="cm-table-check-row cm-eval-sout-check-row"
                                             value="<?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>"
                                             aria-label="Selectionner ligne <?php echo htmlspecialchars($numEtu, ENT_QUOTES, 'UTF-8'); ?>">
                                     </td>
                                     <td class="cm-data-table__td"><?php echo (int) ($pagination['offset'] ?? 0) + $index + 1; ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Etudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
+                                        <?php echo htmlspecialchars((string) ($soutenance['nom_etudiant'] ?? 'Étudiant'), ENT_QUOTES, 'UTF-8'); ?><br>
                                         <small><?php echo htmlspecialchars((string) ($soutenance['matricule_etudiant'] ?? $numEtu), ENT_QUOTES, 'UTF-8'); ?></small>
                                     </td>
                                     <td class="cm-data-table__td">
@@ -427,7 +387,21 @@ foreach ($soutenances as $soutenance) {
 
 <script>
     (function () {
-        const soutenances = <?php echo json_encode($soutenances, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        var _soutenanceMap = <?php echo json_encode(array_combine(
+    array_map(static fn(array $r) => (string) ($r['num_etu'] ?? ''), $soutenances),
+    array_map(static function (array $r): array {
+        return [
+            'promotion_label' => $r['promotion_label'] ?? $r['promotion_etu'] ?? '',
+            'theme_soutenance' => $r['theme_soutenance'] ?? '',
+            'president_nom' => $r['president_nom'] ?? '',
+            'examinateur_nom' => $r['examinateur_nom'] ?? '',
+            'directeur_nom' => $r['directeur_nom'] ?? '',
+            'encadreur_nom' => $r['encadreur_nom'] ?? '',
+            'maitre_stage_nom' => $r['maitre_stage_nom'] ?? '',
+        ];
+    }, $soutenances)
+), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const form = document.getElementById('cmEvalSoutForm');
         const anneeSelect = document.getElementById('cmEvalAnnee');
         const soutenanceSelect = document.getElementById('cmEvalSoutenanceSelect');
         const numEtuInput = document.getElementById('cmEvalNumEtu');
@@ -457,9 +431,7 @@ foreach ($soutenances as $soutenance) {
                 return;
             }
             const cssType = type === 'success' ? 'success' : 'danger';
-            alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-                String(message || '').replace(/[<>&]/g, '') +
-                '</span></div></div>';
+            CM.alert.show(alertBox, cssType, String(message || '').replace(/[<>&]/g, ''));
         }
 
         function getRows() {
@@ -497,7 +469,7 @@ foreach ($soutenances as $soutenance) {
 
         function deleteEvaluation(numEtu) {
             const formData = new FormData();
-            formData.append('action', 'supprimer');
+            formData.append('action', 'supprimerEvaluation');
             formData.append('num_etu', numEtu);
 
             const formToken = document.querySelector('#cmEvalSoutForm input[name=\"csrf_token\"]');
@@ -578,7 +550,7 @@ foreach ($soutenances as $soutenance) {
             if (directeurInput) directeurInput.value = '';
             if (encadreurInput) encadreurInput.value = '';
             if (maitreStageInput) maitreStageInput.value = '';
-            if (selectedLabel) selectedLabel.textContent = 'Soutenance selectionnee: -';
+            if (selectedLabel) selectedLabel.textContent = 'Soutenance sélectionnée: -';
             const commentaireEl = document.getElementById('cmEvalComment');
             if (commentaireEl) {
                 commentaireEl.value = '';
@@ -620,9 +592,7 @@ foreach ($soutenances as $soutenance) {
         }
 
         function getSoutenanceByNumEtu(numEtu) {
-            return (soutenances || []).find(function (item) {
-                return String(item.num_etu || '') === String(numEtu || '');
-            }) || null;
+            return _soutenanceMap[String(numEtu || '')] || null;
         }
 
         function fillSoutenanceInfo(numEtu) {
@@ -634,7 +604,7 @@ foreach ($soutenances as $soutenance) {
 
             clearEvaluationGrid();
 
-            if (promotionInput) promotionInput.value = info.promotion_label || info.promotion_etu || '';
+            if (promotionInput) promotionInput.value = info.promotion_label || '';
             if (themeInput) themeInput.value = info.theme_soutenance || '';
             if (presidentInput) presidentInput.value = info.president_nom || '';
             if (examinateurInput) examinateurInput.value = info.examinateur_nom || '';
@@ -646,12 +616,15 @@ foreach ($soutenances as $soutenance) {
             const heurePart = formatTimeFr(info.heure_soutenance);
             const dateHeure = [datePart, heurePart].filter(Boolean).join(' ');
             if (selectedLabel) {
-                selectedLabel.textContent = 'Soutenance selectionnee: ' + (info.nom_etudiant || 'Etudiant') + ' - ' + (dateHeure || '-');
+                selectedLabel.textContent = 'Soutenance sélectionnée: ' + (info.nom_etudiant || 'Étudiant') + ' - ' + (dateHeure || '-');
             }
 
             const commentaireEl = document.getElementById('cmEvalComment');
             if (commentaireEl) {
                 commentaireEl.value = info.commentaire_general || '';
+            }
+            if (decisionSelect) {
+                decisionSelect.value = info.decision || 'ajourne';
             }
 
             if (info.est_evalue > 0) {
@@ -660,7 +633,8 @@ foreach ($soutenances as $soutenance) {
                     credentials: 'same-origin'
                 })
                     .then(function (response) { return response.json(); })
-                    .then(function (rows) {
+                    .then(function (payload) {
+                        const rows = Array.isArray(payload) ? payload : (Array.isArray(payload && payload.rows) ? payload.rows : []);
                         if (!Array.isArray(rows)) {
                             return;
                         }
@@ -671,6 +645,12 @@ foreach ($soutenances as $soutenance) {
                             }
                         });
                         recalcMoyenne();
+                        if (commentaireEl && payload && typeof payload.commentaire_general === 'string') {
+                            commentaireEl.value = payload.commentaire_general;
+                        }
+                        if (decisionSelect && payload && payload.decision) {
+                            decisionSelect.value = payload.decision;
+                        }
                     });
             } else {
                 clearEvaluationGrid();
@@ -747,33 +727,34 @@ foreach ($soutenances as $soutenance) {
             });
         }
 
-        document.querySelectorAll('.cm-eval-open').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const numEtu = button.getAttribute('data-num-etu') || '';
-                if (!numEtu || !soutenanceSelect) {
-                    return;
-                }
-                soutenanceSelect.value = numEtu;
-                if (numEtuInput) {
-                    numEtuInput.value = numEtu;
-                }
-                fillSoutenanceInfo(numEtu);
-                if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-                    // noop
+        if (form) {
+            form.addEventListener('submit', function () {
+                if (numEtuInput && soutenanceSelect) {
+                    numEtuInput.value = soutenanceSelect.value || numEtuInput.value || '';
                 }
             });
-        });
+        }
 
-        document.querySelectorAll('.cm-eval-print-pv').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const numEtu = button.getAttribute('data-num-etu') || '';
+        if (tableBody) {
+            tableBody.addEventListener('click', function (event) {
+                var btn = event.target.closest('.cm-eval-open, .cm-eval-print-pv');
+                if (!btn) {
+                    return;
+                }
+                var numEtu = btn.getAttribute('data-num-etu') || '';
                 if (!numEtu) {
                     return;
                 }
-                const url = '?page=evaluation_soutenance&action=imprimer_pv&num_etu=' + encodeURIComponent(numEtu);
-                window.open(url, '_blank');
+                if (btn.classList.contains('cm-eval-print-pv')) {
+                    var url = '?page=evaluation_soutenance&action=imprimer_pv&num_etu=' + encodeURIComponent(numEtu);
+                    window.open(url, '_blank');
+                    return;
+                }
+                if (soutenanceSelect) soutenanceSelect.value = numEtu;
+                if (numEtuInput) numEtuInput.value = numEtu;
+                fillSoutenanceInfo(numEtu);
             });
-        });
+        }
 
         if (resetBtn) {
             resetBtn.addEventListener('click', function () {
@@ -783,7 +764,7 @@ foreach ($soutenances as $soutenance) {
                 if (numEtuInput) {
                     numEtuInput.value = '';
                 }
-                if (decisionSelect) decisionSelect.value = 'admis';
+                if (decisionSelect) decisionSelect.value = 'ajourne';
                 resetSoutenanceInfo();
             });
         }
@@ -843,13 +824,17 @@ foreach ($soutenances as $soutenance) {
             });
         }
 
-        document.querySelectorAll('.cm-eval-sout-delete-one').forEach(function (button) {
-            button.addEventListener('click', async function () {
-                const numEtu = button.getAttribute('data-num-etu') || '';
+        if (tableBody) {
+            tableBody.addEventListener('click', async function (event) {
+                var btn = event.target.closest('.cm-eval-sout-delete-one');
+                if (!btn) {
+                    return;
+                }
+                var numEtu = btn.getAttribute('data-num-etu') || '';
                 if (!numEtu) {
                     return;
                 }
-                const confirmed = await window.CM.confirm({
+                var confirmed = await window.CM.confirm({
                     title: 'Suppression',
                     message: 'Supprimer cette evaluation ?',
                     type: 'danger',
@@ -858,14 +843,13 @@ foreach ($soutenances as $soutenance) {
                 if (!confirmed) {
                     return;
                 }
-
                 deleteEvaluation(numEtu)
                     .then(function (payload) {
                         if (!payload || !payload.success) {
                             setAlert('error', payload && payload.message ? payload.message : 'Suppression impossible.');
                             return;
                         }
-                        setAlert('success', payload.message || 'Evaluation supprimee.');
+                        setAlert('success', payload.message || 'Évaluation supprimée.');
                         if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
                             window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
                         } else {
@@ -873,10 +857,10 @@ foreach ($soutenances as $soutenance) {
                         }
                     })
                     .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
+                        setAlert('error', 'Erreur réseau.');
                     });
             });
-        });
+        }
 
         if (deleteBtn) {
             deleteBtn.addEventListener('click', async function () {
@@ -915,14 +899,14 @@ foreach ($soutenances as $soutenance) {
                         }
                     })
                     .catch(function () {
-                        setAlert('error', 'Erreur reseau.');
+                        setAlert('error', 'Erreur réseau.');
                     });
             });
         }
 
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['N', 'Etudiant', 'Date soutenance', 'Moyenne', 'Mention', 'Commentaire'];
+                const headers = ['N', 'Étudiant', 'Date soutenance', 'Moyenne', 'Mention', 'Commentaire'];
                 const csvRows = [headers.join(';')];
 
                 getVisibleRows().forEach(function (row) {

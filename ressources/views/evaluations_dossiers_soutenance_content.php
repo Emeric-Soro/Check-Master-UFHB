@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/controllers/EvaluationDossiersController.php';
 $controller = new EvaluationDossiersController(Database::getConnection());
 $currentPageSlug = (string) ($_GET['page'] ?? 'evaluation_dossiers');
+$decisionActionUrl = '?page=evaluations_dossiers_soutenance&action=traiter_decision';
 if (isset($_GET['action']) && $_GET['action'] === 'traiter_decision' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     header('Content-Type: application/json; charset=UTF-8');
     $_POST['action'] = 'traiter_decision';
@@ -56,7 +57,7 @@ foreach ($dossiers as $dossier) {
             $promotionLabel = $academicYearLabels[(int) $dossier['id_annee_acad']] ?? '';
         }
         if ($promotionLabel !== '') {
-            $dossierLabel .= ' - ' . $promotionLabel;
+            $dossierLabel .= ' - ' . \FormattingUtils::formatPromotion($promotionLabel);
         }
     }
     $dossierOptions[$id] = $dossierLabel;
@@ -64,22 +65,10 @@ foreach ($dossiers as $dossier) {
 $myEvaluationsByRapport = [];
 try {
     $pdo = Database::getConnection();
-    $enseignantId = 0;
     $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
-    if ($idUtilisateur > 0) {
-        $stmtUser = $pdo->prepare('SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?');
-        $stmtUser->execute([$idUtilisateur]);
-        $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
-        if (!empty($userRow['login_utilisateur'])) {
-            $stmtEns = $pdo->prepare('SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ? LIMIT 1');
-            $stmtEns->execute([(string) $userRow['login_utilisateur']]);
-            $ensRow = $stmtEns->fetch(PDO::FETCH_ASSOC);
-            $enseignantId = (int) ($ensRow['id_enseignant'] ?? 0);
-        }
-    }
-    if ($enseignantId > 0 && !empty($dossierIds)) {
+    if ($idUtilisateur > 0 && !empty($dossierIds)) {
         $placeholders = implode(',', array_fill(0, count($dossierIds), '?'));
-        $params = array_merge([$enseignantId], $dossierIds);
+        $params = array_merge([$idUtilisateur], $dossierIds);
         $sql = "
             SELECT
                 id_rapport,
@@ -104,14 +93,6 @@ $valides = (int) ($stats['valides'] ?? 0);
 $rejetes = (int) ($stats['a_corriger'] ?? 0);
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
-    <?php if (!empty($_SESSION['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
     <div id="cmEvalDecisionAlert"></div>
     <?php if ($allYearsSelected): ?>
         <?php cm_component('ui/alert-box', [
@@ -122,15 +103,15 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
             <div class="cm-grid-3">
-                <div class="cm-card cm-p-md">
+                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=a_traiter'">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary">A TRAITER</div>
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $aTraiter; ?></div>
                 </div>
-                <div class="cm-card cm-p-md">
+                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=valides'">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary">VALIDÉS</div>
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $valides; ?></div>
                 </div>
-                <div class="cm-card cm-p-md">
+                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=rejetes'">
                     <div class="cm-text-sm cm-text-semibold cm-text-primary">REJETÉS</div>
                     <div style="font-size:1.6rem;font-weight:700;"><?php echo $rejetes; ?></div>
                 </div>
@@ -145,15 +126,14 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
 </style>
 <form id="cmEvaluationDecisionForm"
                   method="POST"
-                  action="?page=<?php echo htmlspecialchars(urlencode($currentPageSlug), ENT_QUOTES, 'UTF-8'); ?>&action=traiter_decision">
+                  action="<?php echo htmlspecialchars($decisionActionUrl, ENT_QUOTES, 'UTF-8'); ?>">
                 <?php cm_component('form/csrf-token'); ?>
-                <input type="hidden" name="action" value="traiter_decision">
                 <div class="cm-grid-2">
                     <?php
                     cm_component('form/select', [
                         'name' => 'id_rapport',
                         'id' => 'cmDecisionRapport',
-                        'label' => 'Rapport a evaluer',
+                        'label' => 'Rapport à évaluer',
                         'required' => true,
                         'options' => $dossierOptions,
                         'selected' => $selectedDetailId > 0 ? (string) $selectedDetailId : '',
@@ -162,7 +142,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     cm_component('form/select', [
                         'name' => 'decision',
                         'id' => 'cmDecisionChoice',
-                        'label' => 'Decision',
+                        'label' => 'Décision',
                         'required' => true,
                         'options' => [
                             'valider' => 'Valider',
@@ -177,7 +157,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     cm_component('form/input-text', [
                         'name' => 'cm_etudiant_info',
                         'id' => 'cmDecisionEtudiant',
-                        'label' => 'Etudiant',
+                        'label' => 'Étudiant',
                         'readonly' => true,
                         'control_class' => 'cm-field-lg cm-size-personne',
                     ]);
@@ -194,7 +174,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                 cm_component('form/input-text', [
                     'name' => 'cm_theme_info',
                     'id' => 'cmDecisionTheme',
-                    'label' => 'Theme',
+                    'label' => 'Thème',
                     'readonly' => true,
                     'control_class' => 'cm-field-full cm-size-theme',
                 ]);
@@ -213,7 +193,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     'cancel_action' => ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']],
                     'actions' => [
                         ['tag' => 'a', 'href' => '#', 'label' => 'Voir rapport', 'icon' => 'fa-eye', 'class' => 'cm-btn is-info is-sm', 'attrs' => ['id' => 'cmVoirRapportBtn', 'target' => '_blank', 'rel' => 'noopener']],
-                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre decision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm'],
+                        ['tag' => 'button', 'type' => 'submit', 'label' => 'Soumettre décision', 'icon' => 'fa-check', 'class' => 'cm-btn is-primary is-sm', 'attrs' => ['id' => 'cmSubmitDecisionBtn']],
                     ],
                 ]);
                 ?>
@@ -227,6 +207,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
             'limit_options' => [5, 10, 25, 50, 100],
             'can_delete' => canDelete(),
             'can_view' => canView(),
+            'print_title' => 'Évaluations dossiers soutenance',
         ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
@@ -234,7 +215,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmEvalCheckAll" aria-label="Tout sélectionner">
+                            <input type="checkbox" id="cmEvalCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">N° Rapport</th>
                         <th class="cm-data-table__th">Nom &amp; Prénom</th>
@@ -265,6 +246,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                             if ($promotionLabel === '' && !empty($dossier['id_annee_acad'])) {
                                 $promotionLabel = $academicYearLabels[(int) $dossier['id_annee_acad']] ?? '-';
                             }
+                            $promotionLabel = \FormattingUtils::formatPromotion($promotionLabel);
                             $myEval = $myEvaluationsByRapport[$idRapport] ?? null;
                             $myDecision = strtolower((string) ($myEval['decision_evaluation'] ?? ''));
                             $myComment = trim((string) ($myEval['commentaire'] ?? ''));
@@ -297,7 +279,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                                 data-statut="<?php echo htmlspecialchars($statutLabel, ENT_QUOTES, 'UTF-8'); ?>"
                                 data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-eval-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner dossier <?php echo $idRapport; ?>">
+                                    <input type="checkbox" class="cm-table-check-row cm-eval-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner dossier <?php echo $idRapport; ?>">
                                 </td>
                                 <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
                                 <td class="cm-data-table__td"><?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -382,9 +364,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
             return;
         }
         const cssType = type === 'success' ? 'success' : 'danger';
-        alertBox.innerHTML = '<div class="cm-alert is-' + cssType + '"><div class="cm-alert__content"><span class="cm-alert__message">' +
-            String(message || '').replace(/[<>&]/g, '') +
-            '</span></div></div>';
+        CM.alert.show(alertBox, cssType, String(message || '').replace(/[<>&]/g, ''));
     }
     function syncSelectedRapport() {
         if (!rapportSelect) {
@@ -495,8 +475,10 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
         });
     }
     if (decisionForm) {
+        const submitBtn = document.getElementById('cmSubmitDecisionBtn');
         decisionForm.addEventListener('submit', function (event) {
             event.preventDefault();
+            const actionUrl = decisionForm.getAttribute('action') || window.location.href;
             const decision = decisionSelect ? decisionSelect.value : '';
             const commentaire = commentaireInput ? commentaireInput.value.trim() : '';
             if (decision === 'rejeter' && commentaire === '') {
@@ -506,8 +488,12 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                 }
                 return;
             }
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse" aria-hidden="true"></i> Traitement...';
+            }
             const formData = new FormData(decisionForm);
-            fetch(decisionForm.action, {
+            fetch(actionUrl, {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin',
@@ -521,16 +507,24 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                 })
                 .then(function (payload) {
                     if (payload && payload.success) {
-                        setAlert('success', payload.message || 'Decision enregistree.');
+                        setAlert('success', payload.message || 'Décision enregistrée.');
                         if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
                             window.CM.ajax.load(window.location.href, { replaceHistory: true, skipHistory: true });
                         }
                         return;
                     }
                     setAlert('error', (payload && payload.message) ? payload.message : 'Erreur lors de la soumission.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Soumettre décision';
+                    }
                 })
                 .catch(function () {
-                    setAlert('error', 'Erreur reseau lors de la soumission.');
+                    setAlert('error', 'Erreur réseau lors de la soumission.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Soumettre décision';
+                    }
                 });
         });
     }
@@ -577,4 +571,3 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     applySearch();
 })();
 </script>
-

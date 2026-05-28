@@ -4,11 +4,11 @@ namespace CheckMaster\Services;
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Valider.php';
-require_once __DIR__ . '/../models/Approuver.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/EmailService.php';
 
 use RapportEtudiant;
 use EvaluationRapport;
@@ -116,6 +116,75 @@ class EvaluationDossiersService
         return \AcademicYear::getSelectedIdFromSession();
     }
 
+    private function studentJoinCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr(string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function getFallbackStudentYearExpr(string $etudiantAlias = 'e'): string
+    {
+        return "
+            (SELECT i.id_annee_acad
+             FROM inscriptions i
+             WHERE i.num_carte_etud = " . $this->studentCarteExpr($etudiantAlias) . "
+             ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getAcademicYearFromDateExpr(string $dateExpr): string
+    {
+        return "
+            (SELECT aa.id_annee_acad
+             FROM annee_academique aa
+             WHERE DATE($dateExpr) BETWEEN aa.date_deb AND aa.date_fin
+             ORDER BY aa.date_deb DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getReportDateExpr(string $rapportAlias = 'r'): string
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return $rapportAlias . '.date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return $rapportAlias . '.date_redaction_rapport';
+        }
+        return 'NULL';
+    }
+
+    private function getReportAcademicYearExpr(string $rapportAlias = 'r', string $etudiantAlias = 'e', ?string $depotAlias = null): string
+    {
+        $candidates = [];
+
+        if ($depotAlias !== null && $this->tableExists('deposer')) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($depotAlias . '.date_depot');
+        }
+
+        $dateExpr = $this->getReportDateExpr($rapportAlias);
+        if ($dateExpr !== 'NULL') {
+            $candidates[] = $this->getAcademicYearFromDateExpr($dateExpr);
+        }
+
+        $candidates[] = $this->getFallbackStudentYearExpr($etudiantAlias);
+
+        return 'COALESCE(' . implode(', ', $candidates) . ')';
+    }
+
     private function getRapportYearId($idRapport): ?int
     {
         $rapport = $this->rapportEtudiant->getRapportById($idRapport);
@@ -133,7 +202,7 @@ class EvaluationDossiersService
         $rapportYearId = $this->getRapportYearId($idRapport);
         $selectedYearId = $this->getSelectedYearId();
         if ($selectedYearId !== null && $rapportYearId !== null && $selectedYearId !== $rapportYearId) {
-            throw new Exception("Le rapport ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("Le rapport ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->db, $rapportYearId, $context);
@@ -170,13 +239,13 @@ class EvaluationDossiersService
                 $yearWhere = '';
                 $yearParams = [];
                 if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                    $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
+                    $yearWhere = " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?";
                     $yearParams[] = $selectedYearId;
                 }
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
-                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                     LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                     WHERE r.etape_validation IN ('approuve_communication', 'en_attente_commission')
                     {$yearWhere}
@@ -187,7 +256,8 @@ class EvaluationDossiersService
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
-                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                    LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                     WHERE r.etape_validation = 'valide'
                     {$yearWhere}
                 ");
@@ -197,7 +267,8 @@ class EvaluationDossiersService
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) as total
                     FROM rapport_etudiants r
-                    INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                    INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                    LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                     WHERE r.etape_validation = 'desapprouve_commission'
                     {$yearWhere}
                 ");
@@ -208,13 +279,14 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
+                        $yearWhere = " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("
                         SELECT COUNT(*) as total
                         FROM rapport_etudiants r
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         LEFT JOIN valider v ON r.id_rapport = v.id_rapport
                         WHERE v.id_rapport IS NULL
                         {$yearWhere}
@@ -226,7 +298,8 @@ class EvaluationDossiersService
                         SELECT COUNT(DISTINCT v.id_rapport) as total
                         FROM valider v
                         INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         WHERE decision_validation = 'valider'
                         {$yearWhere}
                     ");
@@ -237,7 +310,8 @@ class EvaluationDossiersService
                         SELECT COUNT(DISTINCT v.id_rapport) as total
                         FROM valider v
                         INNER JOIN rapport_etudiants r ON v.id_rapport = r.id_rapport
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         WHERE decision_validation = 'rejeter'
                         {$yearWhere}
                     ");
@@ -247,7 +321,7 @@ class EvaluationDossiersService
                     $yearWhere = '';
                     $yearParams = [];
                     if (($selectedYearId = $this->getSelectedYearId()) !== null && $selectedYearId > 0) {
-                        $yearWhere = " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = ?)";
+                        $yearWhere = " WHERE " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?";
                         $yearParams[] = $selectedYearId;
                     }
                     $stmt = $this->db->prepare("
@@ -256,7 +330,8 @@ class EvaluationDossiersService
                             SUM(CASE WHEN COALESCE(statut_rapport, '') IN ('rejeter', 'desapprouve_commission') THEN 1 ELSE 0 END) as rejetes,
                             SUM(CASE WHEN COALESCE(statut_rapport, '') NOT IN ('valider', 'valide', 'rejeter', 'desapprouve_commission') THEN 1 ELSE 0 END) as en_cours
                         FROM rapport_etudiants r
-                        INNER JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                        INNER JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
+                        LEFT JOIN deposer d ON r.id_rapport = d.id_rapport
                         {$yearWhere}
                     ");
                     $stmt->execute($yearParams);
@@ -293,7 +368,7 @@ class EvaluationDossiersService
      * Récupère l'ID enseignant à partir de l'ID utilisateur admin
      *
      * @param int $id_utilisateur
-     * @return int|null
+     * @return string|null
      */
     public function getEnseignantIdFromAdmin($id_utilisateur)
     {
@@ -307,7 +382,7 @@ class EvaluationDossiersService
             error_log("DEBUG: Utilisateur avec ID $id_utilisateur non trouvé");
             $stmt = $this->db->query("SELECT id_enseignant FROM enseignants LIMIT 1");
             $fallback = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $fallback ? $fallback['id_enseignant'] : null;
+            return $fallback ? (string) $fallback['id_enseignant'] : null;
         }
 
         error_log("DEBUG: Login de l'utilisateur: " . $utilisateur['login_utilisateur']);
@@ -322,7 +397,7 @@ class EvaluationDossiersService
 
         if ($enseignant) {
             error_log("DEBUG: Enseignant trouvé: " . $enseignant['prenom_enseignant'] . " " . $enseignant['nom_enseignant'] . " (ID: " . $enseignant['id_enseignant'] . ")");
-            return $enseignant['id_enseignant'];
+            return (string) $enseignant['id_enseignant'];
         }
 
         error_log("DEBUG: Aucun enseignant trouvé avec le login: " . $utilisateur['login_utilisateur']);
@@ -332,7 +407,7 @@ class EvaluationDossiersService
 
         if ($fallback) {
             error_log("DEBUG: Utilisation du fallback - Enseignant: " . $fallback['prenom_enseignant'] . " " . $fallback['nom_enseignant'] . " (ID: " . $fallback['id_enseignant'] . ")");
-            return $fallback['id_enseignant'];
+            return (string) $fallback['id_enseignant'];
         }
 
         error_log("DEBUG: Aucun enseignant disponible dans la base de données");
@@ -413,16 +488,16 @@ class EvaluationDossiersService
     {
         try {
             $this->ensureWritableRapport($id_rapport, 'une evaluation de commission');
-            $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
-            if (!$id_enseignant) {
-                return ['success' => false, 'message' => 'Enseignant non trouvé'];
+            $idEvaluateur = (int) $id_utilisateur;
+            if ($idEvaluateur <= 0) {
+                return ['success' => false, 'message' => 'Utilisateur non identifié'];
             }
 
-            error_log("DEBUG: Traitement décision commission - Rapport: $id_rapport, Décision: $decision, Enseignant: $id_enseignant");
+            error_log("DEBUG: Traitement décision commission - Rapport: $id_rapport, Décision: $decision, Utilisateur: $idEvaluateur");
 
             $evaluationRapport = new EvaluationRapport();
 
-            $evaluationExistante = $evaluationRapport->evaluationExiste($id_rapport, $id_enseignant);
+            $evaluationExistante = $evaluationRapport->evaluationExiste($id_rapport, $idEvaluateur);
 
             if ($evaluationExistante) {
                 $success = $evaluationRapport->mettreAJourEvaluation(
@@ -434,7 +509,7 @@ class EvaluationDossiersService
             } else {
                 $success = $evaluationRapport->ajouterEvaluation(
                     $id_rapport,
-                    $id_enseignant,
+                    $idEvaluateur,
                     $decision,
                     $commentaire
                 );
@@ -491,6 +566,26 @@ class EvaluationDossiersService
                 Valider::insererDecision($id_enseignant, $id_rapport, 'valider', 'Validé par consensus de la commission');
                 $this->auditLog->logValidation($id_utilisateur, 'rapport_etudiants', 'Succès');
 
+                try {
+                    $emailService = new \EmailService();
+                    $rapport = $this->rapportEtudiant->getRapportById($id_rapport);
+                    if (is_object($rapport)) { $rapport = (array) $rapport; }
+                    $stmt = $this->db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+                    $stmt->execute([$rapport['num_etu'] ?? '', $rapport['num_etu'] ?? '']);
+                    $etudiant = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+                    $commentaire = 'Validé par consensus de la commission';
+                    if (!empty($etudiant['email_etu'])) {
+                        $nom = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+                        $emailService->sendTemplate('EVALUATION_RAPPORT_VALIDE', $etudiant['email_etu'], [
+                            'nom' => htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8'),
+                            'nom_rapport' => htmlspecialchars((string)($rapport['nom_rapport'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                            'commentaires' => '<p style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-top: 8px;">' . nl2br(htmlspecialchars((string)($commentaire ?? ''), ENT_QUOTES, 'UTF-8')) . '</p>',
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Erreur notification evaluation: ' . $e->getMessage());
+                }
+
                 return ['success' => true, 'message' => 'Rapport validé par consensus de la commission'];
 
             } elseif ($decision === 'rejeter') {
@@ -498,6 +593,26 @@ class EvaluationDossiersService
 
                 Valider::insererDecision($id_enseignant, $id_rapport, 'rejeter', 'Rejeté par la commission');
                 $this->auditLog->logRejet($id_utilisateur, 'rapport_etudiants', 'Succès');
+
+                try {
+                    $emailService = new \EmailService();
+                    $rapport = $this->rapportEtudiant->getRapportById($id_rapport);
+                    if (is_object($rapport)) { $rapport = (array) $rapport; }
+                    $stmt = $this->db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+                    $stmt->execute([$rapport['num_etu'] ?? '', $rapport['num_etu'] ?? '']);
+                    $etudiant = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+                    $commentaire = 'Rejeté par la commission';
+                    if (!empty($etudiant['email_etu'])) {
+                        $nom = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+                        $emailService->sendTemplate('EVALUATION_RAPPORT_REJETE', $etudiant['email_etu'], [
+                            'nom' => htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8'),
+                            'nom_rapport' => htmlspecialchars((string)($rapport['nom_rapport'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                            'commentaires' => '<p style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-top: 8px;">' . nl2br(htmlspecialchars((string)($commentaire ?? ''), ENT_QUOTES, 'UTF-8')) . '</p>',
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('Erreur notification evaluation: ' . $e->getMessage());
+                }
 
                 return ['success' => true, 'message' => 'Rapport rejeté par la commission'];
             }

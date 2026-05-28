@@ -6,6 +6,7 @@ if ($_GET['page'] === 'gestion_etudiants') {
     if (isset($_GET['action'])) {
         switch ($_GET['action']) {
             case 'ajouter_des_etudiants':
+            case 'importer_etudiants':
                 $controller->index();
                 break;
             case 'inscrire_des_etudiants':
@@ -22,6 +23,4 @@ if ($_GET['page'] === 'gestion_etudiants') {
         // Si aucune action n'est spécifiée, afficher la page par défaut
         $controller->index();
     }
-} 
-
-   
+}

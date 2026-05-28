@@ -74,4 +74,6 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['programmation_soutenance',
             ]);
             break;
     }
+
+    exit;
 }

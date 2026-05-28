@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Utils;
 
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
+
+use App\Services\Document\DocumentStorageService;
 use App\Support\Database;
 use PDO;
 
@@ -38,6 +41,9 @@ use PDO;
  */
 class PlanningDataUtils
 {
+    /** @var array<string, bool> */
+    private array $tableExistsCache = [];
+
     public function __construct(private readonly Database $db)
     {
     }
@@ -63,29 +69,38 @@ class PlanningDataUtils
                        ps.theme_soutenance AS theme_soutenance,
                        e.nom_etu AS nom_etudiant, 
                        e.prenom_etu AS prenom_etudiant, 
-                       e.num_carte_etud AS matricule_etudiant, 
+                       COALESCE(NULLIF(e.num_carte_etud, \'\'), NULLIF(e.num_ident_etud, \'\'), ps.num_etud) AS matricule_etudiant, 
                        e.email_etu AS email_etudiant,
                   (SELECT CONCAT(ens_p.prenom_enseignant, CHAR(32), ens_p.nom_enseignant)
                    FROM enseignant_jury ej_p
                    LEFT JOIN enseignants ens_p ON ens_p.id_enseignant = ej_p.id_enseignant
                    WHERE ej_p.num_soutenance = ps.num_soutenance AND ej_p.id_qualite_jury = "PJ"
                    LIMIT 1) AS president_jury_nom,
-                  (SELECT CONCAT(ens_m.prenom_enseignant, CHAR(32), ens_m.nom_enseignant)
+                  (SELECT COALESCE(
+                              NULLIF(TRIM(CONCAT(COALESCE(ens_m.prenom_enseignant, \'\'), CHAR(32), COALESCE(ens_m.nom_enseignant, \'\'))), \'\'),
+                              NULLIF(TRIM(CONCAT(COALESCE(ms_j.prenom, \'\'), CHAR(32), COALESCE(ms_j.Nom, \'\'))), \'\')
+                          )
                    FROM enseignant_jury ej_m
                    LEFT JOIN enseignants ens_m ON ens_m.id_enseignant = ej_m.id_enseignant
+                   LEFT JOIN maitre_de_stage ms_j ON CAST(ms_j.id_maitre_stage AS CHAR) = CAST(ej_m.id_enseignant AS CHAR)
                    WHERE ej_m.num_soutenance = ps.num_soutenance AND ej_m.id_qualite_jury = "MS"
                    LIMIT 1) AS maitre_stage_jury_nom,
                        sa.lib_salle,
                        s.lib_session,
-                       CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
-                       COALESCE(ent.lib_long_entreprise, "N/A") AS entreprise_accueil
+                       NULLIF(TRIM(CONCAT(COALESCE(ms.prenom, \'\'), CHAR(32), COALESCE(ms.Nom, \'\'))), \'\') AS maitre_stage_nom,
+                       COALESCE(ent.lib_long_entreprise, ent_ms.lib_long_entreprise, "N/A") AS entreprise_accueil
                 FROM programmer_soutenance ps
-                INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = ps.num_etud
+                LEFT JOIN informations_stage ist ON ist.num_etu IN (
+                    ps.num_etud,
+                    COALESCE(NULLIF(e.num_carte_etud, \'\'), ps.num_etud),
+                    COALESCE(NULLIF(e.num_ident_etud, \'\'), ps.num_etud)
+                )
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
+                LEFT JOIN entreprises ent_ms ON ent_ms.id_entreprise = ms.id_entreprise
                 WHERE 1=1';
 
         $params = [];
@@ -130,29 +145,38 @@ class PlanningDataUtils
                        ps.theme_soutenance AS theme_soutenance,
                        e.nom_etu AS nom_etudiant,
                        e.prenom_etu AS prenom_etudiant,
-                       e.num_carte_etud AS matricule_etudiant,
+                       COALESCE(NULLIF(e.num_carte_etud, ''), NULLIF(e.num_ident_etud, ''), ps.num_etud) AS matricule_etudiant,
                        e.email_etu AS email_etudiant,
                   (SELECT CONCAT(ens_p.prenom_enseignant, CHAR(32), ens_p.nom_enseignant)
                    FROM enseignant_jury ej_p
                    LEFT JOIN enseignants ens_p ON ens_p.id_enseignant = ej_p.id_enseignant
                    WHERE ej_p.num_soutenance = ps.num_soutenance AND ej_p.id_qualite_jury = 'PJ'
                    LIMIT 1) AS president_jury_nom,
-                  (SELECT CONCAT(ens_m.prenom_enseignant, CHAR(32), ens_m.nom_enseignant)
+                  (SELECT COALESCE(
+                              NULLIF(TRIM(CONCAT(COALESCE(ens_m.prenom_enseignant, ''), CHAR(32), COALESCE(ens_m.nom_enseignant, ''))), ''),
+                              NULLIF(TRIM(CONCAT(COALESCE(ms_j.prenom, ''), CHAR(32), COALESCE(ms_j.Nom, ''))), '')
+                          )
                    FROM enseignant_jury ej_m
                    LEFT JOIN enseignants ens_m ON ens_m.id_enseignant = ej_m.id_enseignant
+                   LEFT JOIN maitre_de_stage ms_j ON CAST(ms_j.id_maitre_stage AS CHAR) = CAST(ej_m.id_enseignant AS CHAR)
                    WHERE ej_m.num_soutenance = ps.num_soutenance AND ej_m.id_qualite_jury = 'MS'
                    LIMIT 1) AS maitre_stage_jury_nom,
                        sa.lib_salle,
                        s.lib_session,
-                       CONCAT(ms.prenom, CHAR(32), ms.Nom) AS maitre_stage_nom,
-                       COALESCE(ent.lib_long_entreprise, 'N/A') AS entreprise_accueil
+                       NULLIF(TRIM(CONCAT(COALESCE(ms.prenom, ''), CHAR(32), COALESCE(ms.Nom, ''))), '') AS maitre_stage_nom,
+                       COALESCE(ent.lib_long_entreprise, ent_ms.lib_long_entreprise, 'N/A') AS entreprise_accueil
                 FROM programmer_soutenance ps
-                INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
+                LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
                 LEFT JOIN session s ON s.id_session = ps.id_session
-                LEFT JOIN informations_stage ist ON ist.num_etu = ps.num_etud
+                LEFT JOIN informations_stage ist ON ist.num_etu IN (
+                    ps.num_etud,
+                    COALESCE(NULLIF(e.num_carte_etud, ''), ps.num_etud),
+                    COALESCE(NULLIF(e.num_ident_etud, ''), ps.num_etud)
+                )
                   LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN entreprises ent ON ent.id_entreprise = ist.id_entreprise
+                LEFT JOIN entreprises ent_ms ON ent_ms.id_entreprise = ms.id_entreprise
                 WHERE ps.num_soutenance IN ({$placeholders})
                 ORDER BY ps.date_soutenance ASC, ps.heure_soutenance ASC";
 
@@ -185,7 +209,7 @@ class PlanningDataUtils
 
         $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
             ? 'qj.code_qltjury AS code_role,'
-            : "'' AS code_role,";
+            : "qj.{$roleIdCol} AS code_role,";
 
         $sql = "SELECT ej.id_enseignant,
                        COALESCE(ens.nom_enseignant, ms.Nom) AS nom_personne,
@@ -301,7 +325,7 @@ class PlanningDataUtils
                     v.commentaire_validation AS remarque_specifique
              FROM compte_rendu_rapport crr
              INNER JOIN rapport_etudiants r ON r.id_rapport = crr.id_rapport
-             INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
+             INNER JOIN etudiants e ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
              LEFT JOIN affecter dir_aff ON dir_aff.id_rapport = r.id_rapport AND dir_aff.role = "directeur"
              LEFT JOIN enseignants dir_ens ON dir_ens.id_enseignant = dir_aff.id_enseignant
              LEFT JOIN affecter enc_aff ON enc_aff.id_rapport = r.id_rapport AND enc_aff.role = "encadrant"
@@ -364,6 +388,7 @@ class PlanningDataUtils
      */
     public function getSoutenanceWithFullDetails(string $numSoutenance): ?array
     {
+        $latestInscriptionSql = $this->getLatestInscriptionSubquery();
         $stmt = $this->db->pdo()->prepare(
             'SELECT ps.num_soutenance, ps.num_etud, ps.theme_soutenance,
                     ps.date_soutenance, ps.heure_soutenance,
@@ -372,20 +397,18 @@ class PlanningDataUtils
                     e.nom_etu AS nom_etudiant,
                     e.prenom_etu AS prenom_etudiant,
                     e.email_etu AS email_etudiant,
-                    i.id_niveau,
+                    i.id_niv_etude,
+                    i.id_annee_acad AS inscription_annee_acad,
                     s.lib_session,
                     sa.lib_salle,
                     niv.lib_niv_etude AS libelle_niveau
              FROM programmer_soutenance ps
-             INNER JOIN etudiants e ON e.num_carte_etud = ps.num_etud
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2
-                 WHERE i2.num_carte_etud = e.num_carte_etud
-                 ORDER BY i2.date_inscription DESC, i2.id_inscription DESC LIMIT 1
-             )
+             LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
+             LEFT JOIN ' . $latestInscriptionSql . ' i
+                    ON i.num_carte_etud = COALESCE(NULLIF(e.num_ident_etud, \'\'), NULLIF(e.num_carte_etud, \'\'), ps.num_etud)
              LEFT JOIN session s ON s.id_session = ps.id_session
              LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE ps.num_soutenance = :num_soutenance'
         );
         $stmt->execute(['num_soutenance' => $numSoutenance]);
@@ -414,7 +437,7 @@ class PlanningDataUtils
 
         $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
             ? 'qj.code_qltjury AS code_role,'
-            : "'' AS code_role,";
+            : "qj.{$roleIdCol} AS code_role,";
 
         $sql = "SELECT COALESCE(ens.nom_enseignant, ms.Nom) AS nom_utilisateur,
                        COALESCE(ens.prenom_enseignant, ms.prenom) AS prenom,
@@ -516,7 +539,7 @@ class PlanningDataUtils
         $roleLabelCol = $this->getRoleLabelColumn($rolesTable);
         $roleCodeSelect = $this->columnExists($rolesTable, 'code_qltjury')
             ? 'code_qltjury AS role_code'
-            : "'' AS role_code";
+            : "{$roleIdCol} AS role_code";
 
         try {
             $sql = "SELECT {$roleIdCol} AS role_id, {$roleLabelCol} AS role_label, {$roleCodeSelect} FROM {$rolesTable}";
@@ -565,11 +588,23 @@ class PlanningDataUtils
 
     private function tableExists(string $table): bool
     {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
         try {
-            $stmt = $this->db->pdo()->prepare('SHOW TABLES LIKE :table_name');
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = :table_name'
+            );
             $stmt->execute(['table_name' => $table]);
-            return (bool) $stmt->fetchColumn();
+            $exists = (int) $stmt->fetchColumn() > 0;
+            $this->tableExistsCache[$table] = $exists;
+            return $exists;
         } catch (\Throwable) {
+            $this->tableExistsCache[$table] = false;
             return false;
         }
     }
@@ -577,9 +612,18 @@ class PlanningDataUtils
     private function columnExists(string $table, string $column): bool
     {
         try {
-            $stmt = $this->db->pdo()->prepare("SHOW COLUMNS FROM {$table} LIKE :column_name");
-            $stmt->execute(['column_name' => $column]);
-            return (bool) $stmt->fetchColumn();
+            $stmt = $this->db->pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.columns
+                 WHERE table_schema = DATABASE()
+                   AND table_name = :table_name
+                   AND column_name = :column_name'
+            );
+            $stmt->execute([
+                'table_name' => $table,
+                'column_name' => $column,
+            ]);
+            return (int) $stmt->fetchColumn() > 0;
         } catch (\Throwable) {
             return false;
         }
@@ -619,10 +663,34 @@ class PlanningDataUtils
      */
     public function getNotesSoutenance(string $numEtudiant, ?int $idAnneeAcad = null): array
     {
+        return $this->getNotesSoutenanceForJury($numEtudiant, null, $idAnneeAcad);
+    }
+
+    /**
+     * Récupère les notes d'évaluation de soutenance pour un étudiant et, si fourni, pour un jury précis.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getNotesSoutenanceForJury(string $numEtudiant, ?string $juryRef = null, ?int $idAnneeAcad = null): array
+    {
+        $codeCritereSelect = $this->columnExists('critere_evaluation', 'code_critere')
+            ? 'ce.code_critere'
+            : 'ce.id_critere AS code_critere';
+
         $sql = 'SELECT ev.id_critere, ev.num_etudiant,
-                       ce.code_critere, ce.lib_critere AS libelle_critere,
+                       ' . $codeCritereSelect . ', ce.lib_critere AS libelle_critere,
                        ev.note,
-                       COALESCE(bc.bareme, 20) AS bareme
+                       COALESCE(
+                           bc.bareme,
+                           (
+                               SELECT b2.bareme
+                               FROM bareme_critere b2
+                               WHERE b2.id_critere = ev.id_critere
+                               ORDER BY b2.id_annee_acad DESC
+                               LIMIT 1
+                           ),
+                           20
+                       ) AS bareme
                 FROM evaluer ev
                 INNER JOIN critere_evaluation ce ON ce.id_critere = ev.id_critere
                 LEFT JOIN bareme_critere bc ON bc.id_critere = ev.id_critere';
@@ -634,7 +702,12 @@ class PlanningDataUtils
             $params['id_annee_acad'] = $idAnneeAcad;
         }
 
-        $sql .= ' WHERE ev.num_etudiant = :num_etu ORDER BY ce.id_critere ASC';
+        $sql .= ' WHERE ev.num_etudiant = :num_etu';
+        if ($juryRef !== null && $juryRef !== '') {
+            $sql .= ' AND ev.num_jury = :jury_ref';
+            $params['jury_ref'] = $juryRef;
+        }
+        $sql .= ' ORDER BY ce.id_critere ASC';
 
         $stmt = $this->db->pdo()->prepare($sql);
         $stmt->execute($params);
@@ -680,6 +753,7 @@ class PlanningDataUtils
      */
     public function getRapportWithDetails(int $rapportId): ?array
     {
+        $latestInscriptionSql = $this->getLatestInscriptionSubquery();
         $stmt = $this->db->pdo()->prepare(
             'SELECT r.id_rapport, r.num_etu, r.date_redaction_rapport,
                     r.theme_rapport, r.chemin_fichier, r.statut_rapport,
@@ -692,14 +766,11 @@ class PlanningDataUtils
                     CONCAT(YEAR(aa.date_deb), "-", YEAR(aa.date_fin)) AS libelle_annee,
                     niv.lib_niv_etude AS libelle_niveau
              FROM rapport_etudiants r
-             INNER JOIN etudiants e ON e.num_carte_etud = r.num_etu
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2 
-                  WHERE i2.num_carte_etud = e.num_carte_etud 
-                  ORDER BY i2.date_inscription DESC LIMIT 1
-              )
+             INNER JOIN etudiants e ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+             LEFT JOIN ' . $latestInscriptionSql . ' i
+                    ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
              LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
              WHERE r.id_rapport = :id_rapport'
         );
         $stmt->execute(['id_rapport' => $rapportId]);
@@ -716,19 +787,20 @@ class PlanningDataUtils
      */
     public function getEtudiantByNumCarte(string $numCarte): ?array
     {
+        $latestInscriptionSql = $this->getLatestInscriptionSubquery();
+        $genreSelect = $this->columnExists('etudiants', 'genre_etu')
+            ? 'e.genre_etu'
+            : ($this->columnExists('etudiants', 'id_genre') ? 'e.id_genre AS genre_etu' : 'NULL AS genre_etu');
         $stmt = $this->db->pdo()->prepare(
             'SELECT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu,
-                    e.email_etu, e.date_naiss_etu, e.genre_etu, e.promotion_etu,
-                    i.id_niveau, i.id_annee_acad,
+                    e.email_etu, e.date_naiss_etu, ' . $genreSelect . ', e.promotion_etu,
+                    i.id_niv_etude, i.id_annee_acad,
                     niv.lib_niv_etude AS libelle_niveau
              FROM etudiants e
-             LEFT JOIN inscriptions i ON i.id_inscription = (
-                 SELECT i2.id_inscription FROM inscriptions i2 
-                 WHERE i2.num_carte_etud = e.num_carte_etud 
-                 ORDER BY i2.date_inscription DESC LIMIT 1
-             )
-             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niveau
-             WHERE e.num_carte_etud = :num_carte'
+             LEFT JOIN ' . $latestInscriptionSql . ' i
+                    ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
+             LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude
+             WHERE (e.num_carte_etud = :num_carte OR e.num_ident_etud = :num_carte)'
         );
         $stmt->execute(['num_carte' => $numCarte]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -843,8 +915,7 @@ class PlanningDataUtils
 
     /**
      * Génère une référence unique de document au format TYPE-YYYY-NNNNN.
-     * Puisqu'il n'y a PAS de table `document_genere` dans la base,
-     * on génère un identifiant basé sur le timestamp et un numéro aléatoire.
+     * La génération reste indépendante d'une éventuelle persistance.
      */
     public function generateReference(string $type): string
     {
@@ -857,24 +928,132 @@ class PlanningDataUtils
     }
 
     /**
-     * Enregistrement factice d'un document généré.
-     * La table `document_genere` N'EXISTE PAS dans le schéma actuel (base.txt).
-     * Cette méthode fait un no-op mais retourne un ID fictif pour maintenir la compatibilité.
+     * Persiste un document généré si la table optionnelle `document_genere` existe.
+     * Sinon, conserve un no-op traçable pour rester compatible avec le schéma courant.
      *
      * @param array<string, mixed> $data Données du document
-     * @return int ID fictif du document (0)
+     * @return int ID du document ou 0 si la table n'est pas disponible
      */
     public function saveDocumentRecord(array $data): int
     {
-        // Pas de table document_genere dans le schéma.
-        // On log les informations pour traçabilité mais on ne persiste rien.
-        error_log(sprintf(
-            '[PlanningDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
-            (string) ($data['reference_document'] ?? '?'),
-            (string) ($data['type_document'] ?? '?'),
-            (string) ($data['chemin_fichier'] ?? '?')
-        ));
+        $storageDocumentId = $this->persistBinaryDocument($data);
 
-        return 0;
+        if (!$this->tableExists('document_genere')) {
+            error_log(sprintf(
+                '[PlanningDataUtils] Document généré (non persisté): ref=%s, type=%s, fichier=%s',
+                (string) ($data['reference_document'] ?? '?'),
+                (string) ($data['type_document'] ?? '?'),
+                (string) ($data['chemin_fichier'] ?? '?')
+            ));
+
+            return $storageDocumentId;
+        }
+
+        $stmt = $this->db->pdo()->prepare(
+            'INSERT INTO document_genere (
+                reference,
+                type_document,
+                id_utilisateur,
+                id_source,
+                chemin_fichier,
+                nom_fichier,
+                taille_fichier
+             ) VALUES (
+                :reference,
+                :type_document,
+                :id_utilisateur,
+                :id_source,
+                :chemin_fichier,
+                :nom_fichier,
+                :taille_fichier
+             )'
+        );
+
+        $stmt->execute([
+            'reference' => (string) ($data['reference_document'] ?? ''),
+            'type_document' => (string) ($data['type_document'] ?? ''),
+            'id_utilisateur' => max(0, (int) ($data['id_utilisateur_generation'] ?? 0)),
+            'id_source' => isset($data['id_source']) ? (string) $data['id_source'] : null,
+            'chemin_fichier' => (string) ($data['chemin_fichier'] ?? ''),
+            'nom_fichier' => (string) ($data['nom_fichier'] ?? basename((string) ($data['chemin_fichier'] ?? 'document.pdf'))),
+            'taille_fichier' => isset($data['taille_fichier']) ? (int) $data['taille_fichier'] : 0,
+        ]);
+
+        return (int) $this->db->pdo()->lastInsertId();
     }
+
+    private function getLatestInscriptionSubquery(): string
+    {
+        return '(
+            SELECT i1.num_carte_etud, i1.id_annee_acad, i1.id_niv_etude, i1.num_versement
+            FROM inscriptions i1
+            INNER JOIN (
+                SELECT
+                    num_carte_etud,
+                    MAX(CONCAT(LPAD(id_annee_acad, 10, "0"), LPAD(num_versement, 10, "0"))) AS latest_key
+                FROM inscriptions
+                GROUP BY num_carte_etud
+            ) latest
+                ON latest.num_carte_etud = i1.num_carte_etud
+               AND CONCAT(LPAD(i1.id_annee_acad, 10, "0"), LPAD(i1.num_versement, 10, "0")) = latest.latest_key
+        )';
+    }
+
+    private function persistBinaryDocument(array $data): int
+    {
+        $path = trim((string) ($data['chemin_fichier'] ?? ''));
+        if ($path === '') {
+            return 0;
+        }
+
+        $mapping = $this->mapLegacyDocumentType((string) ($data['type_document'] ?? ''));
+        if ($mapping === null) {
+            return 0;
+        }
+
+        $storage = new DocumentStorageService($this->db->pdo(), dirname(__DIR__, 2));
+        $document = $storage->storeFileFromPath(
+            $mapping['type_document'],
+            $path,
+            $mapping['entite_type'],
+            isset($data['id_source']) ? (string) $data['id_source'] : null,
+            max(0, (int) ($data['id_utilisateur_generation'] ?? 0)),
+            (string) ($data['reference_document'] ?? ''),
+            $mapping['sous_type'],
+            true
+        );
+
+        return is_array($document) ? (int) ($document['id_document'] ?? 0) : 0;
+    }
+
+    /**
+     * @return array{type_document: string, entite_type: string|null, sous_type: string|null}|null
+     */
+    private function mapLegacyDocumentType(string $legacyType): ?array
+    {
+        return match (strtoupper(trim($legacyType))) {
+            'RAP' => [
+                'type_document' => 'rapport',
+                'entite_type' => 'rapport_etudiants',
+                'sous_type' => 'generated',
+            ],
+            'PVC' => [
+                'type_document' => 'pv_commission',
+                'entite_type' => 'compte_rendu',
+                'sous_type' => null,
+            ],
+            'PVF', 'PV_FINAL' => [
+                'type_document' => 'pv_final',
+                'entite_type' => 'programmer_soutenance',
+                'sous_type' => null,
+            ],
+            'PLN' => [
+                'type_document' => 'planning',
+                'entite_type' => null,
+                'sous_type' => null,
+            ],
+            default => null,
+        };
+    }
+
 }

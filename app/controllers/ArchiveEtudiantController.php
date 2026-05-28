@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/Note.php';
+require_once __DIR__ . '/../Services/Document/DocumentRegistry.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
 class ArchiveEtudiantController
@@ -12,12 +13,14 @@ class ArchiveEtudiantController
     private $db;
     private $etudiantModel;
     private $anneeModel;
+    private DocumentRegistry $registry;
 
     public function __construct($db = null)
     {
         $this->db = $db ?: Database::getConnection();
         $this->etudiantModel = new Etudiant($this->db);
         $this->anneeModel = new AnneeAcademique($this->db);
+        $this->registry = new DocumentRegistry($this->db);
     }
 
     /**
@@ -26,7 +29,7 @@ class ArchiveEtudiantController
     public function index()
     {
         if (!canView('archives_etudiants')) {
-            $_SESSION['error_message'] = "Accès refusé aux archives étudiants.";
+            $_SESSION['error'] = "Accès refusé aux archives étudiants.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
@@ -52,7 +55,7 @@ class ArchiveEtudiantController
     public function fiche($matricule)
     {
         if (!canView('archives_etudiants')) {
-            $_SESSION['error_message'] = "Accès refusé.";
+            $_SESSION['error'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
@@ -61,7 +64,7 @@ class ArchiveEtudiantController
 
         $etudiant = $this->getEtudiantComplet($matricule, $anneeId);
         if (!$etudiant) {
-            $_SESSION['error_message'] = "Étudiant non trouvé.";
+            $_SESSION['error'] = "Étudiant non trouvé.";
             header('Location: layout.php?page=archives_etudiants');
             exit;
         }
@@ -89,7 +92,7 @@ class ArchiveEtudiantController
     public function parcours($matricule)
     {
         if (!canView('archives_etudiants')) {
-            $_SESSION['error_message'] = "Accès refusé.";
+            $_SESSION['error'] = "Accès refusé.";
             header('Location: layout.php?page=access_denied');
             exit;
         }
@@ -124,7 +127,7 @@ class ArchiveEtudiantController
 
         foreach ($etudiants as $e) {
             fputcsv($output, [
-                $e->num_carte_etud,
+                $e->num_ident_etud ?? $e->num_carte_etud,
                 $e->nom_etu,
                 $e->prenom_etu,
                 $e->email_etu,
@@ -145,7 +148,8 @@ class ArchiveEtudiantController
     private function getEtudiantsArchives($anneeId, $filters)
     {
         $sql = "SELECT DISTINCT 
-                    e.num_carte_etud,
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud,
+                    e.num_ident_etud,
                     e.nom_etu,
                     e.prenom_etu,
                     e.email_etu,
@@ -164,10 +168,10 @@ class ArchiveEtudiantController
                 LEFT JOIN genre g ON e.id_genre = g.id_genre
                 JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud
                 LEFT JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
-                LEFT JOIN informations_stage inf ON e.num_carte_etud = inf.num_etu
+                LEFT JOIN informations_stage inf ON (e.num_carte_etud = inf.num_etu OR e.num_ident_etud = inf.num_etu)
                 LEFT JOIN entreprises en ON inf.id_entreprise = en.id_entreprise
-                LEFT JOIN rapport_etudiants re ON e.num_carte_etud = re.num_etu
-                LEFT JOIN notes n ON e.num_carte_etud = n.num_etu AND n.id_annee_acad = i.id_annee_acad
+                LEFT JOIN rapport_etudiants re ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
+                LEFT JOIN notes n ON (e.num_carte_etud = n.num_etu OR e.num_ident_etud = n.num_etu) AND n.id_annee_acad = i.id_annee_acad
                 LEFT JOIN valider v ON re.id_rapport = v.id_rapport
                 WHERE i.id_annee_acad = ?";
 
@@ -198,9 +202,9 @@ class ArchiveEtudiantController
                 FROM etudiants e
                 LEFT JOIN genre g ON e.id_genre = g.id_genre
                 LEFT JOIN inscriptions i ON e.num_carte_etud = i.num_carte_etud AND i.id_annee_acad = ?
-                WHERE e.num_carte_etud = ?";
+                WHERE (e.num_ident_etud = ? OR e.num_carte_etud = ?)";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$anneeId, $matricule]);
+        $stmt->execute([$anneeId, $matricule, $matricule]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
@@ -233,6 +237,18 @@ class ArchiveEtudiantController
     {
         $docs = [];
 
+        // Fiches d'inscription
+        $sql = "SELECT 'fiche_inscription' as type,
+                       CONCAT(num_carte_etud, '-', id_annee_acad, '-', num_versement) as id,
+                       CONCAT('Fiche inscription - Versement ', num_versement) as titre,
+                       fiche_inscription as chemin,
+                       date_inscription as date
+                FROM inscriptions
+                WHERE num_carte_etud = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$matricule]);
+        $docs = array_merge($docs, $stmt->fetchAll(PDO::FETCH_OBJ));
+
         // Rapports
         $sql = "SELECT 'rapport' as type, id_rapport as id, theme_rapport as titre, 
                        chemin_fichier as chemin, date_redaction_rapport as date
@@ -249,7 +265,12 @@ class ArchiveEtudiantController
         $stmt->execute([$matricule]);
         $docs = array_merge($docs, $stmt->fetchAll(PDO::FETCH_OBJ));
 
-        return $docs;
+        return array_values(array_filter($docs, function ($doc) {
+            $type = trim((string) ($doc->type ?? ''));
+            $id = trim((string) ($doc->id ?? ''));
+
+            return $type !== '' && $id !== '' && $this->registry->hasDocument($type, $id);
+        }));
     }
 
     private function getReclamationsEtudiant($matricule)
@@ -271,7 +292,7 @@ class ArchiveEtudiantController
         // Inscriptions
         $sql = "SELECT i.date_inscription as date, 'inscription' as type,
                        CONCAT('Inscription ', ne.lib_niv_etude) as titre,
-                       i.statut_inscription as description
+                       CONCAT('Versement #', COALESCE(i.num_versement, 1), ' - Solde: ', COALESCE(i.solde, 0), ' FCFA') as description
                 FROM inscriptions i
                 JOIN niveau_etude ne ON i.id_niv_etude = ne.id_niv_etude
                 WHERE i.num_carte_etud = ?";
@@ -325,7 +346,7 @@ class ArchiveEtudiantController
     private function logAction($action, $statut)
     {
         if (isset($_SESSION['user_id'])) {
-            $sql = "INSERT INTO pister (id_utilisateur, action, statut_action, nom_table, date_creation)
+            $sql = "INSERT INTO pister (id_utilisateur, action, statut_action, contexte, date_creation)
                     VALUES (?, ?, ?, 'archives', NOW())";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$_SESSION['user_id'], $action, $statut]);

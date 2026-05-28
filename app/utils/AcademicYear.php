@@ -309,7 +309,7 @@ class AcademicYear
         if ($active === null) {
             return [
                 'success' => false,
-                'message' => "Aucune annee academique active n'est definie.",
+                'message' => "Aucune année académique active n'est définie.",
                 'year' => null,
             ];
         }
@@ -328,7 +328,7 @@ class AcademicYear
         if ($normalizedYearId !== (int) ($active['id'] ?? 0)) {
             return [
                 'success' => false,
-                'message' => "Impossible d'enregistrer {$context} dans une annee academique anterieure. Seule l'annee active {$active['label']} accepte des ecritures.",
+                'message' => "Impossible d'enregistrer {$context} dans une année académique antérieure. Seule l'année active {$active['label']} accepte des écritures.",
                 'year' => $active,
             ];
         }

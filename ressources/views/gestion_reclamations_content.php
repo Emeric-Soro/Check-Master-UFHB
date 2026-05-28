@@ -79,6 +79,7 @@ unset($_SESSION['message']);
             'limit_options' => [5, 10, 25, 50, 100],
             'can_delete' => canDelete(),
             'can_view' => canView(),
+            'print_title' => 'Réclamations',
         ]); ?>
 
         <div class="cm-pole-inferieur">
@@ -87,7 +88,7 @@ unset($_SESSION['message']);
                     <thead>
                     <tr>
                         <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmReclamationCheckAll" aria-label="Tout sélectionner">
+                            <input type="checkbox" id="cmReclamationCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                         </th>
                         <th class="cm-data-table__th">N° Réclamation</th>
                         <th class="cm-data-table__th">Objet</th>
@@ -127,7 +128,7 @@ unset($_SESSION['message']);
                             ?>
                             <tr class="cm-data-table__row">
                                 <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-recl-check-row" value="<?= htmlspecialchars($idRecl, ENT_QUOTES, 'UTF-8') ?>" aria-label="Sélectionner réclamation <?= htmlspecialchars($idRecl, ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="checkbox" class="cm-table-check-row cm-recl-check-row" value="<?= htmlspecialchars($idRecl, ENT_QUOTES, 'UTF-8') ?>" aria-label="Sélectionner réclamation <?= htmlspecialchars($idRecl, ENT_QUOTES, 'UTF-8') ?>">
                                 </td>
                                 <td class="cm-data-table__td"><?= htmlspecialchars($idRecl, ENT_QUOTES, 'UTF-8') ?></td>
                                 <td class="cm-data-table__td"><?= htmlspecialchars($objetRecl, ENT_QUOTES, 'UTF-8') ?></td>

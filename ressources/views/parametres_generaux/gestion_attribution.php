@@ -111,7 +111,7 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
         cm_toolbar([
             'screen' => 'gestion_attribution',
             'id_prefix' => 'cmAttribToolbar',
-            'search_placeholder' => 'Rechercher un ecran...',
+            'search_placeholder' => 'Rechercher un écran...',
             'show_actions' => false,
             'show_filters' => false,
             'custom_actions' => $attribActions,
@@ -131,6 +131,105 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
     width: 10ch !important;
     min-width: 10ch !important;
     max-width: 10ch !important;
+}
+
+/* Amélioration visuelle globale de la table d'attributions */
+#cmAttribTable {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+/* Correction de contraste pour les en-têtes */
+#cmAttribTable .permHeader {
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity var(--cm-transition-fast);
+}
+
+#cmAttribTable .permHeader:hover {
+    opacity: 0.85;
+}
+
+/* Stylisation premium et ergonomique des cases à cocher */
+#cmAttribTable input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(26, 82, 118, 0.35);
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    background: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+#cmAttribTable input[type="checkbox"]:hover:not(:disabled) {
+    border-color: var(--cm-primary);
+    box-shadow: 0 0 0 4px rgba(26, 82, 118, 0.15);
+}
+
+#cmAttribTable input[type="checkbox"]:checked {
+    background-color: var(--cm-primary);
+    border-color: var(--cm-primary);
+    transform: scale(1.08);
+}
+
+#cmAttribTable input[type="checkbox"]:checked::before {
+    content: "\f00c";
+    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", sans-serif;
+    font-weight: 900;
+    color: #ffffff;
+    font-size: 11px;
+}
+
+#cmAttribTable input[type="checkbox"]:disabled {
+    opacity: 0.55;
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    cursor: not-allowed;
+}
+
+/* Ligne de catégorie premium */
+#cmAttribTable .cm-category-row {
+    background: rgba(26, 82, 118, 0.04) !important;
+}
+
+#cmAttribTable .cm-category-cell {
+    padding: 0.85rem 1.25rem !important;
+    border-left: 4px solid var(--cm-primary) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.82rem !important;
+    color: var(--cm-primary-dark) !important;
+    font-weight: 700;
+}
+
+/* Interactivité des lignes normales */
+#cmAttribTable tbody tr.cm-data-table__row:not(.cm-category-row) {
+    transition: background-color 0.15s ease;
+}
+
+#cmAttribTable tbody tr.cm-data-table__row:not(.cm-category-row):hover {
+    background-color: rgba(52, 152, 219, 0.08) !important;
+}
+
+#cmAttribTable .cm-data-table__td {
+    vertical-align: middle;
+    padding: 0.65rem 0.95rem !important;
 }
 </style>
 <form id="cmAttribForm" method="POST" action="<?= htmlspecialchars($baseActionUrl, ENT_QUOTES, 'UTF-8') ?>" class="cm-table-form" data-cm-ajax-form="true">
@@ -170,8 +269,8 @@ $isEditable = function_exists('canEdit') ? (bool) canEdit() : true;
                         </thead>
                         <tbody>
                             <?php foreach ($fonctionnalitesByCat as $catCode => $catData): ?>
-                            <tr class="cm-data-table__row">
-                                <td class="cm-data-table__td" colspan="5">
+                            <tr class="cm-data-table__row cm-category-row">
+                                <td class="cm-data-table__td cm-category-cell" colspan="5">
                                     <strong><?= htmlspecialchars((string) $catData['label'], ENT_QUOTES, 'UTF-8') ?></strong>
                                 </td>
                             </tr>

@@ -23,8 +23,8 @@ $pourcentageReussite = $totalInscriptions > 0 ? round(($paiementsComplets / $tot
 $db = Database::getConnection();
 $queryActivites = "SELECT i.date_inscription, e.nom_etu, e.prenom_etu, n.lib_niv_etude 
                    FROM inscriptions i 
-                   JOIN etudiants e ON i.id_etudiant = e.num_carte_etud 
-                   JOIN niveau_etude n ON i.id_niveau = n.id_niv_etude 
+                   JOIN etudiants e ON i.num_carte_etud = e.num_carte_etud 
+                   JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude 
                    ORDER BY i.date_inscription DESC 
                    LIMIT 5";
 $stmtActivites = $db->prepare($queryActivites);

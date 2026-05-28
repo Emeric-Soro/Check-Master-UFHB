@@ -12,6 +12,8 @@ require_once __DIR__ . '/../models/Grade.php';
 require_once __DIR__ . '/../models/Fonction.php';
 require_once __DIR__ . '/../models/Specialite.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use CheckMaster\Security\DbRateLimiter;
 use Utilisateur;
@@ -27,6 +29,7 @@ class AuthService
     private $persAdminModel;
     private $etudiantModel;
     private $auditLog;
+    private $emailService;
 
     public function __construct($db)
     {
@@ -35,6 +38,7 @@ class AuthService
         $this->persAdminModel = new PersAdmin($db);
         $this->etudiantModel = new Etudiant($db);
         $this->auditLog = new AuditLog($db);
+        $this->emailService = new \EmailService();
     }
 
     public function login($login, $password, $ip)
@@ -88,8 +92,12 @@ class AuthService
                 }
             } else {
                 $etudiant = $this->etudiantModel->getEtudiantByLogin($infoUtilisateur['nom_utilisateur']);
+                if (!$etudiant && !empty($infoUtilisateur['login_utilisateur'])) {
+                    $etudiant = $this->etudiantModel->getEtudiantByEmail($infoUtilisateur['login_utilisateur']);
+                }
                 if ($etudiant) {
                     $_SESSION['num_etu'] = $etudiant->num_carte_etud;
+                    $_SESSION['num_ident_etud'] = $etudiant->num_ident_etud ?? '';
                     $_SESSION['nom_etu'] = $etudiant->nom_etu;
                     $_SESSION['prenom_etu'] = $etudiant->prenom_etu;
                 }
@@ -125,6 +133,88 @@ class AuthService
         }
 
         return session_destroy();
+    }
+
+    public function updateEmail($idUtilisateur, $newEmail, $confirmEmail)
+    {
+        $idUtilisateur = (int) $idUtilisateur;
+        $newEmail = strtolower(trim((string) $newEmail));
+        $confirmEmail = strtolower(trim((string) $confirmEmail));
+
+        if ($idUtilisateur <= 0) {
+            return ['success' => false, 'message' => 'Session utilisateur invalide. Veuillez vous reconnecter.'];
+        }
+
+        if ($newEmail === '' || $confirmEmail === '') {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Tous les champs adresse mail sont obligatoires.'];
+        }
+
+        if ($newEmail !== $confirmEmail) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Les adresses mail ne correspondent pas.'];
+        }
+
+        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Adresse mail invalide.'];
+        }
+
+        if (strlen($newEmail) > 100) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Adresse mail trop longue (100 caractères maximum).'];
+        }
+
+        $utilisateur = new Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        if (!$user) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Utilisateur introuvable.'];
+        }
+
+        $nomUtilisateur = trim((string) ($user->nom_utilisateur ?? ''));
+        $idTypeUtilisateur = (int) ($user->id_type_utilisateur ?? 0);
+        if ($nomUtilisateur === '' || $idTypeUtilisateur <= 0) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Profil utilisateur incomplet.'];
+        }
+
+        $currentEmail = trim((string) $utilisateur->getEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur));
+        if ($currentEmail !== '' && strcasecmp($currentEmail, $newEmail) === 0) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'La nouvelle adresse mail doit être différente de l\'adresse actuelle.'];
+        }
+
+        if (!$utilisateur->updateEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur, $newEmail)) {
+            $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Erreur');
+            return ['success' => false, 'message' => 'Erreur lors de la mise à jour de l\'adresse mail.'];
+        }
+
+        $this->auditLog->logModification($idUtilisateur, 'utilisateur', 'Succès');
+        return ['success' => true, 'message' => 'Adresse mail mise à jour avec succès.'];
+    }
+
+    public function getContactEmail($idUtilisateur): ?string
+    {
+        $idUtilisateur = (int) $idUtilisateur;
+        if ($idUtilisateur <= 0) {
+            return null;
+        }
+
+        $utilisateur = new Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        if (!$user) {
+            return null;
+        }
+
+        $nomUtilisateur = trim((string) ($user->nom_utilisateur ?? ''));
+        $idTypeUtilisateur = (int) ($user->id_type_utilisateur ?? 0);
+        if ($nomUtilisateur === '' || $idTypeUtilisateur <= 0) {
+            return null;
+        }
+
+        $email = trim((string) $utilisateur->getEmailByNomAndType($nomUtilisateur, $idTypeUtilisateur));
+        return $email !== '' ? $email : null;
     }
 
     public function updatePassword($idUtilisateur, $currentPassword, $newPassword, $confirmPassword)
@@ -199,5 +289,52 @@ class AuthService
         }
 
         return ['success' => false, 'message' => 'Erreur lors de la mise à jour du mot de passe.'];
+    }
+
+    public function notifierMdpChange(int $idUtilisateur): void
+    {
+        $utilisateur = new \Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        if (!$user) {
+            return;
+        }
+        $emailContact = $this->getContactEmail($idUtilisateur);
+        if ($emailContact === null) {
+            return;
+        }
+        $nom = (string)($user->nom_utilisateur ?? '');
+        $this->emailService->sendTemplate('MDP_CHANGE', $emailContact, [
+            'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+            'date_changement' => date('d/m/Y H:i'),
+        ]);
+    }
+
+    public function notifierEmailModifie(int $idUtilisateur, string $ancienEmail, string $nouvelEmail): void
+    {
+        $utilisateur = new \Utilisateur($this->db);
+        $user = $utilisateur->getUtilisateurById($idUtilisateur);
+        $nom = $user ? (string)($user->nom_utilisateur ?? '') : '';
+        $data = [
+            'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+            'ancien_email' => htmlspecialchars($ancienEmail, ENT_QUOTES, 'UTF-8'),
+            'nouvel_email' => htmlspecialchars($nouvelEmail, ENT_QUOTES, 'UTF-8'),
+            'date_modification' => date('d/m/Y H:i'),
+        ];
+        if ($ancienEmail !== '') {
+            $this->emailService->sendTemplate('EMAIL_MODIFIE', $ancienEmail, $data);
+        }
+        if ($nouvelEmail !== '' && $nouvelEmail !== $ancienEmail) {
+            $this->emailService->sendTemplate('EMAIL_MODIFIE', $nouvelEmail, $data);
+        }
+    }
+
+    public function notifierCompteVerrouille(string $login, string $email, int $dureeMinutes): void
+    {
+        $this->emailService->sendTemplate('COMPTE_VERROUILLE', $email, [
+            'nom' => htmlspecialchars($login, ENT_QUOTES, 'UTF-8'),
+            'login' => htmlspecialchars($login, ENT_QUOTES, 'UTF-8'),
+            'date_verrouillage' => date('d/m/Y H:i'),
+            'duree' => $dureeMinutes,
+        ]);
     }
 }

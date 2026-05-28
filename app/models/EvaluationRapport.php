@@ -71,6 +71,152 @@ class EvaluationRapport
         return $alias . '.theme_rapport';
     }
 
+    private function studentJoinCondition(string $rapportAlias = 'r', string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            '(%1$s.num_etu = %2$s.num_carte_etud OR %1$s.num_etu = %2$s.num_ident_etud)',
+            $rapportAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function studentCarteExpr(string $etudiantAlias = 'e'): string
+    {
+        return sprintf(
+            "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))",
+            $etudiantAlias,
+            $etudiantAlias
+        );
+    }
+
+    private function getFallbackStudentYearExpr(string $etudiantAlias = 'e'): string
+    {
+        return "
+            (SELECT i.id_annee_acad
+             FROM inscriptions i
+             WHERE i.num_carte_etud = " . $this->studentCarteExpr($etudiantAlias) . "
+             ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getAcademicYearFromDateExpr(string $dateExpr): string
+    {
+        return "
+            (SELECT aa.id_annee_acad
+             FROM annee_academique aa
+             WHERE DATE($dateExpr) BETWEEN aa.date_deb AND aa.date_fin
+             ORDER BY aa.date_deb DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getReportAcademicYearExpr(string $rapportAlias = 'r', string $etudiantAlias = 'e', ?string $depotAlias = null): string
+    {
+        $candidates = [];
+
+        if ($depotAlias !== null) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($depotAlias . '.date_depot');
+        }
+
+        $dateExpr = $this->rapportDateExpr($rapportAlias);
+        if ($dateExpr !== 'NULL') {
+            $candidates[] = $this->getAcademicYearFromDateExpr($dateExpr);
+        }
+
+        $candidates[] = $this->getFallbackStudentYearExpr($etudiantAlias);
+
+        return 'COALESCE(' . implode(', ', $candidates) . ')';
+    }
+
+    private function normalizeSqlExpr(string $expr): string
+    {
+        return "LOWER(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE($expr, '')), ' ', ''), '-', ''), '''', ''), '.', ''))";
+    }
+
+    private function enseignantResolutionSubquery(string $userAlias = 'u'): string
+    {
+        $userLoginExpr = "LOWER(COALESCE({$userAlias}.login_utilisateur, ''))";
+        $userNameExpr = $this->normalizeSqlExpr($userAlias . '.nom_utilisateur');
+        $teacherForwardExpr = $this->normalizeSqlExpr("CONCAT(COALESCE(e2.nom_enseignant, ''), COALESCE(e2.prenom_enseignant, ''))");
+        $teacherReverseExpr = $this->normalizeSqlExpr("CONCAT(COALESCE(e2.prenom_enseignant, ''), COALESCE(e2.nom_enseignant, ''))");
+        $emailMatch = "({$userLoginExpr} <> '' AND LOWER(COALESCE(e2.mail_enseignant, '')) = {$userLoginExpr})";
+        $nameMatch = "({$userNameExpr} <> '' AND ({$userNameExpr} = {$teacherForwardExpr} OR {$userNameExpr} = {$teacherReverseExpr}))";
+
+        return "
+            (
+                SELECT e2.id_enseignant
+                FROM enseignants e2
+                WHERE {$emailMatch} OR {$nameMatch}
+                ORDER BY CASE WHEN {$emailMatch} THEN 0 ELSE 1 END, e2.id_enseignant
+                LIMIT 1
+            )
+        ";
+    }
+
+    private function latestCandidatureJoin(string $rapportAlias = 'r', string $etudiantAlias = 'e', string $candidatureAlias = 'cs'): string
+    {
+        if (!$this->tableExists('candidature_soutenance')) {
+            return '';
+        }
+
+        return "
+            LEFT JOIN candidature_soutenance {$candidatureAlias} ON {$candidatureAlias}.id_candidature = (
+                SELECT cs2.id_candidature
+                FROM candidature_soutenance cs2
+                WHERE (
+                    cs2.id_candidature = {$rapportAlias}.id_candidature
+                    OR (
+                        ({$rapportAlias}.id_candidature IS NULL OR {$rapportAlias}.id_candidature = 0)
+                        AND (cs2.num_etu = {$etudiantAlias}.num_carte_etud OR cs2.num_etu = {$etudiantAlias}.num_ident_etud)
+                    )
+                )
+                ORDER BY cs2.date_candidature DESC, cs2.id_candidature DESC
+                LIMIT 1
+            )
+        ";
+    }
+
+    private function resolveEnseignantIdFromVoteActor($idEvaluateur): ?string
+    {
+        $idEvaluateur = trim((string) $idEvaluateur);
+        if ($idEvaluateur === '') {
+            return null;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT id_enseignant
+                FROM enseignants
+                WHERE id_enseignant = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$idEvaluateur]);
+            $value = $stmt->fetchColumn();
+            if ($value !== false) {
+                return trim((string) $value);
+            }
+
+            if (!$this->tableExists('utilisateur')) {
+                return null;
+            }
+
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
+            $stmt = $this->pdo->prepare("
+                SELECT {$enseignantResolution} AS id_enseignant
+                FROM utilisateur u
+                WHERE u.id_utilisateur = ?
+                LIMIT 1
+            ");
+            $stmt->execute([(int) $idEvaluateur]);
+            $value = $stmt->fetchColumn();
+            return $value !== false ? trim((string) $value) : null;
+        } catch (Throwable $e) {
+            error_log("Erreur résolution enseignant depuis l'acteur du vote {$idEvaluateur}: " . $e->getMessage());
+            return null;
+        }
+    }
+
     /**
      * Ajoute une évaluation pour un rapport
      */
@@ -81,10 +227,57 @@ class EvaluationRapport
                 INSERT INTO evaluations_rapports (id_rapport, id_evaluateur, decision_evaluation, commentaire, date_evaluation)
                 VALUES (?, ?, ?, ?, NOW())
             ");
-            return $stmt->execute([$id_rapport, $id_evaluateur, $decision, $commentaire]);
+            $result = $stmt->execute([$id_rapport, $id_evaluateur, $decision, $commentaire]);
+
+            // Auto-finalisation : si 4+ votes 'valider', insérer automatiquement dans valider
+            if ($result && $decision === 'valider') {
+                $this->autoFinaliserSiNecessaire($id_rapport, $id_evaluateur);
+            }
+
+            return $result;
         } catch (PDOException $e) {
             error_log("Erreur ajout évaluation rapport: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Vérifie si le rapport a 4+ votes 'valider' et l'auto-finalise si ce n'est pas déjà fait
+     */
+    private function autoFinaliserSiNecessaire($id_rapport, $id_evaluateur)
+    {
+        try {
+            // Vérifier si déjà dans valider
+            $checkValider = $this->pdo->prepare("SELECT COUNT(*) FROM valider WHERE id_rapport = ?");
+            $checkValider->execute([$id_rapport]);
+            if ((int) $checkValider->fetchColumn() > 0) {
+                return;
+            }
+
+            // Compter les votes 'valider'
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM evaluations_rapports WHERE id_rapport = ? AND decision_evaluation = 'valider'");
+            $stmt->execute([$id_rapport]);
+            $totalValide = (int) $stmt->fetchColumn();
+
+            if ($totalValide >= 4) {
+                $idEnseignant = $this->resolveEnseignantIdFromVoteActor($id_evaluateur);
+                if ($idEnseignant === null || $idEnseignant === '') {
+                    error_log("Auto-finalisation ignorée pour le rapport {$id_rapport}: impossible de résoudre l'enseignant finalisateur.");
+                    return;
+                }
+                $this->pdo->beginTransaction();
+                try {
+                    $insertValider = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, 'valider')");
+                    $insertValider->execute([$idEnseignant, $id_rapport, 'Validation automatique (4 votes atteints)']);
+                    $this->pdo->commit();
+                    error_log("Auto-finalisation effectuée pour le rapport $id_rapport");
+                } catch (Exception $e) {
+                    $this->pdo->rollBack();
+                    error_log("Erreur auto-finalisation rapport $id_rapport: " . $e->getMessage());
+                }
+            }
+        } catch (Throwable $e) {
+            error_log("Erreur autoFinaliserSiNecessaire: " . $e->getMessage());
         }
     }
 
@@ -130,15 +323,18 @@ class EvaluationRapport
     public function getEvaluationsRapport($id_rapport)
     {
         try {
+            $enseignantResolution = $this->enseignantResolutionSubquery('u');
             $stmt = $this->pdo->prepare("
-                SELECT e.*, 
-                       ens.nom_enseignant,
-                       ens.prenom_enseignant,
-                       ens.mail_enseignant
+                SELECT e.*,
+                       COALESCE(ens.nom_enseignant, u.nom_utilisateur) AS nom_enseignant,
+                       COALESCE(ens.prenom_enseignant, '') AS prenom_enseignant,
+                       COALESCE(ens.mail_enseignant, u.login_utilisateur) AS mail_enseignant,
+                       u.login_utilisateur
                 FROM evaluations_rapports e
-                JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant
+                LEFT JOIN utilisateur u ON e.id_evaluateur = u.id_utilisateur
+                LEFT JOIN enseignants ens ON ens.id_enseignant = {$enseignantResolution}
                 WHERE e.id_rapport = ?
-                ORDER BY e.date_evaluation DESC
+                ORDER BY COALESCE(e.date_modification, e.date_evaluation) DESC
             ");
             $stmt->execute([$id_rapport]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -229,8 +425,12 @@ class EvaluationRapport
             $joinValider = $hasValider
                 ? "LEFT JOIN valider v ON r.id_rapport = v.id_rapport"
                 : "";
+            $joinCandidature = $this->latestCandidatureJoin('r', 'e', 'cs');
 
             $where = [];
+            if ($joinCandidature !== '') {
+                $where[] = "cs.statut_candidature IN ('En attente', 'Validee', 'Validée')";
+            }
             if ($hasEtape) {
                 $where[] = "r.etape_validation IN ('approuve_communication', 'en_attente_commission', 'valide', 'desapprouve_commission')";
             } elseif ($hasValider) {
@@ -252,22 +452,21 @@ class EvaluationRapport
                     e.prenom_etu,
                     e.email_etu,
                     e.promotion_etu,
-                    (SELECT i.id_annee_acad FROM inscriptions i 
-                     WHERE i.num_carte_etud = e.num_carte_etud 
-                     ORDER BY i.date_inscription DESC LIMIT 1) AS id_annee_acad,
+                    " . $this->getReportAcademicYearExpr('r', 'e', $hasDeposer ? 'd' : null) . " AS id_annee_acad,
                     " . ($hasDeposer ? "d.date_depot" : "$dateExpr") . " AS date_depot,
                     COUNT(ev.id_evaluation) as total_votes,
                     COUNT(CASE WHEN ev.decision_evaluation = 'valider' THEN 1 END) as votes_valider,
                     COUNT(CASE WHEN ev.decision_evaluation = 'rejeter' THEN 1 END) as votes_rejeter
                 FROM rapport_etudiants r
-                JOIN etudiants e ON r.num_etu = e.num_carte_etud
+                JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 $joinDeposer
                 $joinValider
+                $joinCandidature
                 LEFT JOIN evaluations_rapports ev ON r.id_rapport = ev.id_rapport
                 $whereSql
                 GROUP BY r.id_rapport, nom_rapport, r.theme_rapport, date_rapport, 
                          etape_validation, r.statut_rapport, e.nom_etu, e.prenom_etu, 
-                         e.email_etu, e.promotion_etu, e.num_carte_etud, date_depot
+                         e.email_etu, e.promotion_etu, e.num_carte_etud, e.num_ident_etud, date_depot, cs.id_candidature, cs.statut_candidature
                 $orderSql
             ";
             $stmt = $this->pdo->prepare($sql);

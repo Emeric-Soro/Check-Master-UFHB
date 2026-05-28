@@ -59,7 +59,6 @@ $notesEmptyMessage = $effectiveAnneeId
     ? 'Aucune note enregistrée pour cette année académique.'
     : 'Aucune note enregistrée pour les années académiques affichées.';
 $studentOptions = [];
-$studentCatalog = [];
 foreach ($etudiants as $etu) {
     $num = (string) ($etu->num_carte_etud ?? '');
     if ($num === '') {
@@ -67,14 +66,9 @@ foreach ($etudiants as $etu) {
     }
     $label = trim((string) ($etu->nom_etu ?? '') . ' ' . (string) ($etu->prenom_etu ?? '')) . ' (' . $num . ')';
     if ($allYearsSelected && !empty($etu->promotion_etu)) {
-        $label .= ' - ' . (string) $etu->promotion_etu;
+        $label .= ' - ' . \FormattingUtils::formatPromotion($etu->promotion_etu);
     }
     $studentOptions[$num] = $label;
-    $studentCatalog[$num] = [
-        'num' => $num,
-        'nom' => (string) ($etu->nom_etu ?? ''),
-        'prenom' => (string) ($etu->prenom_etu ?? ''),
-    ];
 }
 $selectedStudentId = $selectedStudent ? (string) ($selectedStudent->num_carte_etud ?? '') : '';
 $m1Value = $studentNote ? (string) ($studentNote->moyenne_M1 ?? $studentNote->moyenne_m1 ?? '') : '';
@@ -123,14 +117,6 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         'icon' => 'fa-calculator',
     ]);
     ?>
-    <?php if (!empty($_SESSION['success'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => (string) $_SESSION['success']]); ?>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $_SESSION['error']]); ?>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
     <?php if (!empty($GLOBALS['messageErreur'])): ?>
         <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => (string) $GLOBALS['messageErreur']]); ?>
     <?php endif; ?>
@@ -207,7 +193,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
                 cm_component('form/select-search', [
                     'name' => 'student_picker',
                     'id' => 'cmStudentPicker',
-                    'label' => 'Etudiant',
+                    'label' => 'Étudiant',
                     'options' => $studentOptions,
                     'selected' => $selectedStudentId,
                     'required' => true,
@@ -358,7 +344,15 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
 </div>
 <script>
 (function () {
-    const studentCatalog = <?php echo json_encode($studentCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const listenerOptions = controller ? { signal: controller.signal } : undefined;
+
+    if (window.CM && window.CM.pageLifecycle && controller) {
+        window.CM.pageLifecycle.registerCleanup(function () {
+            controller.abort();
+        });
+    }
+
     const anneeFilter = document.getElementById('cmAnneeFilter');
     const notesLimit = document.getElementById('cmNotesLimit');
     const studentHidden = document.getElementById('cmStudentPicker_hidden');
@@ -477,7 +471,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
             }
             if (isNaN(m1) || isNaN(m2) || m1 < 0 || m1 > 20 || m2 < 0 || m2 > 20) {
                 event.preventDefault();
-                window.alert('Les moyennes doivent etre comprises entre 0 et 20.');
+                window.alert('Les moyennes doivent être comprises entre 0 et 20.');
                 return;
             }
             const actionUrl = new URL(notesForm.action, window.location.origin + window.location.pathname);
@@ -485,84 +479,50 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
             notesForm.action = actionUrl.pathname + actionUrl.search;
         });
     }
-    const searchInput = document.getElementById('cmSearchNotes');
-    const noteRows = function () { return Array.from(document.querySelectorAll('#cmNotesTableBody tr')); };
-    const noteCheckboxes = function () {
+    var noteRows = function () { return Array.from(document.querySelectorAll('#cmNotesTableBody tr')); };
+    var noteCheckboxes = function () {
         return Array.from(document.querySelectorAll('#cmNotesTableBody .cm-row-checkbox'));
     };
-    const selectedNotesCount = document.getElementById('cmSelectedNotesCount');
-    const deleteNotesBtn = document.getElementById('cmDeleteNotes');
-    const updateSelectionState = function () {
-        const checked = noteCheckboxes().filter(function (cb) { return cb.checked; }).length;
-        if (selectedNotesCount) {
-            selectedNotesCount.textContent = String(checked);
-        }
-        if (deleteNotesBtn) {
-            deleteNotesBtn.disabled = checked === 0;
-        }
-        if (checkAll) {
-            const all = noteCheckboxes();
-            checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
-        }
+    var checkAll = document.getElementById('cmCheckAllNotes');
+    var updateSelectionState = function () {
+        if (!checkAll) return;
+        var all = noteCheckboxes();
+        checkAll.checked = all.length > 0 && all.every(function (cb) { return cb.checked; });
     };
-    const applySearch = function () {
-        const term = (searchInput ? searchInput.value : '').trim().toLowerCase();
-        noteRows().forEach(function (row) {
-            const haystack = row.getAttribute('data-search') || '';
-            row.style.display = haystack.indexOf(term) !== -1 ? '' : 'none';
-        });
-    };
-    searchInput && searchInput.addEventListener('input', applySearch);
-    const checkAll = document.getElementById('cmCheckAllNotes');
+
     checkAll && checkAll.addEventListener('change', function () {
-        noteCheckboxes().forEach(function (cb) {
-            cb.checked = checkAll.checked;
-        });
-        updateSelectionState();
-    });
-    document.getElementById('cmSelectAllNotes') && document.getElementById('cmSelectAllNotes').addEventListener('click', function () {
-        noteCheckboxes().forEach(function (cb) { cb.checked = true; });
-        updateSelectionState();
-    });
-    document.getElementById('cmDeselectAllNotes') && document.getElementById('cmDeselectAllNotes').addEventListener('click', function () {
-        noteCheckboxes().forEach(function (cb) { cb.checked = false; });
+        noteCheckboxes().forEach(function (cb) { cb.checked = checkAll.checked; });
         updateSelectionState();
     });
     document.addEventListener('change', function (event) {
         if (event.target.classList.contains('cm-row-checkbox')) {
             updateSelectionState();
         }
-    });
-    deleteNotesBtn && deleteNotesBtn.addEventListener('click', function () {
-        if (deleteNotesBtn.disabled) {
-            return;
-        }
-        window.alert('Suppression multiple indisponible sur cet ecran.');
-    });
-    document.getElementById('cmPrintNotes') && document.getElementById('cmPrintNotes').addEventListener('click', function () {
-        window.print();
-    });
-    document.getElementById('cmExportNotes') && document.getElementById('cmExportNotes').addEventListener('click', function () {
-        const headers = ['N° Carte Étudiant', 'Nom & Prénom', 'Année Académique', 'Moy. M1', 'Moy. M2', 'Date saisie'];
-        const lines = [headers.join(';')];
-        noteRows().forEach(function (row) {
-            if (row.style.display === 'none') {
-                return;
-            }
-            const cells = Array.from(row.querySelectorAll('td')).slice(1, 8);
-            const values = cells.map(function (cell) {
-                return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
-            });
-            lines.push(values.join(';'));
-        });
-        const blob = new Blob(["\uFEFF" + lines.join('\n')], {type: 'text/csv;charset=utf-8;'});
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'notes_' + new Date().toISOString().split('T')[0] + '.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
+    }, listenerOptions);
+
+    var searchInput = document.getElementById('cmNotes_search');
+    if (searchInput) {
+        searchInput.addEventListener('input', updateSelectionState);
+        searchInput.addEventListener('keyup', updateSelectionState);
+    }
+
+    document.addEventListener('cm:toolbar:delete', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmNotes_toolbar') return;
+        window.alert('Suppression multiple indisponible sur cet écran.');
+    }, listenerOptions);
+
+    document.addEventListener('cm:toolbar:limit:change', function (event) {
+        if (!event.detail || !event.detail.toolbar) return;
+        if (event.detail.toolbar.id !== 'cmNotes_toolbar') return;
+        event.preventDefault();
+        var limit = event.detail.limit || '10';
+        var params = new URLSearchParams(window.location.search);
+        params.set('page', 'gestion_notes_evaluations');
+        params.set('limit_notes', limit);
+        params.set('page_notes', '1');
+        navigateWithParams(params);
+    }, listenerOptions);
     updateSelectionState();
 })();
 </script>

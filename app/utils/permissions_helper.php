@@ -55,7 +55,8 @@ if (!function_exists('canView')) {
         }
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
-        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'voir');
+        $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'voir');
+        return $allowed;
     }
 }
 
@@ -67,7 +68,8 @@ if (!function_exists('canCreate')) {
         }
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
-        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'creer');
+        $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'creer');
+        return $allowed;
     }
 }
 
@@ -79,7 +81,8 @@ if (!function_exists('canEdit')) {
         }
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
-        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'modifier');
+        $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'modifier');
+        return $allowed;
     }
 }
 
@@ -91,7 +94,8 @@ if (!function_exists('canDelete')) {
         }
 
         $identifier = $codeFonctionnalite !== null ? (string) $codeFonctionnalite : cm_current_permission_identifier();
-        return cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'supprimer');
+        $allowed = cm_authorization_service()->checkFeaturePermission((int) $_SESSION['id_GU'], $identifier, 'supprimer');
+        return $allowed;
     }
 }
 
@@ -174,7 +178,15 @@ if (!function_exists('getPermissionCaps')) {
 if (!function_exists('isAdmin')) {
     function isAdmin()
     {
-        $adminGroupId = PermissionRegistry::groups()['administrateur'] ?? null;
-        return isset($_SESSION['id_GU']) && $adminGroupId !== null && (int) $_SESSION['id_GU'] === (int) $adminGroupId;
+        $groups = PermissionRegistry::groups();
+        $adminGroupId = $groups['administrateur'] ?? null;
+        $adminResponsableId = $groups['admin_responsable_filiere'] ?? null;
+        if (!isset($_SESSION['id_GU'])) {
+            return false;
+        }
+
+        $currentGroupId = (int) $_SESSION['id_GU'];
+        return ($adminGroupId !== null && $currentGroupId === (int) $adminGroupId)
+            || ($adminResponsableId !== null && $currentGroupId === (int) $adminResponsableId);
     }
 }

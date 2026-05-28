@@ -72,13 +72,13 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
             'screen' => 'criteres_evaluation',
             'id_prefix' => 'cmCritToolbar',
             'search_placeholder' => 'Rechercher un critère...',
-            'show_actions' => false,
+            'show_actions' => true,
+            'show_filters' => true,
+            'can_delete' => false,
+            'can_view' => true,
+            'can_excel' => true,
             'filters' => [
                 ['type' => 'select', 'name' => 'annee', 'label' => 'Année', 'options' => ['' => 'Toutes']],
-            ],
-            'custom_actions' => [
-                ['tag' => 'button', 'type' => 'button', 'id' => 'cmCritPrint', 'label' => 'Imprimer', 'class' => 'cm-btn is-info is-sm'],
-                ['tag' => 'button', 'type' => 'button', 'id' => 'cmCritExport', 'label' => 'Exporter', 'class' => 'cm-btn is-info is-sm'],
             ],
         ]); ?>
 
@@ -144,7 +144,7 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
 
     function showNotice(type, message) {
         const cls = type === 'success' ? 'success' : 'danger';
-        noticeBox.innerHTML = '<div class="cm-alert is-' + cls + '">' + esc(message) + '</div>';
+        CM.alert.show(noticeBox, cls, esc(message));
         setTimeout(function () {
             noticeBox.innerHTML = '';
         }, 4500);
@@ -425,39 +425,45 @@ $pageSlug = (string) ($_GET['page'] ?? 'parametres_specifiques');
         }
     });
 
-    document.getElementById('cmCritPrint').addEventListener('click', function () {
-        const table = document.getElementById('cmCritereTable');
-        const w = window.open('', '_blank');
-        if (!w || !table) {
-            return;
-        }
-        w.document.write('<html><head><title>Impression</title><style>body{font-family:Arial;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d1d5db;padding:8px}th{background:#f3f4f6}</style></head><body>');
-        w.document.write(table.outerHTML);
-        w.document.write('</body></html>');
-        w.document.close();
-        w.print();
-    });
-
-    document.getElementById('cmCritExport').addEventListener('click', function () {
-        const rows = [['Critère', 'Année', 'Barème']];
-        filterData().forEach(function (c) {
-            (c.baremes || []).forEach(function (b) {
-                rows.push([c.libelle || '', b.annee_lib || b.annee_id || '', String(b.bareme || '')]);
-            });
+    const printBtn = document.getElementById('cmCritToolbar_printBtn');
+    if (printBtn) {
+        printBtn.addEventListener('click', function () {
+            const table = document.getElementById('cmCritereTable');
+            const w = window.open('', '_blank');
+            if (!w || !table) {
+                return;
+            }
+            w.document.write('<html><head><title>Impression</title><style>body{font-family:Arial;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #d1d5db;padding:8px}th{background:#f3f4f6}</style></head><body>');
+            w.document.write(table.outerHTML);
+            w.document.write('</body></html>');
+            w.document.close();
+            w.print();
         });
-        const csv = rows.map(function (line) {
-            return line.map(function (cell) {
-                return '"' + String(cell).replace(/"/g, '""') + '"';
-            }).join(';');
-        }).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'criteres_evaluation.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
+    }
+
+    const exportBtn = document.getElementById('cmCritToolbar_excelBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            const rows = [['Critère', 'Année', 'Barème']];
+            filterData().forEach(function (c) {
+                (c.baremes || []).forEach(function (b) {
+                    rows.push([c.libelle || '', b.annee_lib || b.annee_id || '', String(b.bareme || '')]);
+                });
+            });
+            const csv = rows.map(function (line) {
+                return line.map(function (cell) {
+                    return '"' + String(cell).replace(/"/g, '""') + '"';
+                }).join(';');
+            }).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'criteres_evaluation.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
 
     Promise.all([loadYears(), loadCriteres()]).then(function () {
         resetForm();

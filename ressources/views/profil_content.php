@@ -6,6 +6,7 @@ $statutUser = (string) ($_SESSION['statut_utilisateur'] ?? '');
 $libTypeUtilisateur = (string) ($_SESSION['type_utilisateur'] ?? '');
 $libNiveauAcces = (string) ($_SESSION['niveau_acces'] ?? '');
 $libGroupeUtilisateur = (string) ($_SESSION['lib_GU'] ?? '');
+$contactEmail = (string) ($GLOBALS['profileContactEmail'] ?? '');
 
 $specialite = (string) ($_SESSION['specialite'] ?? '');
 $grade = (string) ($_SESSION['grade'] ?? '');
@@ -20,9 +21,11 @@ $requestedTab = (string) ($_GET['tab'] ?? 'profile');
 $allowedTabs = ['profile', 'password', 'history'];
 $currentTab = in_array($requestedTab, $allowedTabs, true) ? $requestedTab : 'profile';
 
-$passwordError = (string) ($_SESSION['password_error'] ?? '');
-$passwordSuccess = (string) ($_SESSION['password_success'] ?? '');
-unset($_SESSION['password_error'], $_SESSION['password_success']);
+$emailError = (string) ($_SESSION['error'] ?? '');
+$emailSuccess = (string) ($_SESSION['success'] ?? '');
+$passwordError = (string) ($_SESSION['error'] ?? '');
+$passwordSuccess = (string) ($_SESSION['success'] ?? '');
+unset($_SESSION['error'], $_SESSION['success']);
 
 $historyLogs = is_array($GLOBALS['profileAuditHistory'] ?? null) ? $GLOBALS['profileAuditHistory'] : [];
 $historyFilters = is_array($GLOBALS['profileAuditHistoryFilters'] ?? null) ? $GLOBALS['profileAuditHistoryFilters'] : [
@@ -57,6 +60,7 @@ ob_start();
     <div class="cm-profile-grid">
         <?= $renderField('Nom utilisateur', $nomUser) ?>
         <?= $renderField('Login', $loginUser) ?>
+        <?= $renderField('Email de contact', $contactEmail) ?>
         <?= $renderField('Type utilisateur', $libTypeUtilisateur) ?>
         <?= $renderField('Groupe', $libGroupeUtilisateur) ?>
         <?= $renderField('Niveau d\'accès', $libNiveauAcces) ?>
@@ -67,6 +71,63 @@ ob_start();
             </span>
         </div>
     </div>
+</section>
+
+<section class="cm-profile-card">
+    <header class="cm-profile-card__header"></header>
+
+    <?php if ($emailSuccess !== ''): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'success', 'message' => $emailSuccess]); ?>
+    <?php endif; ?>
+    <?php if ($emailError !== ''): ?>
+        <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => $emailError]); ?>
+    <?php endif; ?>
+
+    <form action="?page=profil&tab=profile" method="POST" class="cm-profile-email-form" data-cm-ajax-form="true">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(\CheckMaster\Core\Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
+        <input type="hidden" name="id_utilisateur" value="<?php echo (int) ($_SESSION['id_utilisateur'] ?? 0); ?>">
+
+        <div class="cm-profile-grid">
+            <div>
+                <?php cm_component('form/input-email', [
+                    'name' => 'currentContactEmail',
+                    'id' => 'currentContactEmail',
+                    'label' => 'Email actuel',
+                    'value' => $contactEmail,
+                    'readonly' => true,
+                ]); ?>
+            </div>
+            <div>
+                <?php cm_component('form/input-email', [
+                    'name' => 'newEmail',
+                    'id' => 'newEmail',
+                    'label' => 'Nouvel email de contact',
+                    'required' => true,
+                    'value' => $contactEmail,
+                    'hint' => 'Adresse utilisée pour les notifications email.',
+                    'maxlength' => 100,
+                    'attrs' => ['autocomplete' => 'email'],
+                ]); ?>
+            </div>
+            <div>
+                <?php cm_component('form/input-email', [
+                    'name' => 'confirmEmail',
+                    'id' => 'confirmEmail',
+                    'label' => 'Confirmer l\'email de contact',
+                    'required' => true,
+                    'maxlength' => 100,
+                    'attrs' => ['autocomplete' => 'email'],
+                ]); ?>
+            </div>
+        </div>
+
+        <div class="cm-form-buttons">
+            <button type="submit" name="update_email" class="cm-btn is-primary">
+                <i class="fas fa-envelope"></i>
+                <span>Mettre à jour l'email de contact</span>
+            </button>
+        </div>
+    </form>
 </section>
 
 <section class="cm-profile-card">
@@ -227,7 +288,7 @@ foreach ($historyLogs as $log) {
             : (string) ($log['action'] ?? '-'),
         'contexte' => function_exists('cm_audit_humanize_context')
             ? cm_audit_humanize_context($log)
-            : (string) ($log['nom_table'] ?? '-'),
+            : (string) ($log['contexte'] ?? $log['nom_table'] ?? '-'),
         'statut_action' => ['label' => $statut === '' ? '-' : $statut, 'type' => $badgeType],
     ];
 }
@@ -273,17 +334,19 @@ $historyPagerBase = '?' . http_build_query($historyQuery);
 $historyTabHtml = (string) ob_get_clean();
 ?>
 
-<section class="cm-profile-screen">
-    <?php cm_component('tabs/tab-nav', [
-        'tabs' => [
-            ['id' => 'profile', 'label' => 'Informations'],
-            ['id' => 'password', 'label' => 'Mot de passe'],
-            ['id' => 'history', 'label' => 'Historique'],
-        ],
-        'active' => $currentTab,
-    ]); ?>
+<section class="cm-prd3-screen">
+    <section class="cm-profile-screen">
+        <?php cm_component('tabs/tab-nav', [
+            'tabs' => [
+                ['id' => 'profile', 'label' => 'Informations'],
+                ['id' => 'password', 'label' => 'Mot de passe'],
+                ['id' => 'history', 'label' => 'Historique'],
+            ],
+            'active' => $currentTab,
+        ]); ?>
 
-    <?php cm_component('tabs/tab-content', ['id' => 'profile', 'active' => $currentTab === 'profile', 'content' => $profileTabHtml]); ?>
-    <?php cm_component('tabs/tab-content', ['id' => 'password', 'active' => $currentTab === 'password', 'content' => $passwordTabHtml]); ?>
-    <?php cm_component('tabs/tab-content', ['id' => 'history', 'active' => $currentTab === 'history', 'content' => $historyTabHtml]); ?>
+        <?php cm_component('tabs/tab-content', ['id' => 'profile', 'active' => $currentTab === 'profile', 'content' => $profileTabHtml]); ?>
+        <?php cm_component('tabs/tab-content', ['id' => 'password', 'active' => $currentTab === 'password', 'content' => $passwordTabHtml]); ?>
+        <?php cm_component('tabs/tab-content', ['id' => 'history', 'active' => $currentTab === 'history', 'content' => $historyTabHtml]); ?>
+    </section>
 </section>

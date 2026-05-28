@@ -4,6 +4,8 @@ require_once __DIR__ . '/../Services/InscriptionService.php';
 require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/RecuGeneratorService.php';
 require_once __DIR__ . '/../utils/RecuDataUtils.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
+require_once __DIR__ . '/../utils/EmailService.php';
 
 use CheckMaster\Services\InscriptionService;
 
@@ -19,6 +21,13 @@ class InscriptionController
 
     public function index()
     {
+        // Vérification permission d'accès à la page inscription/scolarité
+        if (!canView('gestion_scolarite')) {
+            $_SESSION['error'] = "Accès non autorisé à la gestion des inscriptions.";
+            header('Location: layout.php?page=dashboard');
+            exit;
+        }
+
         // Populate page data from service
         $data = $this->service->getIndexData($_GET);
         $GLOBALS['etudiantsNonInscrits'] = $data['etudiantsNonInscrits'];
@@ -41,8 +50,8 @@ class InscriptionController
                     $db = new \App\Support\Database();
                     $recuDataUtils = new \App\Utils\RecuDataUtils($db);
                     $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
-                        __DIR__ . '/../../storage',
-                        __DIR__ . '/../../public/assets/img/logo.png'
+                        __DIR__ . '/../../storage/documents',
+                        __DIR__ . '/../../public/image/logo_ufhb.png'
                     );
                     $recuService = new \App\Services\Document\RecuGeneratorService($pdfGenerator, $recuDataUtils, $db);
 
@@ -52,10 +61,7 @@ class InscriptionController
                     if (count($parts) >= 3) {
                         $result = $recuService->generate($id_inscription, (int) $_SESSION['id_utilisateur']);
                         if ($result['success'] && !empty($result['path']) && file_exists($result['path'])) {
-                            header('Content-Type: application/pdf');
-                            header('Content-Disposition: inline; filename="recu_' . ($inscription['num_carte_etud'] ?? 'inconnu') . '_' . ($inscription['id_annee_acad'] ?? 'inconnu') . '.pdf"');
-                            header('Content-Length: ' . filesize($result['path']));
-                            readfile($result['path']);
+                            header('Location: ?page=docviewer&type=recu&id=' . urlencode((string) $id_inscription) . '&action=preview');
                             $this->service->logPrint($_SESSION['id_utilisateur'], 'Succès');
                             exit;
                         }
@@ -77,6 +83,11 @@ class InscriptionController
 
         // Gestion de la suppression d'inscription
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'supprimer' && isset($_GET['id'])) {
+            if (!canDelete('gestion_scolarite')) {
+                $_SESSION['error'] = "Accès non autorisé pour supprimer une inscription.";
+                header('Location: layout.php?page=gestion_scolarite');
+                exit;
+            }
             $result = $this->service->supprimerInscription($_GET['id'], $_SESSION['id_utilisateur']);
             if ($result['success']) {
                 $GLOBALS['messageSuccess'] = $result['message'];
@@ -90,9 +101,19 @@ class InscriptionController
             if (isset($_POST['modalAction'])) {
                 switch ($_POST['modalAction']) {
                     case 'inscrire':
+                        if (!canCreate('gestion_scolarite')) {
+                            $_SESSION['error'] = "Accès non autorisé pour inscrire un étudiant.";
+                            header('Location: layout.php?page=gestion_scolarite');
+                            exit;
+                        }
                         $this->traiterInscription();
                         break;
                     case 'modifier':
+                        if (!canEdit('gestion_scolarite')) {
+                            $_SESSION['error'] = "Accès non autorisé pour modifier une inscription.";
+                            header('Location: layout.php?page=gestion_scolarite');
+                            exit;
+                        }
                         $this->modifierInscription();
                         break;
                 }
@@ -129,6 +150,33 @@ class InscriptionController
         $result = $this->service->traiterInscription($_POST, $_SESSION['id_utilisateur']);
         if ($result['success']) {
             $GLOBALS['messageSuccess'] = $result['message'];
+
+            try {
+                $dbNotif = \Database::getConnection();
+                $inscService = new \CheckMaster\Services\InscriptionService($dbNotif);
+                $numEtu = $_POST['etudiant'] ?? '';
+                $niveau = (string) ($_POST['niveau'] ?? '');
+                $montantVerse = floatval($_POST['premier_versement'] ?? 0);
+                $idAnnee = $_POST['annee_academique'] ?? 0;
+
+                $stmtAnnee = $dbNotif->prepare("SELECT lib_annee_acad FROM annee_academique WHERE id_annee_acad = ?");
+                $stmtAnnee->execute([$idAnnee]);
+                $anneeLabel = (string) ($stmtAnnee->fetchColumn() ?: '');
+
+                $stmtNiv = $dbNotif->prepare("SELECT montant_scolarite FROM niveaux_etudes WHERE id_niveau = ?");
+                $stmtNiv->execute([$niveau]);
+                $montantTotal = (float) ($stmtNiv->fetchColumn() ?: 0);
+
+                $solde = max(0, $montantTotal - $montantVerse);
+                $inscService->notifierInscription($numEtu, $niveau, $montantTotal, $montantVerse, $solde, $anneeLabel);
+
+                $inscService->notifierPaiement($numEtu, $montantVerse, $_POST['methode_paiement'] ?? '', $solde);
+                if ($solde <= 0) {
+                    $inscService->notifierInscriptionValidee($numEtu, $anneeLabel);
+                }
+            } catch (\Throwable $e) {
+                error_log('Erreur notif inscription: ' . $e->getMessage());
+            }
         } else {
             $GLOBALS['messageErreur'] = $result['message'];
         }

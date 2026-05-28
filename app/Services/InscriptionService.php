@@ -6,6 +6,8 @@ require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use Scolarite;
 use AnneeAcademique;
@@ -24,6 +26,7 @@ class InscriptionService
         $this->scolarite = new Scolarite($db);
         $this->anneeAcademique = new AnneeAcademique($db);
         $this->auditLog = new AuditLog($db);
+        $this->emailService = new \EmailService();
     }
 
     /**
@@ -155,7 +158,7 @@ class InscriptionService
             }
 
             // Create inscription
-            $id_inscription = $this->scolarite->creerInscription(
+            $inscriptionSuccess = $this->scolarite->creerInscription(
                 $id_etudiant,
                 $id_niveau,
                 $id_annee_acad,
@@ -164,8 +167,10 @@ class InscriptionService
                 $num_piece !== '' ? $num_piece : null
             );
 
-            if ($id_inscription) {
-                $this->creerEcheancesSiNecessaire($id_inscription, $id_niveau, $montant_premier_versement, $nombre_tranches);
+            if ($inscriptionSuccess) {
+                // Build composite key for echeances (first versement = 1)
+                $compositeKey = $id_etudiant . '-' . $id_annee_acad . '-1';
+                $this->creerEcheancesSiNecessaire($compositeKey, $id_niveau, $montant_premier_versement, $nombre_tranches);
                 $this->auditLog->logCreation($idUtilisateur, 'inscriptions', 'Succès');
                 return ['success' => true, 'message' => 'Inscription créée avec succès.'];
             }
@@ -288,6 +293,96 @@ class InscriptionService
         for ($i = 1; $i < $nombreTranches; $i++) {
             $this->scolarite->creerEcheance($idInscription, $montant_tranche, $date_echeance);
             $date_echeance = date('Y-m-d', strtotime($date_echeance . ' +3 months'));
+        }
+    }
+
+    public function notifierInscription(string $numEtu, string $niveau, float $montantTotal, float $montantVerse, float $solde, string $anneeLabel): void
+    {
+        try {
+            $db = \Database::getConnection();
+            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+            $stmt->execute([$numEtu, $numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$etu || empty($etu['email_etu'])) {
+                return;
+            }
+            $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            $this->emailService->sendTemplate('INSCRIPTION_CONFIRMATION', $etu['email_etu'], [
+                'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+                'annee_academique' => htmlspecialchars($anneeLabel, ENT_QUOTES, 'UTF-8'),
+                'niveau' => htmlspecialchars($niveau, ENT_QUOTES, 'UTF-8'),
+                'montant_total' => number_format($montantTotal, 0, ',', ' '),
+                'montant_verse' => number_format($montantVerse, 0, ',', ' '),
+                'solde' => number_format($solde, 0, ',', ' '),
+            ]);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierInscription: ' . $e->getMessage());
+        }
+    }
+
+    public function notifierPaiement(string $numEtu, float $montant, string $modePaiement, float $solde): void
+    {
+        try {
+            $db = \Database::getConnection();
+            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+            $stmt->execute([$numEtu, $numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$etu || empty($etu['email_etu'])) {
+                return;
+            }
+            $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            $this->emailService->sendTemplate('RECU_PAIEMENT', $etu['email_etu'], [
+                'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+                'montant' => number_format($montant, 0, ',', ' '),
+                'date_paiement' => date('d/m/Y H:i'),
+                'mode_paiement' => htmlspecialchars((string)$modePaiement, ENT_QUOTES, 'UTF-8'),
+                'solde' => number_format($solde, 0, ',', ' '),
+            ]);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierPaiement: ' . $e->getMessage());
+        }
+    }
+
+    public function notifierInscriptionValidee(string $numEtu, string $anneeLabel): void
+    {
+        try {
+            $db = \Database::getConnection();
+            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+            $stmt->execute([$numEtu, $numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$etu || empty($etu['email_etu'])) {
+                return;
+            }
+            $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            $this->emailService->sendTemplate('INSCRIPTION_VALIDEE', $etu['email_etu'], [
+                'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+                'annee_academique' => htmlspecialchars($anneeLabel, ENT_QUOTES, 'UTF-8'),
+            ]);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierInscriptionValidee: ' . $e->getMessage());
+        }
+    }
+
+    public function notifierRelanceImpaye(string $numEtu, float $total, float $verse, float $solde, string $anneeLabel): void
+    {
+        try {
+            $db = \Database::getConnection();
+            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_carte_etud = ? OR num_ident_etud = ?");
+            $stmt->execute([$numEtu, $numEtu]);
+            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$etu || empty($etu['email_etu'])) {
+                return;
+            }
+            $nom = trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? ''));
+            $this->emailService->sendTemplate('RELANCE_IMPAYE', $etu['email_etu'], [
+                'nom' => htmlspecialchars($nom, ENT_QUOTES, 'UTF-8'),
+                'annee_academique' => htmlspecialchars($anneeLabel, ENT_QUOTES, 'UTF-8'),
+                'montant_total' => number_format($total, 0, ',', ' '),
+                'montant_verse' => number_format($verse, 0, ',', ' '),
+                'solde' => number_format($solde, 0, ',', ' '),
+            ]);
+        } catch (\Exception $e) {
+            error_log('Erreur notifierRelanceImpaye: ' . $e->getMessage());
         }
     }
 }

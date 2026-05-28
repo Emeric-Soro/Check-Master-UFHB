@@ -1,28 +1,50 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionDossiersCandidaturesService.php';
+require_once __DIR__ . '/../Services/VerificationRapportsService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\GestionDossiersCandidaturesService;
 
 class GestionDossiersCandidaturesController
 {
     private $service;
+    private $verificationService;
 
     public function __construct()
     {
         $db = Database::getConnection();
         $this->service = new GestionDossiersCandidaturesService($db);
+        $this->verificationService = new VerificationRapportsService($db);
     }
 
     public function index()
     {
-        // Récupérer l'historique des rapports vérifiés (approuvés ou désapprouvés)
-        $rapportsVerifies = $this->service->getRapportsVerifies();
-        $GLOBALS['rapports_verifies'] = $rapportsVerifies;
+        if (!canView('gestion_dossiers_candidatures')) {
+            $_SESSION['error'] = "Accès non autorisé.";
+            header('Location: layout.php?page=dashboard');
+            exit;
+        }
+        $data = $this->verificationService->getIndexData();
+        $GLOBALS['rapports'] = $data['rapports'] ?? [];
+        $GLOBALS['nbRapports'] = $data['nbRapports'] ?? 0;
+        $GLOBALS['statsRapports'] = $data['statsRapports'] ?? [];
+    }
 
-        // Récupérer les statistiques
-        $statistiques = $this->service->getStatistiques();
-        $GLOBALS['statistiques'] = $statistiques;
+    public function validerRapport()
+    {
+        if (!canEdit('gestion_dossiers_candidatures')) {
+            return ['success' => false, 'message' => 'Accès non autorisé pour valider un rapport.'];
+        }
+        return $this->verificationService->validerRapport($_POST['id_rapport'] ?? 0, $_POST['commentaire'] ?? '');
+    }
+
+    public function rejeterRapport()
+    {
+        if (!canEdit('gestion_dossiers_candidatures')) {
+            return ['success' => false, 'message' => 'Accès non autorisé pour rejeter un rapport.'];
+        }
+        return $this->verificationService->rejeterRapport($_POST['id_rapport'] ?? 0, $_POST['commentaire'] ?? '');
     }
 
     public function getDetailsRapport($id_rapport)
@@ -37,6 +59,17 @@ class GestionDossiersCandidaturesController
             ob_end_clean();
         }
         ob_start();
+
+        // Vérifier si c'est un fichier uploadé (PDF/DOC/DOCX) → rediriger vers DocViewer download
+        $rapportModel = new \RapportEtudiant(\Database::getConnection());
+        $rapportCheck = $rapportModel->getRapportById((int) $id_rapport);
+        if ($rapportCheck && !empty($rapportCheck['chemin_fichier'])) {
+            $ext = strtolower(pathinfo((string) $rapportCheck['chemin_fichier'], PATHINFO_EXTENSION));
+            if ($ext !== 'html') {
+                header('Location: ?page=docviewer&type=rapport&id=' . (int) $id_rapport . '&action=download');
+                exit;
+            }
+        }
 
         $donnees = $this->service->preparerDonneesPdf($id_rapport);
 
@@ -66,7 +99,7 @@ class GestionDossiersCandidaturesController
         require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
         $pdfGen = new \App\Services\Document\PdfGeneratorService(
             __DIR__ . '/../../storage',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
         $pdf = $pdfGen->createDocument('P', 'A4', 'Rapport');
         $pdf->AddPage();
@@ -88,6 +121,17 @@ class GestionDossiersCandidaturesController
             ob_end_clean();
         }
         ob_start();
+
+        // Vérifier si c'est un fichier uploadé (PDF/DOC/DOCX) → rediriger vers DocViewer
+        $rapportModel = new \RapportEtudiant(\Database::getConnection());
+        $rapportCheck = $rapportModel->getRapportById((int) $id_rapport);
+        if ($rapportCheck && !empty($rapportCheck['chemin_fichier'])) {
+            $ext = strtolower(pathinfo((string) $rapportCheck['chemin_fichier'], PATHINFO_EXTENSION));
+            if ($ext !== 'html') {
+                header('Location: ?page=docviewer&type=rapport&id=' . (int) $id_rapport . '&action=preview');
+                exit;
+            }
+        }
 
         $donnees = $this->service->preparerDonneesConsultation($id_rapport);
 

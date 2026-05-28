@@ -42,13 +42,22 @@ class Rapport
                     re.date_redaction_rapport AS date_depot,
                     re.taille_fichier AS taille,
                     CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                    e.num_carte_etud
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                 FROM rapport_etudiants re
-                INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
+                INNER JOIN etudiants e ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
                 INNER JOIN inscriptions i1 ON i1.num_carte_etud = e.num_carte_etud
                 WHERE i1.id_annee_acad = :id_annee_rapport
-                  AND re.chemin_fichier IS NOT NULL
-                  AND re.chemin_fichier <> ''
+                  AND (
+                        (re.chemin_fichier IS NOT NULL AND re.chemin_fichier <> '')
+                        OR EXISTS (
+                            SELECT 1
+                            FROM documents d
+                            WHERE d.entite_type = 'rapport_etudiants'
+                              AND d.entite_id = CAST(re.id_rapport AS CHAR)
+                              AND d.statut = 'actif'
+                              AND d.type_document IN ('rapport', 'html_doc')
+                        )
+                      )
 
                 UNION ALL
 
@@ -60,30 +69,48 @@ class Rapport
                     cr.date_CR AS date_depot,
                     NULL AS taille,
                     CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                    e.num_carte_etud
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                 FROM compte_rendu cr
-                INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
+                INNER JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                 INNER JOIN inscriptions i2 ON i2.num_carte_etud = e.num_carte_etud
                 WHERE i2.id_annee_acad = :id_annee_cr
-                  AND cr.chemin_fichier_pdf IS NOT NULL
-                  AND cr.chemin_fichier_pdf <> ''
+                  AND (
+                        (cr.chemin_fichier_pdf IS NOT NULL AND cr.chemin_fichier_pdf <> '')
+                        OR EXISTS (
+                            SELECT 1
+                            FROM documents d
+                            WHERE d.entite_type = 'compte_rendu'
+                              AND d.entite_id = CAST(cr.id_CR AS CHAR)
+                              AND d.statut = 'actif'
+                              AND d.type_document = 'compte_rendu'
+                        )
+                      )
 
                 UNION ALL
 
                 SELECT
                     'fiche_inscription' AS type_doc,
-                    CONCAT(i3.num_carte_etud, '_', i3.id_annee_acad, '_', i3.num_versement) AS id_doc,
+                    CONCAT(i3.num_carte_etud, '-', i3.id_annee_acad, '-', i3.num_versement) AS id_doc,
                     i3.fiche_inscription AS chemin,
-                    CONCAT('Fiche inscription ', e.num_carte_etud) AS titre,
+                    CONCAT('Fiche inscription ', COALESCE(e.num_ident_etud, e.num_carte_etud)) AS titre,
                     i3.date_inscription AS date_depot,
                     NULL AS taille,
                     CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                    e.num_carte_etud
+                    COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                 FROM inscriptions i3
                 INNER JOIN etudiants e ON e.num_carte_etud = i3.num_carte_etud
                 WHERE i3.id_annee_acad = :id_annee_fiche
-                  AND i3.fiche_inscription IS NOT NULL
-                  AND i3.fiche_inscription <> ''
+                  AND (
+                        (i3.fiche_inscription IS NOT NULL AND i3.fiche_inscription <> '')
+                        OR EXISTS (
+                            SELECT 1
+                            FROM documents d
+                            WHERE d.entite_type = 'inscriptions'
+                              AND d.entite_id = CONCAT(i3.num_carte_etud, '-', i3.id_annee_acad, '-', i3.num_versement)
+                              AND d.statut = 'actif'
+                              AND d.type_document = 'fiche_inscription'
+                        )
+                      )
             ) AS docs
             WHERE 1 = 1
         ";
@@ -146,9 +173,9 @@ class Rapport
                         COALESCE(re.theme_rapport, CONCAT('Rapport #', re.id_rapport)) AS titre,
                         re.date_redaction_rapport AS date_depot,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                        e.num_carte_etud
+                        COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                     FROM rapport_etudiants re
-                    INNER JOIN etudiants e ON e.num_carte_etud = re.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = re.num_etu OR e.num_ident_etud = re.num_etu)
                     WHERE re.id_rapport = :id
                     LIMIT 1
                 ");
@@ -166,9 +193,9 @@ class Rapport
                         COALESCE(cr.nom_CR, CONCAT('Compte rendu #', cr.id_CR)) AS titre,
                         cr.date_CR AS date_depot,
                         CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant,
-                        e.num_carte_etud
+                        COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud
                     FROM compte_rendu cr
-                    INNER JOIN etudiants e ON e.num_carte_etud = cr.num_etu
+                    INNER JOIN etudiants e ON (e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu)
                     WHERE cr.id_CR = :id
                     LIMIT 1
                 ");
@@ -178,10 +205,21 @@ class Rapport
             }
 
             if ($type === 'fiche_inscription') {
+                // $id doit être au format composé 'num_carte_etud|id_annee_acad|num_versement'
+                $parts = preg_split('/[-|]/', (string) $id);
+                if (!is_array($parts) || count($parts) < 3) {
+                    return null;
+                }
+                $versement = array_pop($parts);
+                $annee = array_pop($parts);
+                $numCarteEtud = implode('-', $parts);
+                if ($numCarteEtud === '' || $annee === '' || $versement === '') {
+                    return null;
+                }
                 $stmt = $this->db->prepare("
                     SELECT
                         'fiche_inscription' AS type_doc,
-                        CAST(i.id_inscription AS CHAR) AS id_doc,
+                        CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) AS id_doc,
                         i.fiche_inscription AS chemin,
                         CONCAT('Fiche inscription ', e.num_carte_etud) AS titre,
                         i.date_inscription AS date_depot,
@@ -189,11 +227,16 @@ class Rapport
                         e.num_carte_etud
                     FROM inscriptions i
                     INNER JOIN etudiants e ON e.num_carte_etud = i.num_carte_etud
-                    /* FIXME: id_inscription n'existe plus. Utiliser PK composite (num_carte_etud, id_annee_acad, num_versement) */
-                    WHERE i.id_inscription = :id
+                    WHERE i.num_carte_etud = :num_etu
+                      AND i.id_annee_acad = :annee
+                      AND i.num_versement = :versement
                     LIMIT 1
                 ");
-                $stmt->execute([':id' => (int) $id]);
+                $stmt->execute([
+                    ':num_etu' => $numCarteEtud,
+                    ':annee' => (int) $annee,
+                    ':versement' => (int) $versement,
+                ]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 return $row ?: null;
             }
@@ -205,4 +248,3 @@ class Rapport
         }
     }
 }
-

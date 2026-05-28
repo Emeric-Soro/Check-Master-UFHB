@@ -1,13 +1,29 @@
 <?php
 
+namespace CheckMaster\Services;
+
+use Database;
+use RapportEtudiant;
+use Etudiant;
+use Valider;
+use AuditLog;
+use InfoStage;
+use Entreprise;
+use EmailService;
+use NotificationService;
+use CheckMaster\Services\Document\DocumentStorageService;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
-require_once __DIR__ . '/../models/Approuver.php';
+require_once __DIR__ . '/../models/Valider.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../models/InfoStage.php';
 require_once __DIR__ . '/../models/Entreprise.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 /**
  * Service métier de la gestion des rapports
@@ -42,6 +58,9 @@ class GestionRapportService
     /** @var string */
     private $uploadsPath;
 
+    /** @var EmailService */
+    private $emailService;
+
     /**
      * @param \PDO $db Connexion à la base de données
      */
@@ -54,6 +73,7 @@ class GestionRapportService
         $this->infoStageModel = new InfoStage($db);
         $this->entrepriseModel = new Entreprise($db);
         $this->uploadsPath = __DIR__ . '/../../ressources/uploads/rapports/';
+        $this->emailService = new EmailService();
     }
 
     private function filterReportsBySelectedYear(array $rapports): array
@@ -64,8 +84,8 @@ class GestionRapportService
     private function getStudentAcademicYearId($num_etu): ?int
     {
         try {
-            $stmt = $this->db->prepare('SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ? ORDER BY date_inscription DESC, num_versement DESC LIMIT 1');
-            $stmt->execute([(string) $num_etu]);
+            $stmt = $this->db->prepare('SELECT i.id_annee_acad FROM inscriptions i JOIN etudiants e ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?) ORDER BY i.date_inscription DESC, i.num_versement DESC LIMIT 1');
+            $stmt->execute([(string) $num_etu, (string) $num_etu]);
             $value = $stmt->fetchColumn();
             return is_numeric($value) ? (int) $value : null;
         } catch (\Throwable $e) {
@@ -88,7 +108,7 @@ class GestionRapportService
 
     private function getDerniereDecisionRapport(int $rapportId): ?array
     {
-        $decisions = Approuver::getByRapport($rapportId);
+        $decisions = Valider::getByRapport($rapportId);
         if (empty($decisions)) {
             return null;
         }
@@ -107,7 +127,7 @@ class GestionRapportService
             return false;
         }
 
-        $statut = strtolower((string) ($decision['decision'] ?? $decision['decision_validation'] ?? $decision['lib_approb'] ?? ''));
+        $statut = strtolower((string) ($decision['decision_validation'] ?? ''));
         return $statut !== '' && (str_contains($statut, 'rejet') || $statut === 'desapprouve');
     }
 
@@ -133,119 +153,7 @@ class GestionRapportService
     /**
      * Récupère les rapports récents (tous utilisateurs)
      */
-    public function getRecentRapports($limit = 5)
-    {
-        return array_slice($this->filterReportsBySelectedYear($this->rapportModel->getRecentRapports($limit * 4)), 0, $limit);
-    }
-
-    /**
-     * Calcule les statistiques globales de tous les rapports
-     */
-    public function calculerStatistiquesGlobales()
-    {
-        $rapports = $this->filterReportsBySelectedYear($this->rapportModel->getAllRapports());
-
-        $stats = [
-            'total' => count($rapports),
-            'aujourd_hui' => 0,
-            'semaine' => 0,
-            'mois' => 0
-        ];
-
-        $debutJour = strtotime('today');
-        $debutSemaine = strtotime('monday this week');
-        $debutMois = strtotime('first day of this month');
-
-        foreach ($rapports as $rapport) {
-            $dateRapport = strtotime($rapport->date_rapport);
-
-            if ($dateRapport >= $debutJour) {
-                $stats['aujourd_hui']++;
-            }
-            if ($dateRapport >= $debutSemaine) {
-                $stats['semaine']++;
-            }
-            if ($dateRapport >= $debutMois) {
-                $stats['mois']++;
-            }
-        }
-
-        return $stats;
-    }
-
-    /**
-     * Calcule les statistiques selon le type d'utilisateur
-     */
-    public function calculerStatistiques($isEtudiant, $num_etu = null)
-    {
-        if ($isEtudiant && $num_etu) {
-            $stats = $this->rapportModel->getStatsEtudiant($num_etu);
-            return [
-                'total' => $stats->total_rapports ?? 0,
-                'aujourd_hui' => $stats->rapports_aujourd_hui ?? 0,
-                'semaine' => $stats->rapports_semaine ?? 0,
-                'mois' => $stats->rapports_mois ?? 0
-            ];
-        }
-        return $this->calculerStatistiquesGlobales();
-    }
-
-    // ========================= INFOS DÉPÔT =========================
-
-    /**
-     * Récupère les informations de dépôt pour tous les rapports d'un étudiant
-     */
-    public function getInfosDepotRapports($num_etu)
-    {
-        $infos = [];
-        $rapports = $this->filterReportsBySelectedYear($this->rapportModel->getRapportsByEtudiant($num_etu));
-
-        foreach ($rapports as $rapport) {
-            $rapportId = $rapport->id_rapport;
-
-            // Vérifier si ce rapport est déjà déposé
-            $stmt = $this->rapportModel->pdo->prepare("SELECT COUNT(*) FROM deposer WHERE num_etu = ? AND id_rapport = ?");
-            $stmt->execute([$num_etu, $rapportId]);
-            $dejaDepose = $stmt->fetchColumn() > 0;
-
-            $peutDeposer = true;
-            $messageDepot = '';
-            $nbMots = $this->compterMotsRapport($rapportId, $num_etu);
-
-            if ($dejaDepose) {
-                $peutDeposer = false;
-                $messageDepot = 'Déjà déposé';
-            } else {
-                // Vérifier si l'étudiant a un autre rapport en cours d'évaluation
-                $stmt = $this->rapportModel->pdo->prepare("
-                    SELECT d.id_rapport, d.date_depot 
-                    FROM deposer d 
-                    WHERE d.num_etu = ? 
-                    ORDER BY d.date_depot DESC 
-                    LIMIT 1
-                ");
-                $stmt->execute([$num_etu]);
-                $dernierDepot = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-                if ($dernierDepot && $dernierDepot['id_rapport'] != $rapportId) {
-                    $derniereDecision = $this->getDerniereDecisionRapport((int) $dernierDepot['id_rapport']);
-                    if (!$this->isRapportRejete($derniereDecision)) {
-                        $peutDeposer = false;
-                        $messageDepot = 'Vous avez déjà un rapport en cours d\'évaluation';
-                    }
-                }
-            }
-
-            $infos[$rapportId] = [
-                'peutDeposer' => $peutDeposer,
-                'messageDepot' => $messageDepot,
-                'dejaDepose' => $dejaDepose
-            ];
-        }
-
-        return $infos;
-    }
-
+    
     // ========================= CRÉATION / MODIFICATION =========================
 
     /**
@@ -287,6 +195,70 @@ class GestionRapportService
     public function getRapportById($id)
     {
         return $this->rapportModel->getRapportById($id);
+    }
+
+    private function isDraftRapportStatus(?string $statut): bool
+    {
+        $statut = strtolower(trim((string) $statut));
+        return in_array($statut, ['', 'brouillon', 'en_attente'], true);
+    }
+
+    private function getRapportFileCandidates($rapport, int $rapportId): array
+    {
+        $candidates = [$this->uploadsPath . 'rapport_' . $rapportId . '.html'];
+        $cheminFichier = trim((string) (is_object($rapport) ? ($rapport->chemin_fichier ?? '') : ($rapport['chemin_fichier'] ?? '')));
+
+        if ($cheminFichier !== '') {
+            if (preg_match('/^[A-Za-z]:\\\\|^\\\\\\\\/', $cheminFichier) === 1) {
+                $candidates[] = $cheminFichier;
+            } else {
+                $candidates[] = $this->uploadsPath . basename($cheminFichier);
+            }
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    private function isPathInsideUploads(string $path): bool
+    {
+        $uploadsRoot = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, strtolower($this->uploadsPath)), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $normalized = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, strtolower($path));
+        return str_starts_with($normalized, $uploadsRoot);
+    }
+
+    public function supprimerBrouillonRapport(int $rapportId, string $numEtu): array
+    {
+        $rapport = $this->rapportModel->getRapportByIdAndEtudiant($rapportId, $numEtu);
+        if (!$rapport) {
+            return ['success' => false, 'message' => 'Rapport introuvable ou acces non autorise.'];
+        }
+
+        $writeGuard = $this->ensureWritableForRapport($rapportId, 'la suppression d un brouillon de rapport');
+        if (empty($writeGuard['success'])) {
+            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Operation interdite.')];
+        }
+
+        $statutRapport = (string) ($rapport->statut_rapport ?? '');
+        if ($this->isRapportDepose($numEtu, $rapportId) || !$this->isDraftRapportStatus($statutRapport)) {
+            return ['success' => false, 'message' => 'Seuls les rapports en brouillon peuvent etre supprimes.'];
+        }
+
+        $fileCandidates = $this->getRapportFileCandidates($rapport, $rapportId);
+        if (!$this->rapportModel->deleteRapport($rapportId, $numEtu)) {
+            return ['success' => false, 'message' => 'La suppression du brouillon a echoue.'];
+        }
+
+        foreach ($fileCandidates as $candidate) {
+            if (!$this->isPathInsideUploads($candidate) || !is_file($candidate)) {
+                continue;
+            }
+
+            if (!@unlink($candidate)) {
+                error_log('Impossible de supprimer le fichier du brouillon: ' . $candidate);
+            }
+        }
+
+        return ['success' => true, 'message' => 'Brouillon supprime avec succes.'];
     }
 
     /**
@@ -364,66 +336,6 @@ class GestionRapportService
         return 0;
     }
 
-    private function normaliserStatutCandidature($statut)
-    {
-        $normalized = strtolower(trim((string) $statut));
-        $trans = [
-            'é' => 'e',
-            'è' => 'e',
-            'ê' => 'e',
-            'ë' => 'e',
-            'à' => 'a',
-            'â' => 'a',
-            'ä' => 'a',
-            'î' => 'i',
-            'ï' => 'i',
-            'ô' => 'o',
-            'ö' => 'o',
-            'ù' => 'u',
-            'û' => 'u',
-            'ü' => 'u',
-            'ç' => 'c',
-        ];
-        $normalized = strtr($normalized, $trans);
-        $normalized = str_replace([' ', '-'], '_', $normalized);
-        return $normalized;
-    }
-
-    /**
-     * Crée automatiquement une candidature de soutenance lors du dépôt si nécessaire.
-     */
-    private function assurerCandidatureAutomatique($num_etu)
-    {
-        $writeGuard = $this->ensureWritableForStudent((string) $num_etu, 'une candidature de soutenance');
-        if (empty($writeGuard['success'])) {
-            return false;
-        }
-
-        $stmt = $this->rapportModel->pdo->prepare("
-            SELECT statut_candidature
-            FROM candidature_soutenance
-            WHERE num_etu = ?
-            ORDER BY date_candidature DESC
-            LIMIT 1
-        ");
-        $stmt->execute([$num_etu]);
-        $lastStatus = $stmt->fetchColumn();
-
-        if ($lastStatus !== false) {
-            $status = $this->normaliserStatutCandidature($lastStatus);
-            $statusBloquants = ['en_attente', 'validee', 'valide', 'acceptee', 'accepte'];
-            if (in_array($status, $statusBloquants, true)) {
-                return true;
-            }
-        }
-
-        $insert = $this->rapportModel->pdo->prepare("
-            INSERT INTO candidature_soutenance (num_etu, date_candidature, statut_candidature)
-            VALUES (?, NOW(), 'En attente')
-        ");
-        return $insert->execute([$num_etu]);
-    }
-
     /**
      * Valide les données d'un rapport
      *
@@ -469,7 +381,7 @@ class GestionRapportService
             ? $this->ensureWritableForRapport($donneesRapport['edit_id'], 'un rapport')
             : $this->ensureWritableForStudent((string) $num_etu, 'un rapport');
         if (empty($writeGuard['success'])) {
-            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Operation interdite.')];
+            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Opération interdite.')];
         }
 
         // Validation
@@ -479,7 +391,7 @@ class GestionRapportService
         }
 
         // Vérifier unicité du nom
-        if ($this->rapportModel->isRapportNomExist($donneesRapport['nom_rapport'], $num_etu, $donneesRapport['edit_id'])) {
+        if ($this->rapportModel->isRapportNomExist($donneesRapport['nom_rapport'], $num_etu, $donneesRapport['edit_id'] ?? null)) {
             return ['success' => false, 'message' => 'Vous avez déjà un rapport avec ce nom.'];
         }
 
@@ -496,7 +408,7 @@ class GestionRapportService
             $textLength
         ));
 
-        if ($donneesRapport['edit_id']) {
+        if (!empty($donneesRapport['edit_id'])) {
             // Mode modification - vérifier que le rapport n'est pas déjà déposé
             if ($this->isRapportDepose($num_etu, $donneesRapport['edit_id'])) {
                 return ['success' => false, 'message' => 'Ce rapport ne peut plus être modifié car il a déjà été déposé.'];
@@ -576,6 +488,18 @@ class GestionRapportService
         // Mettre à jour le chemin du fichier et sa taille dans la base
         $tailleFichier = filesize($cheminComplet);
         $this->rapportModel->updateCheminFichier($rapport_id, $nomFichier, $tailleFichier);
+
+        $this->persistDocumentInDatabase(
+            'html_doc',
+            $nomFichier,
+            (string) $contenu,
+            'text/html',
+            'rapport_etudiants',
+            (string) $rapport_id,
+            'rapport',
+            $cheminComplet,
+            true
+        );
     }
 
     // ========================= DÉPÔT =========================
@@ -628,15 +552,41 @@ class GestionRapportService
                 return false;
             }
 
-            if (!$this->assurerCandidatureAutomatique($num_etu)) {
-                if ($transactionStarted && $pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                return false;
+            // S'assurer que l'étudiant a une candidature — la créer si absente
+            $findCandidature = $pdo->prepare("SELECT id_candidature FROM candidature_soutenance WHERE num_etu = ? ORDER BY date_candidature DESC LIMIT 1");
+            $findCandidature->execute([$num_etu]);
+            $idCandidature = $findCandidature->fetchColumn();
+
+            if (!$idCandidature) {
+                $createCandidature = $pdo->prepare("INSERT INTO candidature_soutenance (num_etu, date_candidature, statut_candidature) VALUES (?, NOW(), 'En attente')");
+                $createCandidature->execute([$num_etu]);
+                $idCandidature = $pdo->lastInsertId();
+            }
+
+            // Lier le rapport à la candidature
+            if ($idCandidature) {
+                $linkRapport = $pdo->prepare("UPDATE rapport_etudiants SET id_candidature = ? WHERE id_rapport = ?");
+                $linkRapport->execute([$idCandidature, $id_rapport]);
             }
 
             if ($transactionStarted && $pdo->inTransaction()) {
                 $pdo->commit();
+            }
+
+            try {
+                $this->notifierDepotRapport($id_rapport, $num_etu, $date_depot);
+            } catch (\Throwable $notifErr) {
+                error_log('Erreur notification depot: ' . $notifErr->getMessage());
+            }
+
+            if ($idCandidature) {
+                try {
+                    require_once __DIR__ . '/GestionCandidaturesService.php';
+                    $candidatureService = new \CheckMaster\Services\GestionCandidaturesService($this->db);
+                    $candidatureService->notifierSoumissionCandidature($num_etu, (int)$idCandidature, $date_depot);
+                } catch (\Throwable $notifErr) {
+                    error_log('Erreur notification candidature: ' . $notifErr->getMessage());
+                }
             }
 
             return true;
@@ -677,97 +627,26 @@ class GestionRapportService
         return false;
     }
 
+    /**
+     * Récupère le dernier rapport déposé par l'étudiant avec ses données complètes
+     */
+    public function getDernierRapportDepose($num_etu)
+    {
+        $stmt = $this->rapportModel->pdo->prepare("
+            SELECT r.*, d.date_depot
+            FROM deposer d
+            JOIN rapport_etudiants r ON r.id_rapport = d.id_rapport
+            WHERE d.num_etu = ?
+            ORDER BY d.date_depot DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$num_etu]);
+        return $stmt->fetch(\PDO::FETCH_OBJ) ?: null;
+    }
+
     // ========================= SUIVI =========================
 
-    /**
-     * Récupère les rapports d'un étudiant avec l'historique des décisions
-     */
-    public function getRapportsAvecDecisions($num_etu)
-    {
-        $rapports = $this->filterReportsBySelectedYear($this->rapportModel->getRapportsByEtudiant($num_etu));
-
-        foreach ($rapports as &$rapport) {
-            $rapport = (array) $rapport;
-            $rapport['decisions'] = Approuver::getByRapport($rapport['id_rapport']);
-        }
-
-        return $rapports;
-    }
-
     // ========================= COMMENTAIRES / COMPTE RENDU =========================
-
-    /**
-     * Récupère les rapports filtrés pour le compte rendu
-     *
-     * @param bool   $isEtudiant
-     * @param string $num_etu
-     * @param string $statut     Filtre par statut
-     * @param string $search     Recherche textuelle
-     * @return array
-     */
-    public function getRapportsFiltres($isEtudiant, $num_etu, $statut = '', $search = '')
-    {
-        if ($isEtudiant) {
-            $rapports = array_map(function ($rapport) {
-                return (array) $rapport;
-            }, $this->filterReportsBySelectedYear($this->rapportModel->getRapportsByEtudiant($num_etu)));
-        } else {
-            $rapports = array_map(function ($rapport) {
-                return (array) $rapport;
-            }, $this->filterReportsBySelectedYear($this->rapportModel->getAllRapports()));
-        }
-
-        // Appliquer les filtres
-        if (!empty($statut) || !empty($search)) {
-            $rapports = array_filter($rapports, function ($rapport) use ($statut, $search) {
-                $matchStatut = empty($statut) || $rapport['statut_rapport'] === $statut;
-                $matchSearch = empty($search) ||
-                    stripos($rapport['nom_rapport'], $search) !== false ||
-                    stripos($rapport['theme_rapport'], $search) !== false ||
-                    stripos($rapport['nom_etu'] . ' ' . $rapport['prenom_etu'], $search) !== false;
-
-                return $matchStatut && $matchSearch;
-            });
-        }
-
-        return $rapports;
-    }
-
-    /**
-     * Récupère les commentaires des évaluateurs pour un rapport
-     */
-    public function getCommentairesEvaluateurs($rapportId)
-    {
-        $commentaires = [];
-
-        try {
-            $stmt = $this->rapportModel->pdo->prepare("
-                SELECT 
-                    e.commentaire,
-                    e.date_evaluation,
-                    NULL AS note,
-                    COALESCE(ens.nom_enseignant, pa.nom_pers_admin, 'Évaluateur') AS nom_evaluateur,
-                    COALESCE(ens.prenom_enseignant, pa.prenom_pers_admin, '') AS prenom_evaluateur,
-                    CASE
-                        WHEN ens.id_enseignant IS NOT NULL THEN 'Enseignant'
-                        WHEN pa.id_pers_admin IS NOT NULL THEN 'Personnel administratif'
-                        ELSE 'Évaluateur'
-                    END AS fonction_evaluateur
-                FROM evaluations_rapports e
-                LEFT JOIN enseignants ens ON e.id_evaluateur = ens.id_enseignant
-                LEFT JOIN personnel_admin pa ON e.id_evaluateur = pa.id_pers_admin
-                WHERE e.id_rapport = ? AND e.commentaire IS NOT NULL AND TRIM(e.commentaire) != ''
-                ORDER BY e.date_evaluation DESC
-            ");
-            $stmt->execute([$rapportId]);
-            $commentaires = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        } catch (\PDOException $e) {
-            error_log("Erreur lors de la récupération des commentaires: " . $e->getMessage());
-        }
-
-        return $commentaires;
-    }
 
     // ========================= EXPORT PDF =========================
 
@@ -822,7 +701,7 @@ class GestionRapportService
         require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
         $pdfGen = new \App\Services\Document\PdfGeneratorService(
             __DIR__ . '/../../storage',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
         $pdf = $pdfGen->createDocument('P', 'A4', htmlspecialchars($nom_rapport));
         $pdf->AddPage();
@@ -888,6 +767,7 @@ class GestionRapportService
                     margin: 15px 0 10px 0;
                     padding: 0;
                     page-break-after: avoid;
+                }
                 
                 /* Paragraphes */
                 p {
@@ -916,98 +796,6 @@ class GestionRapportService
                 }
             </style>
         ";
-    }
-
-    // ========================= SUPPRESSION =========================
-
-    /**
-     * Supprime un rapport (avec vérifications)
-     *
-     * @return array ['success' => bool, 'message' => string]
-     */
-    public function supprimerRapport($rapportId, $num_etu)
-    {
-        // Vérifier que le rapport appartient à l'étudiant
-        $rapport = $this->rapportModel->getRapportById($rapportId);
-        if (!$rapport || $rapport['num_etu'] != $num_etu) {
-            return ['success' => false, 'message' => 'Rapport non trouvé ou accès non autorisé'];
-        }
-
-        $writeGuard = $this->ensureWritableForRapport($rapportId, 'un rapport');
-        if (empty($writeGuard['success'])) {
-            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Suppression interdite.')];
-        }
-
-        // Vérifier que le rapport n'est pas déjà déposé
-        if ($this->isRapportDepose($num_etu, $rapportId)) {
-            return ['success' => false, 'message' => 'Impossible de supprimer un rapport déjà déposé'];
-        }
-
-        $success = $this->rapportModel->deleteRapport($rapportId, $num_etu);
-
-        if ($success) {
-            // Supprimer le fichier de contenu
-            $filename = $this->uploadsPath . "rapport_{$rapportId}.html";
-            if (file_exists($filename)) {
-                unlink($filename);
-            }
-            return ['success' => true, 'message' => 'Rapport supprimé avec succès'];
-        }
-
-        return ['success' => false, 'message' => 'Erreur lors de la suppression du rapport'];
-    }
-
-    /**
-     * Supprime un rapport via AJAX (vérification simplifiée)
-     *
-     * @return array ['success' => bool, 'message' => string]
-     */
-    public function deleteRapport($rapport_id, $num_etu)
-    {
-        $writeGuard = $this->ensureWritableForRapport($rapport_id, 'un rapport');
-        if (empty($writeGuard['success'])) {
-            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Suppression interdite.')];
-        }
-
-        $result = $this->rapportModel->deleteRapport($rapport_id, $num_etu);
-
-        if ($result) {
-            $filename = $this->uploadsPath . "rapport_{$rapport_id}.html";
-            if (file_exists($filename)) {
-                unlink($filename);
-            }
-            return ['success' => true, 'message' => 'Rapport supprimé avec succès'];
-        }
-
-        return ['success' => false, 'message' => 'Rapport non trouvé ou non autorisé'];
-    }
-
-    /**
-     * Récupère un rapport appartenant à un étudiant avec son contenu
-     *
-     * @return array|null
-     */
-    public function getRapportAvecContenu($rapport_id, $num_etu)
-    {
-        $rapport = $this->rapportModel->getRapportByIdAndEtudiant($rapport_id, $num_etu);
-
-        if (!$rapport) {
-            return null;
-        }
-
-        $rapport_array = (array) $rapport;
-        $rapport_array['contenu'] = $this->chargerContenuRapport($rapport_id);
-        return $rapport_array;
-    }
-
-    // ========================= EXPORT CSV =========================
-
-    /**
-     * Récupère tous les rapports pour l'export CSV
-     */
-    public function getAllRapports()
-    {
-        return $this->filterReportsBySelectedYear($this->rapportModel->getAllRapports());
     }
 
     // ========================= CANDIDATURES =========================
@@ -1055,94 +843,456 @@ class GestionRapportService
         return ['success' => false, 'redirect' => '?page=gestion_rapports&message=depot_fail'];
     }
 
-    // ========================= HTML COMMENTAIRES =========================
+    // ======================== PRD 1 & 2 : Upload de fichier rapport ========================
 
     /**
-     * Génère le HTML des commentaires évaluateurs pour un rapport.
-     *
-     * @param int $rapportId
-     * @return string HTML
+     * Retourne le chemin du dossier d'upload des rapports
      */
-    public function renderCommentairesHtml($rapportId)
+    public function getUploadsPath()
     {
-        $commentaires = $this->getCommentairesEvaluateurs($rapportId);
-
-        if (empty($commentaires)) {
-            return '<div class="text-center py-8 text-gray-500">'
-                . '<i class="fas fa-comment-slash text-4xl mb-4"></i>'
-                . '<p>Aucun commentaire disponible pour ce rapport</p>'
-                . '</div>';
-        }
-
-        $html = '<div class="space-y-6">';
-        foreach ($commentaires as $commentaire) {
-            $nom = htmlspecialchars($commentaire['prenom_evaluateur'] . ' ' . $commentaire['nom_evaluateur']);
-            $fonction = htmlspecialchars($commentaire['fonction_evaluateur']);
-            $date = date('d M Y - H:i', strtotime($commentaire['date_evaluation']));
-            $texte = nl2br(htmlspecialchars($commentaire['commentaire']));
-
-            $html .= '<div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">';
-            $html .= '<div class="flex items-center justify-between mb-3">';
-            $html .= '<div class="flex items-center space-x-3">';
-            $html .= '<div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">';
-            $html .= '<i class="fas fa-user-tie text-blue-600"></i>';
-            $html .= '</div>';
-            $html .= '<div>';
-            $html .= '<h4 class="font-semibold text-gray-800">' . $nom . '</h4>';
-            $html .= '<p class="text-sm text-gray-600"><i class="fas fa-briefcase mr-1"></i>' . $fonction . '</p>';
-            $html .= '</div>';
-            $html .= '</div>';
-            $html .= '<div class="text-sm text-gray-500"><i class="fas fa-calendar mr-1"></i>' . $date . '</div>';
-            $html .= '</div>';
-            $html .= '<div class="bg-gray-50 rounded-lg p-3">';
-            $html .= '<p class="text-gray-700 leading-relaxed">' . $texte . '</p>';
-
-            if (!empty($commentaire['note'])) {
-                $html .= '<div class="mt-3 pt-3 border-t border-gray-200">';
-                $html .= '<p class="text-sm text-gray-600"><strong>Note:</strong> ' . $commentaire['note'] . '/20</p>';
-                $html .= '</div>';
-            }
-
-            $html .= '</div>';
-            $html .= '</div>';
-        }
-        $html .= '</div>';
-
-        return $html;
+        return $this->uploadsPath;
     }
 
-    // ========================= EXPORT CSV FORMAT =========================
-
     /**
-     * Construit les en-têtes et lignes pour l'export CSV.
-     *
-     * @return array ['headers' => string[], 'rows' => array[]]
+     * Retourne l'URL du modèle de rapport (configurable)
+     * PRD 1 F1.1
      */
-    public function buildCsvData()
+    public function getModeleRapportUrl()
     {
-        $rapports = $this->getAllRapports();
-
-        $headers = [
-            'ID',
-            'Nom du rapport',
-            'Thème',
-            'Date création',
-            'Étudiant',
-            'Email étudiant'
-        ];
-
-        $rows = [];
-        foreach ($rapports as $rapport) {
-            $rows[] = [
-                $rapport->id_rapport,
-                $rapport->nom_rapport,
-                $rapport->theme_rapport,
-                $rapport->date_rapport,
-                $rapport->nom_etu . ' ' . $rapport->prenom_etu,
-                $rapport->email_etu
-            ];
+        // Cherche d'abord dans les paramètres de configuration
+        try {
+            $stmt = $this->db->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'MODELE_RAPPORT_URL' LIMIT 1");
+            $stmt->execute();
+            $url = $stmt->fetchColumn();
+            if ($url && $url !== '') {
+                return $url;
+            }
+        } catch (\Throwable $e) {
+            error_log('Erreur getModeleRapportUrl: ' . $e->getMessage());
         }
 
-        return ['headers' => $headers, 'rows' => $rows];
+        // Chemin par défaut
+        return 'ressources/uploads/modeles/modele_rapport_stage.pdf';
+    }
+
+    /**
+     * Vérifie qu'un fichier uploadé est valide (type, taille)
+     * PRD 1 F1.2
+     *
+     * @param array $file $_FILES entry
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function validerFichierRapport($file)
+    {
+        $erreurs = [];
+
+        // Vérifier qu'un fichier a été uploadé
+        if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'Le fichier dépasse la taille maximale autorisée par le serveur.',
+                UPLOAD_ERR_FORM_SIZE => 'Le fichier dépasse la taille maximale autorisée par le formulaire.',
+                UPLOAD_ERR_PARTIAL => 'Le fichier n\'a été que partiellement téléchargé.',
+                UPLOAD_ERR_NO_FILE => 'Aucun fichier n\'a été téléchargé.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Dossier temporaire manquant sur le serveur.',
+                UPLOAD_ERR_CANT_WRITE => 'Échec de l\'écriture du fichier sur le disque.',
+            ];
+            $code = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+            $message = $errorMessages[$code] ?? 'Erreur lors du téléchargement du fichier.';
+            return ['success' => false, 'message' => $message];
+        }
+
+        // Vérifier le type de fichier
+        $typesAutorises = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        $extensionsAutorisees = ['pdf', 'doc', 'docx'];
+
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $typeMime = $file['type'];
+
+        if (!in_array($extension, $extensionsAutorisees) || !in_array($typeMime, $typesAutorises)) {
+            return ['success' => false, 'message' => 'Format de fichier non autorisé. Veuillez uploader un fichier PDF ou Word (doc/docx).'];
+        }
+
+        // Vérifier la taille (max 20 MB par défaut)
+        $tailleMax = 20 * 1024 * 1024; // 20 MB
+        if ($file['size'] > $tailleMax) {
+            $tailleEnMo = $tailleMax / (1024 * 1024);
+            return ['success' => false, 'message' => "Le fichier dépasse la taille maximale autorisée de {$tailleEnMo} Mo."];
+        }
+
+        return ['success' => true, 'message' => 'Fichier valide.'];
+    }
+
+    /**
+     * Génère un nom de fichier unique pour un rapport uploadé
+     *
+     * @param string $num_etu
+     * @param string $extension
+     * @return string
+     */
+    public function genererNomFichierRapport($num_etu, $extension)
+    {
+        $date = date('Ymd_His');
+        $prefixe = preg_replace('/[^a-zA-Z0-9]/', '_', $num_etu);
+        return "Rapport_{$prefixe}_{$date}.{$extension}";
+    }
+
+    /**
+     * Détermine l'année académique via la dernière inscription
+     *
+     * @param string $num_etu
+     * @return int|null
+     */
+    public function getAnneeAcademiqueForEtudiant($num_etu)
+    {
+        return $this->getStudentAcademicYearId($num_etu);
+    }
+
+    /**
+     * Traite l'upload d'un rapport par l'étudiant
+     * PRD 1 F1.3
+     *
+     * @param array $file $_FILES['rapport_fichier']
+     * @param string $num_etu
+     * @param string $theme_rapport
+     * @return array ['success' => bool, 'message' => string, 'id_rapport' => int|null]
+     */
+    public function traiterUploadRapportEtudiant($file, $num_etu, $theme_rapport = '')
+    {
+        // Valider le fichier
+        $validation = $this->validerFichierRapport($file);
+        if (!$validation['success']) {
+            return $validation;
+        }
+
+        // Vérifier les droits d'écriture
+        $writeGuard = $this->ensureWritableForStudent($num_etu, 'un depot de rapport');
+        if (empty($writeGuard['success'])) {
+            return ['success' => false, 'message' => (string) ($writeGuard['message'] ?? 'Opération interdite pour l\'année académique sélectionnée.')];
+        }
+
+        // Déterminer l'année académique
+        $id_annee_acad = $this->getAnneeAcademiqueForEtudiant($num_etu);
+
+        // Créer le dossier si nécessaire
+        $sousDossier = $id_annee_acad ? 'annee_' . $id_annee_acad : 'autres';
+        $dossierUpload = $this->uploadsPath . $sousDossier . '/';
+        if (!is_dir($dossierUpload)) {
+            if (!mkdir($dossierUpload, 0755, true)) {
+                return ['success' => false, 'message' => 'Impossible de créer le dossier de stockage.'];
+            }
+        }
+
+        // Générer le nom du fichier
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $nomFichier = $this->genererNomFichierRapport($num_etu, $extension);
+        $cheminFichier = $sousDossier . '/' . $nomFichier;
+        $cheminComplet = $this->uploadsPath . $cheminFichier;
+
+        // Déplacer le fichier uploadé
+        if (!move_uploaded_file($file['tmp_name'], $cheminComplet)) {
+            return ['success' => false, 'message' => 'Erreur lors de l\'enregistrement du fichier sur le serveur.'];
+        }
+
+        // Vérifier si l'étudiant a déjà un rapport (uploadé)
+        $rapportExistant = $this->rapportModel->getDernierRapportUploaded($num_etu);
+
+        if ($rapportExistant && isset($rapportExistant->id_rapport)) {
+            // Mettre à jour le rapport existant
+            $updated = $this->rapportModel->mettreAJourRapportAvecFichier(
+                $rapportExistant->id_rapport,
+                $cheminFichier,
+                $file['size'],
+                date('Y-m-d H:i:s')
+            );
+            if ($updated) {
+                $this->persistUploadedReportDocument(
+                    $cheminComplet,
+                    $rapportExistant->id_rapport
+                );
+                // Audit
+                $this->auditLog->logModification(
+                    $_SESSION['id_utilisateur'] ?? 0,
+                    'rapport_etudiants',
+                    'Succès'
+                );
+                return ['success' => true, 'message' => 'Rapport mis à jour avec succès.', 'id_rapport' => $rapportExistant->id_rapport];
+            }
+        }
+
+        // Créer un nouveau rapport
+        $nomRapport = 'Rapport_' . $nomFichier;
+        $id_rapport = $this->rapportModel->creerRapportAvecFichier(
+            $num_etu,
+            $nomRapport,
+            $theme_rapport,
+            $cheminFichier,
+            $file['size'],
+            $id_annee_acad,
+            date('Y-m-d H:i:s')
+        );
+
+        if ($id_rapport) {
+            $this->persistUploadedReportDocument(
+                $cheminComplet,
+                $id_rapport
+            );
+            // Audit
+            $this->auditLog->logDepot(
+                $_SESSION['id_utilisateur'] ?? 0,
+                'rapport_etudiants',
+                'Succès'
+            );
+            return ['success' => true, 'message' => 'Rapport téléchargé avec succès.', 'id_rapport' => $id_rapport];
+        }
+
+        return ['success' => false, 'message' => 'Erreur lors de l\'enregistrement dans la base de données.'];
+    }
+
+    /**
+     * Traite l'upload d'un rapport par l'administration
+     * PRD 2 F2.3-F2.4
+     *
+     * @param array $file $_FILES['rapport_fichier']
+     * @param string $num_etu
+     * @param string $theme_rapport
+     * @param string|null $date_operation Date métier (modifiable par admin)
+     * @return array ['success' => bool, 'message' => string, 'id_rapport' => int|null]
+     */
+    public function traiterUploadRapportAdmin($file, $num_etu, $theme_rapport = '', $date_operation = null)
+    {
+        // Valider le fichier
+        $validation = $this->validerFichierRapport($file);
+        if (!$validation['success']) {
+            return $validation;
+        }
+
+        // Déterminer l'année académique
+        $id_annee_acad = $this->getAnneeAcademiqueForEtudiant($num_etu);
+
+        // Créer le dossier si nécessaire
+        $sousDossier = $id_annee_acad ? 'annee_' . $id_annee_acad : 'autres';
+        $dossierUpload = $this->uploadsPath . $sousDossier . '/';
+        if (!is_dir($dossierUpload)) {
+            if (!mkdir($dossierUpload, 0755, true)) {
+                return ['success' => false, 'message' => 'Impossible de créer le dossier de stockage.'];
+            }
+        }
+
+        // Générer le nom du fichier
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $nomFichier = $this->genererNomFichierRapport($num_etu, $extension);
+        $cheminFichier = $sousDossier . '/' . $nomFichier;
+        $cheminComplet = $this->uploadsPath . $cheminFichier;
+
+        // Déplacer le fichier uploadé
+        if (!move_uploaded_file($file['tmp_name'], $cheminComplet)) {
+            return ['success' => false, 'message' => 'Erreur lors de l\'enregistrement du fichier sur le serveur.'];
+        }
+
+        // Vérifier si l'étudiant a déjà un rapport uploadé
+        $rapportExistant = $this->rapportModel->getDernierRapportUploaded($num_etu);
+
+        if ($rapportExistant && isset($rapportExistant->id_rapport)) {
+            // Mettre à jour le rapport existant
+            $updated = $this->rapportModel->mettreAJourRapportAvecFichier(
+                $rapportExistant->id_rapport,
+                $cheminFichier,
+                $file['size'],
+                $date_operation
+            );
+            if ($updated) {
+                $this->persistUploadedReportDocument(
+                    $cheminComplet,
+                    $rapportExistant->id_rapport
+                );
+                // Audit PRD 3
+                $this->auditLog->logModification(
+                    $_SESSION['id_utilisateur'] ?? 0,
+                    'rapport_etudiants',
+                    'Succès'
+                );
+                return ['success' => true, 'message' => 'Rapport mis à jour avec succès.', 'id_rapport' => $rapportExistant->id_rapport];
+            }
+        }
+
+        // Créer un nouveau rapport
+        $nomRapport = 'Rapport_' . $nomFichier;
+        $id_rapport = $this->rapportModel->creerRapportAvecFichier(
+            $num_etu,
+            $nomRapport,
+            $theme_rapport,
+            $cheminFichier,
+            $file['size'],
+            $id_annee_acad,
+            $date_operation
+        );
+
+        if ($id_rapport) {
+            $this->persistUploadedReportDocument(
+                $cheminComplet,
+                $id_rapport
+            );
+            // Audit
+            $this->auditLog->logAction(
+                $_SESSION['id_utilisateur'] ?? 0,
+                'Import rapport',
+                'rapport_etudiants',
+                'Succès'
+            );
+            return ['success' => true, 'message' => 'Rapport importé avec succès.', 'id_rapport' => $id_rapport];
+        }
+
+        return ['success' => false, 'message' => 'Erreur lors de l\'enregistrement dans la base de données.'];
+    }
+
+    /**
+     * Récupère la liste des étudiants sans rapport
+     * PRD 2 F2.1
+     *
+     * @param int|null $id_annee_acad
+     * @return array
+     */
+    public function getEtudiantsSansRapport($id_annee_acad = null)
+    {
+        if ($id_annee_acad === null) {
+            $id_annee_acad = $this->getSelectedYearId();
+        }
+        return $this->rapportModel->getEtudiantsSansRapport($id_annee_acad);
+    }
+
+    /**
+     * Récupère tous les rapports pour l'admin
+     * PRD 2 / PRD 4
+     *
+     * @param int|null $id_annee_acad
+     * @param string|null $search
+     * @return array
+     */
+    public function getAllRapportsAdmin($id_annee_acad = null, $search = null)
+    {
+        if ($id_annee_acad === null) {
+            $id_annee_acad = $this->getSelectedYearId();
+        }
+        return $this->rapportModel->getAllRapportsAdmin($id_annee_acad, $search);
+    }
+
+    /**
+     * Récupère l'ID de l'année académique sélectionnée en session
+     *
+     * @return int|null
+     */
+    private function getSelectedYearId()
+    {
+        return !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
+    }
+
+    /**
+     * Met à jour la date d'opération d'un rapport avec journalisation
+     * PRD 3 F3.4
+     *
+     * @param int $id_rapport
+     * @param string $nouvelle_date
+     * @param string $ancienne_date
+     * @return bool
+     */
+    public function updateRapportInlineWithAudit($id_rapport, $nouvelle_date, $ancienne_date, $nom_rapport, $ancien_nom, $theme_rapport, $ancien_theme)
+    {
+        $result = $this->rapportModel->updateRapportInline($id_rapport, $nouvelle_date, $nom_rapport, $theme_rapport);
+
+        if ($result) {
+            // Journalisation dans l'audit
+            $details = "Date: {$ancienne_date} -> {$nouvelle_date}, Nom: {$ancien_nom} -> {$nom_rapport}, Theme: {$ancien_theme} -> {$theme_rapport}";
+            $this->auditLog->logAction(
+                $_SESSION['id_utilisateur'] ?? 0,
+                'Modification inline rapport',
+                'rapport_etudiants',
+                'Succès'
+            );
+        }
+
+        return $result;
+    }
+
+    private function persistUploadedReportDocument(string $filePath, $rapportId): void
+    {
+        $rapportId = (int) $rapportId;
+        if ($rapportId <= 0 || !is_file($filePath)) {
+            return;
+        }
+
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $storage->storeFileFromPath(
+                'rapport',
+                $filePath,
+                'rapport_etudiants',
+                (string) $rapportId,
+                isset($_SESSION['id_utilisateur']) ? (int) $_SESSION['id_utilisateur'] : null,
+                null,
+                'source',
+                true
+            );
+        } catch (\Throwable $e) {
+            error_log('Erreur persistUploadedReportDocument: ' . $e->getMessage());
+        }
+    }
+
+    private function persistDocumentInDatabase(
+        string $typeDocument,
+        string $nomFichier,
+        string $contenu,
+        string $mimeType,
+        ?string $entiteType,
+        ?string $entiteId,
+        ?string $sousType = null,
+        ?string $cheminOriginal = null,
+        bool $archiveExisting = false
+    ): void {
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $storage->storeDocument(
+                $typeDocument,
+                $nomFichier,
+                $contenu,
+                $mimeType,
+                $entiteType,
+                $entiteId,
+                isset($_SESSION['id_utilisateur']) ? (int) $_SESSION['id_utilisateur'] : null,
+                null,
+                $sousType,
+                $cheminOriginal,
+                $archiveExisting
+            );
+        } catch (\Throwable $e) {
+            error_log('Erreur persistDocumentInDatabase: ' . $e->getMessage());
+        }
+    }
+
+    public function notifierDepotRapport(int $idRapport, string $numEtu, string $dateDepot): void
+    {
+        $rapport = $this->rapportModel->getRapportById($idRapport);
+        $etudiant = $this->etudiant->getEtudiantByNumEtu($numEtu);
+        if (!$rapport || !$etudiant) {
+            return;
+        }
+        $nomEtudiant = ($etudiant['prenom_etu'] ?? '') . ' ' . ($etudiant['nom_etu'] ?? '');
+        $nomRapport = is_array($rapport) ? ($rapport['nom_rapport'] ?? 'Sans titre') : ($rapport->nom_rapport ?? 'Sans titre');
+        $themeRapport = is_array($rapport) ? ($rapport['theme_rapport'] ?? '') : ($rapport->theme_rapport ?? '');
+        $notifService = new \NotificationService();
+        $encadrants = $notifService->getEncadrantsForRapport($idRapport);
+        foreach ($encadrants as $enc) {
+            $email = trim((string)($enc['email'] ?? ''));
+            if ($email === '') {
+                continue;
+            }
+            $this->emailService->sendTemplate('DEPOT_RAPPORT', $email, [
+                'nom_enseignant' => htmlspecialchars((string)($enc['nom'] ?? '')),
+                'nom_etudiant' => htmlspecialchars(trim($nomEtudiant)),
+                'nom_rapport' => htmlspecialchars($nomRapport),
+                'theme_rapport' => htmlspecialchars($themeRapport),
+                'date_depot' => $dateDepot,
+                'role' => htmlspecialchars((string)($enc['role'] ?? '')),
+            ]);
+        }
     }
 }

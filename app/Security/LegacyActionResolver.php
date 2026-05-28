@@ -33,7 +33,7 @@ final class LegacyActionResolver
             $keyStr = implode(' ', $keys);
 
             // Création
-            $createHints = ['btn_add', 'btn_create', 'btn_add_utilisateur', 'btn_add_multiple', 'submit_add', 'submit_create', 'submit_ajouter'];
+            $createHints = ['btn_add', 'btn_create', 'btn_add_utilisateur', 'btn_add_multiple', 'submit_add', 'submit_create', 'submit_ajouter', 'submit_import'];
             foreach ($createHints as $h) {
                 if (strpos($keyStr, $h) !== false) {
                     return ['action' => 'creer', 'reason' => 'post_hint_create'];
@@ -170,4 +170,3 @@ final class LegacyActionResolver
         ];
     }
 }
-

@@ -119,7 +119,7 @@ class Valider
         $stmt = $pdo->query("
             SELECT r.id_rapport, r.num_etu, r.theme_rapport, e.prenom_etu, e.nom_etu, v2.decision_validation
             FROM rapport_etudiants r 
-            JOIN etudiants e ON r.num_etu = e.num_carte_etud 
+            JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
             JOIN (
                 SELECT id_rapport, MAX(date_validation) as last_validation 
                 FROM valider 

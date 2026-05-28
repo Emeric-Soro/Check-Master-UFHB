@@ -34,7 +34,7 @@ final class RapportPdfGeneratorService
      *
      * @param int $rapportId Report ID
      * @param int $userId User generating the document
-     * @return array{success: bool, reference?: string, path?: string, error?: string}
+     * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, error?: string}
      */
     public function generate(int $rapportId, int $userId): array
     {
@@ -89,6 +89,7 @@ final class RapportPdfGeneratorService
             $this->dataUtils->saveDocumentRecord([
                 'reference_document' => $reference,
                 'type_document' => self::TYPE_DOCUMENT,
+                'id_source' => (string) $rapportId,
                 'nom_fichier' => $filename . '.pdf',
                 'chemin_fichier' => $fullPath,
                 'taille_fichier' => $fileSize !== false ? (int) $fileSize : null,
@@ -109,6 +110,8 @@ final class RapportPdfGeneratorService
             'success' => true,
             'reference' => $reference,
             'path' => $fullPath,
+            'filename' => basename($fullPath),
+            'size' => $fileSize !== false ? (int) $fileSize : null,
         ];
     }
 
@@ -243,12 +246,12 @@ final class RapportPdfGeneratorService
         $nomEtu = (string) ($etudiant['nom_etu'] ?? '');
         $prenomEtu = (string) ($etudiant['prenom_etu'] ?? '');
         $nomComplet = trim(strtoupper($nomEtu) . ' ' . strtoupper($prenomEtu));
-        $matricule = (string) ($etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? '');
+        $matricule = (string) ($etudiant['num_ident_etud'] ?? $etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? '');
 
         $entreprise = $this->escapeHtml((string) ($infoStage['nom_entreprise'] ?? 'Entreprise d\'accueil'));
         $maitreStage = trim((string) ($infoStage['nom_maitre_stage'] ?? '') . ' ' . (string) ($infoStage['prenom_maitre_stage'] ?? ''));
         $maitreStage = $this->escapeHtml($maitreStage !== '' ? strtoupper($maitreStage) : 'MAITRE DE STAGE');
-        $theme = $this->escapeHtml((string) ($rapport['theme_rapport'] ?? 'Theme du rapport'));
+        $theme = $this->escapeHtml((string) ($rapport['theme_rapport'] ?? 'Thème du rapport'));
         $nomComplet = $this->escapeHtml($nomComplet !== '' ? $nomComplet : 'ETUDIANT NON RENSEIGNE');
         $academicYear = $this->escapeHtml((string) ($rapport['libelle_annee'] ?? ($rapport['id_annee_acad'] ?? '')));
         $logoUfhb = $this->imageDataUri(__DIR__ . '/../../../public/image/logo_ufhb.png');
@@ -313,7 +316,7 @@ final class RapportPdfGeneratorService
         </tr>
     </table>
 
-    <div style="margin-top:14mm; text-align:center; font-size:10pt; color:#475569;">Annee academique {$academicYear}</div>
+    <div style="margin-top:14mm; text-align:center; font-size:10pt; color:#475569;">Année académique {$academicYear}</div>
 </div>
 HTML;
     }
@@ -452,7 +455,7 @@ HTML;
     {
         $year = date('Y');
         $timestamp = (new DateTimeImmutable())->format('Ymd_His');
-        $matricule = $etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? 'inconnu';
+        $matricule = $etudiant['num_ident_etud'] ?? $etudiant['num_carte_etud'] ?? $etudiant['matricule_etudiant'] ?? $rapport['matricule_etudiant'] ?? 'inconnu';
 
         return "rapport_{$matricule}_{$year}_{$timestamp}";
     }

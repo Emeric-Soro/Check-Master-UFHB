@@ -207,7 +207,7 @@ class ProgrammationSoutenanceController
                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                     exit;
                 }
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;
@@ -217,6 +217,15 @@ class ProgrammationSoutenanceController
                 $input = $_POST;
             }
             $result = $this->service->createAttribution($input);
+
+            if (!empty($result['success']) && !empty($result['data']['id'])) {
+                try {
+                    $this->service->notifierAjoutJury($input);
+                    $this->service->notifierProgrammationSoutenance((string)$result['data']['id'], $input);
+                } catch (\Throwable $notifErr) {
+                    error_log('Erreur notification programmation: ' . $notifErr->getMessage());
+                }
+            }
 
             header('Content-Type: application/json');
             echo json_encode($result);
@@ -242,7 +251,7 @@ class ProgrammationSoutenanceController
                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                     exit;
                 }
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;
@@ -277,7 +286,7 @@ class ProgrammationSoutenanceController
                     echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
                     exit;
                 }
-                $_SESSION['error_message'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;
@@ -484,13 +493,16 @@ class ProgrammationSoutenanceController
                 return;
             }
 
+            $reference = trim((string) ($result['reference'] ?? ''));
             $path = (string) ($result['path'] ?? '');
-            $downloadUrl = '?page=programmation_soutenance&action=downloadPlanningPdf&file=' . urlencode($this->encodeFileToken($path));
+            $docId = $reference !== '' ? $reference : pathinfo($path, PATHINFO_FILENAME);
+            $downloadUrl = '?page=docviewer&type=planning&id=' . urlencode($docId) . '&action=download';
 
             $this->jsonResponse([
                 'success' => true,
-                'reference' => (string) ($result['reference'] ?? ''),
+                'reference' => $reference,
                 'download_url' => $downloadUrl,
+                'preview_url' => '?page=docviewer&type=planning&id=' . urlencode($docId) . '&action=preview',
             ]);
         } catch (Exception $e) {
             error_log(sprintf(
@@ -507,7 +519,12 @@ class ProgrammationSoutenanceController
     }
 
     /**
-     * Téléchargement sécurisé d'un planning PDF généré.
+     * Téléchargement d'un planning PDF via le DocViewer unifié.
+     *
+     * La méthode legacy acceptait un token base64 encodant le chemin.
+     * Désormais, on redirige vers le DocViewer :
+     *   - si le paramètre est un token base64, on extrait la référence depuis le nom de fichier
+     *   - sinon on traite le paramètre comme une référence directe (PLN-YYYY-NNNNN)
      */
     public function downloadPlanningPdf()
     {
@@ -518,33 +535,53 @@ class ProgrammationSoutenanceController
         }
 
         $token = trim((string) ($_GET['file'] ?? ''));
+        if ($token === '') {
+            http_response_code(400);
+            echo 'Paramètre fichier manquant.';
+            return;
+        }
+
+        // Essayer de décoder comme base64 (legacy) ; en cas d'échec, utiliser le token brut
+        $reference = $this->resolveReferenceFromToken($token);
+        if ($reference === null || $reference === '') {
+            http_response_code(400);
+            echo 'Référence invalide.';
+            return;
+        }
+
+        $redirectUrl = '?page=docviewer&type=planning&id=' . urlencode($reference) . '&action=download';
+        header('Location: ' . $redirectUrl);
+        exit;
+    }
+
+    /**
+     * Résout une référence planning (PLN-YYYY-NNNNN) depuis un token legacy ou direct.
+     */
+    private function resolveReferenceFromToken(string $token): ?string
+    {
+        // Si le token ressemble déjà à une référence PLN, l'utiliser directement
+        if (preg_match('/^PLN-\d{4}-\d{5}$/', $token) === 1) {
+            return $token;
+        }
+
+        // Tenter le décodage base64 (legacy)
         $decoded = $this->decodeFileToken($token);
         if ($decoded === null || $decoded === '') {
-            http_response_code(400);
-            echo 'Fichier invalide.';
-            return;
+            return null;
         }
 
-        $realPath = realpath($decoded);
-        $basePlanningDir = realpath(__DIR__ . '/../../storage/planning');
-        if ($realPath === false || $basePlanningDir === false) {
-            http_response_code(404);
-            echo 'Fichier introuvable.';
-            return;
+        // Extraire le nom de fichier (sans extension) du chemin décodé
+        $filename = pathinfo($decoded, PATHINFO_FILENAME);
+        if ($filename !== '' && preg_match('/^PLN-\d{4}-\d{5}$/', $filename) === 1) {
+            return $filename;
         }
 
-        $normalizedPath = str_replace('\\', '/', $realPath);
-        $normalizedBase = rtrim(str_replace('\\', '/', $basePlanningDir), '/') . '/';
-        if (!str_starts_with($normalizedPath, $normalizedBase) || !is_file($realPath) || strtolower((string) pathinfo($realPath, PATHINFO_EXTENSION)) !== 'pdf') {
-            http_response_code(403);
-            echo 'Accès au fichier refusé.';
-            return;
+        // Fallback : tenter d'utiliser le décodage complet comme référence
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $decoded) === 1) {
+            return $decoded;
         }
 
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . basename($realPath) . '"');
-        header('Content-Length: ' . filesize($realPath));
-        readfile($realPath);
+        return null;
     }
 
     private function getPlanningGeneratorService(): PlanningGeneratorService
@@ -555,8 +592,8 @@ class ProgrammationSoutenanceController
 
         $db = new AppDatabase();
         $pdfGenerator = new PdfGeneratorService(
-            __DIR__ . '/../../storage',
-            __DIR__ . '/../../public/assets/img/logo.png'
+            __DIR__ . '/../../storage/documents',
+            __DIR__ . '/../../public/image/logo_ufhb.png'
         );
 
         $this->planningDataUtils = new PlanningDataUtils($db);
@@ -712,7 +749,13 @@ class ProgrammationSoutenanceController
 
     private function decodeFileToken(string $token): ?string
     {
-        if ($token === '') {
+        if ($token === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $token)) {
+            return null;
+        }
+
+        // Ne décoder que les tokens suffisamment longs pour être du vrai base64.
+        // Les références courtes (PLN-YYYY-NNNNN) ne doivent pas être décodées.
+        if (strlen($token) < 24) {
             return null;
         }
 
@@ -723,7 +766,16 @@ class ProgrammationSoutenanceController
         }
 
         $decoded = base64_decode($normalized, true);
-        return is_string($decoded) ? $decoded : null;
+        if (!is_string($decoded) || $decoded === '') {
+            return null;
+        }
+
+        // Rejeter les chaînes contenant des null bytes
+        if (str_contains($decoded, "\0")) {
+            return null;
+        }
+
+        return $decoded;
     }
 }
 ?>

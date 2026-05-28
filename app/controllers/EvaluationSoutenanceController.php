@@ -69,6 +69,7 @@ class EvaluationSoutenanceController
         // Récupérer les données POST
         $numEtu = $_POST['num_etu'] ?? null;
         $commentaireGeneral = $_POST['commentaire_general'] ?? '';
+        $decision = $_POST['cm_eval_decision'] ?? '';
         $criteres = $_POST['criteres'] ?? [];
         $idAnneeAcad = $_POST['id_annee_acad'] ?? null;
 
@@ -76,6 +77,7 @@ class EvaluationSoutenanceController
             $numEtu ?? '',
             $criteres,
             $commentaireGeneral,
+            $decision,
             $idAnneeAcad
         );
     }
@@ -142,8 +144,8 @@ class EvaluationSoutenanceController
             $db = new \App\Support\Database();
             $dataUtils = new PlanningDataUtils($db);
             $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
-                __DIR__ . '/../../storage',
-                __DIR__ . '/../../public/assets/img/logo.png'
+                __DIR__ . '/../../storage/documents',
+                __DIR__ . '/../../public/image/logo_ufhb.png'
             );
             $pvService = new PvFinalGeneratorService($pdfGenerator, $dataUtils);
             
@@ -161,18 +163,10 @@ class EvaluationSoutenanceController
                 throw new Exception($result['error'] ?? 'Erreur lors de la génération du PDF');
             }
             
-            // Le fichier a été généré, on le télécharge
-            $pdfPath = $result['path'];
-            if (!file_exists($pdfPath)) {
-                throw new Exception('Fichier PDF non trouvé: ' . $pdfPath);
-            }
-            
-            // Télécharger le fichier
-            $pdfFilename = 'PV_Soutenance_' . $numEtu . '_' . date('Y-m-d') . '.pdf';
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="' . $pdfFilename . '"');
-            header('Content-Length: ' . filesize($pdfPath));
-            readfile($pdfPath);
+            // Le fichier a été généré, on redirige vers le DocViewer unifié
+            $redirectUrl = '?page=docviewer&type=pv_final&id=' . urlencode((string) $soutenanceId) . '&action=preview';
+            header('Location: ' . $redirectUrl);
+            exit;
             
         } catch (Exception $e) {
             error_log('Erreur imprimerPV: ' . $e->getMessage());

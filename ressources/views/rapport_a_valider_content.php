@@ -6,7 +6,23 @@ $pdo = Database::getConnection();
 $rapportModel = new RapportEtudiant($pdo);
 $evaluationModel = new EvaluationRapport($pdo);
 $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
-$allRapports = $rapportModel->getAllRapports();
+$idEnseignant = '';
+if ($idUtilisateur > 0) {
+    try {
+        $stmtUser = $pdo->prepare('SELECT login_utilisateur FROM utilisateur WHERE id_utilisateur = ?');
+        $stmtUser->execute([$idUtilisateur]);
+        $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
+        if (!empty($userRow['login_utilisateur'])) {
+            $stmtEns = $pdo->prepare('SELECT id_enseignant FROM enseignants WHERE mail_enseignant = ? LIMIT 1');
+            $stmtEns->execute([(string) $userRow['login_utilisateur']]);
+            $ensRow = $stmtEns->fetch(PDO::FETCH_ASSOC);
+            $idEnseignant = trim((string) ($ensRow['id_enseignant'] ?? ''));
+        }
+    } catch (Throwable $e) {
+        $idEnseignant = '';
+    }
+}
+$allRapports = $rapportModel->getRapportsDeposes();
 $rapports = [];
 $totalNouveaux = 0;
 $totalTraites = 0;
@@ -17,7 +33,7 @@ foreach ($allRapports as $rapport) {
     }
     $evaluations = $evaluationModel->getEvaluationsRapport($idRapport);
     $nbEvaluations = count($evaluations);
-    $dejaEvalue = $idUtilisateur > 0 ? (bool) $evaluationModel->evaluationExiste($idRapport, $idUtilisateur) : false;
+    $dejaEvalue = $idEnseignant !== '' ? (bool) $evaluationModel->evaluationExiste($idRapport, $idEnseignant) : false;
     $votesValider = 0;
     $votesRejeter = 0;
     foreach ($evaluations as $evaluation) {
@@ -103,126 +119,117 @@ $statusOptions = [
     'rejeter' => 'Rejetés',
 ];
 ?>
-<div class="cm-prd3-screen cm-prd3-crud-screen">
+<div class="cm-prd3-screen cm-prd3-crud-screen cm-screen-scrollable">
     <div class="cm-crud-wrapper">
-        <div class="cm-pole-superieur">
-            <div class="">
-            </div>
-            <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
-                <?php cm_component('ui/badge', ['text' => 'Total rapports: ' . count($rapports), 'type' => 'info']); ?>
-                <?php cm_component('ui/badge', ['text' => 'Nouveaux: ' . $totalNouveaux, 'type' => 'warning']); ?>
-                <?php cm_component('ui/badge', ['text' => 'Deja traites: ' . $totalTraites, 'type' => 'success']); ?>
-            </div>
-        </div>
         <?php cm_toolbar([
             'screen' => 'rapport_a_valider',
             'id_prefix' => 'cmReception',
             'search_value' => $_GET['search'] ?? '',
             'limit' => $perPage,
             'allowed_limits' => $allowedLimits,
-            'can_delete' => canDelete(),
+            'can_delete' => false,
             'can_view' => canView(),
+            'print_title' => 'Rapports à valider',
         ]); ?>
         <div class="cm-pole-inferieur">
             <div class="cm-table-wrapper">
                 <table class="cm-data-table" id="cmReceptionTable">
                     <thead>
-                    <tr>
-                        <th class="cm-data-table__th cm-data-table__th--check">
-                            <input type="checkbox" id="cmReceptionCheckAll" aria-label="Tout sélectionner">
-                        </th>
-                        <th class="cm-data-table__th">Nouv.</th>
-                        <th class="cm-data-table__th">N° Rapport</th>
-                        <th class="cm-data-table__th">N° Carte</th>
-                        <th class="cm-data-table__th">Nom &amp; Prénom</th>
-                        <th class="cm-data-table__th">Nom rapport</th>
-                        <th class="cm-data-table__th">Thème</th>
-                        <th class="cm-data-table__th">Date dépôt</th>
-                        <th class="cm-data-table__th">Statut</th>
-                        <th class="cm-data-table__th is-center">Actions</th>
-                    </tr>
+                        <tr>
+                            <th class="cm-data-table__th cm-data-table__th--check">
+                                <input type="checkbox" id="cmReceptionCheckAll" class="cm-table-check-all"
+                                    aria-label="Tout sélectionner">
+                            </th>
+                            <th class="cm-data-table__th">N° Rapport</th>
+                            <th class="cm-data-table__th">Nom &amp; Prénom</th>
+                            <th class="cm-data-table__th">Thème</th>
+                            <th class="cm-data-table__th">Date dépôt</th>
+                            <th class="cm-data-table__th">Statut</th>
+                            <th class="cm-data-table__th is-center">Actions</th>
+                        </tr>
                     </thead>
                     <tbody id="cmReceptionTableBody">
-                    <?php if (empty($rowsToShow)): ?>
-                        <?php cm_component('ui/empty-state', [
-                            'in_table' => true,
-                            'colspan' => 10,
-                            'title' => '',
-                            'message' => 'Aucun rapport ne correspond aux filtres.',
-                        ]); ?>
-                    <?php else: ?>
-                        <?php foreach ($rowsToShow as $row): ?>
-                            <?php
-                            $idRapport = (int) ($row['id_rapport'] ?? 0);
-                            $numEtu = (string) ($row['num_etu'] ?? '');
-                            $isNouveau = !empty($row['is_nouveau']);
-                            $searchText = strtolower(
-                                (string) $row['nom_rapport'] . ' ' .
-                                (string) $row['theme_rapport'] . ' ' .
-                                (string) $row['prenom_etu'] . ' ' .
-                                (string) $row['nom_etu'] . ' ' .
-                                $numEtu
-                            );
-                            $dateDepot = !empty($row['date_rapport']) ? date('d/m/Y', strtotime((string) $row['date_rapport'])) : '-';
-                            $statut = strtolower((string) ($row['statut_rapport'] ?? 'en_attente'));
-                            $statutLabel = 'En attente';
-                            $badgeType = 'info';
-                            if ($statut === 'valider') {
-                                $statutLabel = 'Validé';
-                                $badgeType = 'success';
-                            } elseif ($statut === 'rejeter') {
-                                $statutLabel = 'Rejeté';
-                                $badgeType = 'danger';
-                            } elseif ($statut === 'en_cours') {
-                                $statutLabel = 'En cours';
-                                $badgeType = 'warning';
-                            }
-                            ?>
-                            <tr class="cm-data-table__row<?php echo $isNouveau ? ' cm-reception-row--new' : ''; ?>"
-                                data-rapport-id="<?php echo $idRapport; ?>"
-                                data-is-new="<?php echo $isNouveau ? '1' : '0'; ?>"
-                                data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
-                                <td class="cm-data-table__td cm-data-table__td--check">
-                                    <input type="checkbox" class="cm-reception-check-row" value="<?php echo $idRapport; ?>" aria-label="Sélectionner ligne rapport <?php echo $idRapport; ?>">
-                                </td>
-                                <td class="cm-data-table__td">
-                                    <?php if ($isNouveau): ?>
-                                        <?php cm_component('ui/badge', ['type' => 'warning', 'text' => 'Nouveau']); ?>
-                                    <?php else: ?>
-                                        <span class="cm-text-muted">—</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="cm-data-table__td"><?php echo $idRapport; ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($numEtu !== '' ? $numEtu : '-', ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars(trim((string) $row['prenom_etu'] . ' ' . (string) $row['nom_etu']), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['nom_rapport'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars((string) $row['theme_rapport'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td"><?php echo htmlspecialchars($dateDepot, ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td class="cm-data-table__td">
-                                    <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>
-                                </td>
-                                <td class="cm-data-table__td is-center">
-                                    <div class="cm-table-actions">
-                                        <?php if (canView()): ?>
-                                            <a class="cm-btn-action is-view"
-                                               href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
-                                               title="Voir rapport">
-                                                <i class="fas fa-eye" aria-hidden="true"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if (canEdit()): ?>
-                                            <a class="cm-btn is-info is-sm"
-                                               href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
-                                               title="Transmettre à l'évaluation">
-                                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                                                <span>Transmettre</span>
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php if (empty($rowsToShow)): ?>
+                            <?php cm_component('ui/empty-state', [
+                                'in_table' => true,
+                                'colspan' => 5,
+                                'title' => '',
+                                'message' => 'Aucun rapport ne correspond aux filtres.',
+                                'actions' => [
+                                    ['label' => 'Actualiser', 'type' => 'button', 'class' => 'cm-btn is-secondary is-sm', 'attrs' => ['onclick' => 'window.location.reload()']],
+                                ]
+                            ]); ?>
+                        <?php else: ?>
+                            <?php foreach ($rowsToShow as $row): ?>
+                                <?php
+                                $idRapport = (int) ($row['id_rapport'] ?? 0);
+                                $numEtu = (string) ($row['num_etu'] ?? '');
+                                $isNouveau = !empty($row['is_nouveau']);
+                                $searchText = strtolower(
+                                    (string) $row['nom_rapport'] . ' ' .
+                                    (string) $row['theme_rapport'] . ' ' .
+                                    (string) $row['prenom_etu'] . ' ' .
+                                    (string) $row['nom_etu'] . ' ' .
+                                    $numEtu
+                                );
+                                $dateDepot = !empty($row['date_rapport']) ? date('d/m/Y', strtotime((string) $row['date_rapport'])) : '-';
+                                $statut = strtolower((string) ($row['statut_rapport'] ?? 'en_attente'));
+                                $statutLabel = 'En attente';
+                                $badgeType = 'info';
+                                if ($statut === 'valider') {
+                                    $statutLabel = 'Validé';
+                                    $badgeType = 'success';
+                                } elseif ($statut === 'rejeter') {
+                                    $statutLabel = 'Rejeté';
+                                    $badgeType = 'danger';
+                                } elseif ($statut === 'en_cours') {
+                                    $statutLabel = 'En cours';
+                                    $badgeType = 'warning';
+                                }
+                                ?>
+                                <tr class="cm-data-table__row<?php echo $isNouveau ? ' cm-reception-row--new' : ''; ?>"
+                                    data-rapport-id="<?php echo $idRapport; ?>"
+                                    data-is-new="<?php echo $isNouveau ? '1' : '0'; ?>"
+                                    data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <td class="cm-data-table__td cm-data-table__td--check">
+                                        <input type="checkbox" class="cm-table-check-row cm-reception-check-row"
+                                            value="<?php echo $idRapport; ?>"
+                                            aria-label="Sélectionner ligne rapport <?php echo $idRapport; ?>">
+                                    </td>
+                                    <td class="cm-data-table__td"><?php echo $idRapport; ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars(trim((string) $row['prenom_etu'] . ' ' . (string) $row['nom_etu']), ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars((string) $row['theme_rapport'], ENT_QUOTES, 'UTF-8'); ?>
+                                    </td>
+                                    <td class="cm-data-table__td">
+                                        <?php echo htmlspecialchars($dateDepot, ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td">
+                                        <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>
+                                    </td>
+                                    <td class="cm-data-table__td is-center">
+                                        <div class="cm-table-actions">
+                                            <?php if (canView()): ?>
+                                                <a class="cm-btn-action is-view"
+                                                    href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
+                                                    title="Voir rapport">
+                                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if (canEdit()): ?>
+                                                <a class="cm-btn is-info is-sm"
+                                                    href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
+                                                    title="Transmettre à l'évaluation">
+                                                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                                                    <span>Transmettre</span>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -240,168 +247,105 @@ $statusOptions = [
     </div>
 </div>
 <script>
-(function () {
-    const searchInput = document.getElementById('cmReceptionSearch');
-    const tableBody = document.getElementById('cmReceptionTableBody');
-    const exportBtn = document.getElementById('cmReceptionExport');
-    const printBtn = document.getElementById('cmReceptionPrint');
-    const checkAll = document.getElementById('cmReceptionCheckAll');
-    const selectAllBtn = document.getElementById('cmReceptionSelectAllBtn');
-    const deselectBtn = document.getElementById('cmReceptionDeselectBtn');
-    const deleteBtn = document.getElementById('cmReceptionDeleteBtn');
-    function getRows() {
-        return Array.from(document.querySelectorAll('#cmReceptionTableBody .cm-data-table__row'));
-    }
-    function getVisibleRows() {
-        return getRows().filter(function (row) {
-            return row.style.display !== 'none';
-        });
-    }
-    function getCheckedRows() {
-        return getRows().filter(function (row) {
-            const checkbox = row.querySelector('.cm-reception-check-row');
-            return checkbox && checkbox.checked;
-        });
-    }
-    function updateDeleteState() {
-        const count = getCheckedRows().length;
-        if (deleteBtn) {
-            deleteBtn.disabled = count === 0;
-            deleteBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i> Supprimer (' + count + ')';
+    (function () {
+        var tableBody = document.getElementById('cmReceptionTableBody');
+        var checkAll = document.getElementById('cmReceptionCheckAll');
+
+        function getRows() {
+            return Array.from(document.querySelectorAll('#cmReceptionTableBody .cm-data-table__row'));
         }
-        if (checkAll) {
-            const visible = getVisibleRows();
-            const checkedVisible = visible.filter(function (row) {
-                const cb = row.querySelector('.cm-reception-check-row');
+        function getVisibleRows() {
+            return getRows().filter(function (row) {
+                return row.style.display !== 'none';
+            });
+        }
+        function getCheckedRows() {
+            return getRows().filter(function (row) {
+                var cb = row.querySelector('.cm-reception-check-row');
+                return cb && cb.checked;
+            });
+        }
+        function updateDeleteState() {
+            if (!checkAll) return;
+            var visible = getVisibleRows();
+            var checkedVisible = visible.filter(function (row) {
+                var cb = row.querySelector('.cm-reception-check-row');
                 return cb && cb.checked;
             });
             checkAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
         }
-    }
-    function applySearch() {
-        const term = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
-        getRows().forEach(function (row) {
-            const text = row.getAttribute('data-search') || '';
-            row.style.display = term === '' || text.indexOf(term) !== -1 ? '' : 'none';
-        });
-        updateDeleteState();
-    }
-    function bindRowClickBehavior() {
-        getRows().forEach(function (row) {
-            const isNew = row.getAttribute('data-is-new') === '1';
-            const rapportId = row.getAttribute('data-rapport-id') || '';
-            if (!isNew || !rapportId) {
-                return;
-            }
-            row.style.cursor = 'pointer';
-            row.addEventListener('click', function (event) {
-                if (event.target.closest('a,button,input,select,textarea,label')) {
-                    return;
-                }
-                const url = '?page=evaluation_dossiers&detail=' + encodeURIComponent(rapportId);
-                if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
-                    window.CM.ajax.load(url);
-                    return;
-                }
-                window.location.href = url;
-            });
-        });
-    }
-    if (tableBody) {
-        tableBody.addEventListener('change', function (event) {
-            if (event.target && event.target.classList.contains('cm-reception-check-row')) {
-                updateDeleteState();
-            }
-        });
-    }
-    if (checkAll) {
-        checkAll.addEventListener('change', function () {
-            getVisibleRows().forEach(function (row) {
-                const checkbox = row.querySelector('.cm-reception-check-row');
-                if (checkbox) {
-                    checkbox.checked = checkAll.checked;
+
+        if (tableBody) {
+            tableBody.addEventListener('change', function (event) {
+                if (event.target && event.target.classList.contains('cm-reception-check-row')) {
+                    updateDeleteState();
                 }
             });
-            updateDeleteState();
-        });
-    }
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function () {
-            getVisibleRows().forEach(function (row) {
-                const checkbox = row.querySelector('.cm-reception-check-row');
-                if (checkbox) {
-                    checkbox.checked = true;
-                }
-            });
-            updateDeleteState();
-        });
-    }
-    if (deselectBtn) {
-        deselectBtn.addEventListener('click', function () {
-            getRows().forEach(function (row) {
-                const checkbox = row.querySelector('.cm-reception-check-row');
-                if (checkbox) {
-                    checkbox.checked = false;
-                }
-            });
-            updateDeleteState();
-        });
-    }
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function () {
-            const checked = getCheckedRows();
-            if (checked.length === 0) {
-                return;
-            }
-            checked.forEach(function (row) {
-                row.remove();
-            });
-            updateDeleteState();
-        });
-    }
-    if (searchInput) {
-        searchInput.addEventListener('input', applySearch);
-    }
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function () {
-            const headers = ['Nouveau', 'N° Rapport', 'N° Carte', 'Nom & Prénom', 'Nom rapport', 'Thème', 'Date dépôt', 'Statut', 'Actions'];
-            const csvRows = [headers.join(';')];
-            getVisibleRows().forEach(function (row) {
-                const cols = row.querySelectorAll('.cm-data-table__td');
-                if (cols.length < 10) {
-                    return;
-                }
-                const line = [
-                    cols[1].innerText.trim(),
-                    cols[2].innerText.trim(),
-                    cols[3].innerText.trim(),
-                    cols[4].innerText.trim(),
-                    cols[5].innerText.trim(),
-                    cols[6].innerText.trim(),
-                    cols[7].innerText.trim(),
-                    cols[8].innerText.trim()
-                ].map(function (value) {
-                    return '"' + value.replace(/"/g, '""') + '"';
+        }
+        if (checkAll) {
+            checkAll.addEventListener('change', function () {
+                getVisibleRows().forEach(function (row) {
+                    var cb = row.querySelector('.cm-reception-check-row');
+                    if (cb) {
+                        cb.checked = checkAll.checked;
+                    }
                 });
-                csvRows.push(line.join(';'));
+                updateDeleteState();
             });
-            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'reception_rapports.csv';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
+        }
+
+        function bindRowClickBehavior() {
+            getRows().forEach(function (row) {
+                var isNew = row.getAttribute('data-is-new') === '1';
+                var rapportId = row.getAttribute('data-rapport-id') || '';
+                if (!isNew || !rapportId) return;
+                row.style.cursor = 'pointer';
+                row.addEventListener('click', function (event) {
+                    if (event.target.closest('a,button,input,select,textarea,label')) return;
+                    var url = '?page=evaluation_dossiers&detail=' + encodeURIComponent(rapportId);
+                    if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                        window.CM.ajax.load(url);
+                        return;
+                    }
+                    window.location.href = url;
+                });
+            });
+        }
+
+        // Toolbar search -> sync check-all state after filtering
+        var searchInput = document.getElementById('cmReception_search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function () { updateDeleteState(); });
+            searchInput.addEventListener('keyup', function () { updateDeleteState(); });
+        }
+
+        // Toolbar delete event
+        document.addEventListener('cm:toolbar:delete', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== 'cmReception_toolbar') return;
+            var checked = getCheckedRows();
+            if (checked.length === 0) return;
+            checked.forEach(function (row) { row.remove(); });
+            updateDeleteState();
         });
-    }
-    if (printBtn) {
-        printBtn.addEventListener('click', function () {
-            window.print();
+
+        // Toolbar limit change event
+        document.addEventListener('cm:toolbar:limit:change', function (event) {
+            if (!event.detail || !event.detail.toolbar) return;
+            if (event.detail.toolbar.id !== 'cmReception_toolbar') return;
+            event.preventDefault();
+            var limit = event.detail.limit || '10';
+            var url = new URL(window.location.href);
+            url.searchParams.set('limit_reception', limit);
+            url.searchParams.set('page_reception', '1');
+            if (window.CM && window.CM.ajax && typeof window.CM.ajax.load === 'function') {
+                window.CM.ajax.load(url.toString());
+            } else {
+                window.location.href = url.toString();
+            }
         });
-    }
-    bindRowClickBehavior();
-    applySearch();
-})();
+
+        bindRowClickBehavior();
+        updateDeleteState();
+    })();
 </script>

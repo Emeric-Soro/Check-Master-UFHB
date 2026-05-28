@@ -18,7 +18,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
     <link rel="stylesheet" href="../assets/css/components.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="shortcut icon" href="../image/logo_cm_sbg.png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/vendor/font-awesome/css/all.min.css">
 </head>
 
 <body class="cm-login-page">
@@ -80,7 +80,14 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
                     </div>
                     <div class="cm-login-input-icon">
                         <input id="password" name="password" type="password" required class="cm-form-control" placeholder="Votre mot de passe">
-                        <i class="fas fa-key" aria-hidden="true"></i>
+                        <button type="button"
+                                class="cm-login-password-toggle"
+                                id="togglePassword"
+                                aria-label="Afficher le mot de passe"
+                                aria-controls="password"
+                                aria-pressed="false">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -92,12 +99,33 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var errorMessage = document.getElementById('errorMessage');
+            var togglePassword = document.getElementById('togglePassword');
+            var passwordInput = document.getElementById('password');
+
             if (!errorMessage) {
+                // nothing
+            } else {
+                setTimeout(function () {
+                    errorMessage.style.display = 'none';
+                }, 2400);
+            }
+
+            if (!togglePassword || !passwordInput) {
                 return;
             }
-            setTimeout(function () {
-                errorMessage.style.display = 'none';
-            }, 2400);
+
+            togglePassword.addEventListener('click', function () {
+                var isHidden = passwordInput.getAttribute('type') === 'password';
+                var icon = togglePassword.querySelector('i');
+
+                passwordInput.setAttribute('type', isHidden ? 'text' : 'password');
+                togglePassword.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                togglePassword.setAttribute('aria-label', isHidden ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+
+                if (icon) {
+                    icon.className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+                }
+            });
         });
     </script>
     <?php unset($_SESSION['error']); ?>

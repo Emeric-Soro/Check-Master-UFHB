@@ -3,6 +3,8 @@ namespace CheckMaster\Services;
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
+require_once __DIR__ . '/../utils/EmailService.php';
+require_once __DIR__ . '/../utils/NotificationService.php';
 
 use Exception;
 use PDO;
@@ -13,10 +15,12 @@ class ProgrammationSoutenanceService
     private $tableExistsCache = [];
     private $columnExistsCache = [];
     private $roleIdsCache = null;
+    private $emailService;
 
     public function __construct($pdo = null)
     {
         $this->pdo = $pdo ?: \Database::getConnection();
+        $this->emailService = new \EmailService();
     }
 
     private function getSelectedAcademicYearId(): ?int
@@ -35,8 +39,26 @@ class ProgrammationSoutenanceService
     private function getStudentAcademicYearId(string $studentId): ?int
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT id_annee_acad FROM inscriptions WHERE num_carte_etud = ? ORDER BY date_inscription DESC, num_versement DESC, id_inscription DESC LIMIT 1");
-            $stmt->execute([$studentId]);
+            $stmt = $this->pdo->prepare("
+                SELECT " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad
+                FROM rapport_etudiants r
+                JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
+                LEFT JOIN valider v ON v.id_rapport = r.id_rapport
+                WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?)
+                  AND v.decision_validation = 'valider'
+                  AND EXISTS (
+                      SELECT 1
+                      FROM compte_rendu cr
+                      LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                      WHERE crr.id_rapport = r.id_rapport
+                         OR cr.num_etu = e.num_carte_etud
+                         OR cr.num_etu = e.num_ident_etud
+                  )
+                ORDER BY COALESCE(d.date_depot, " . $this->rapportDateExpr('r') . ") DESC, r.id_rapport DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$studentId, $studentId]);
             $value = $stmt->fetchColumn();
             return is_numeric($value) ? (int) $value : null;
         } catch (Exception $e) {
@@ -51,12 +73,40 @@ class ProgrammationSoutenanceService
         $selectedYearId = $this->getSelectedAcademicYearId();
 
         if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-            throw new Exception("L'etudiant ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("L'étudiant ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);
         if (!$writeGuard['success']) {
             throw new Exception($writeGuard['message']);
+        }
+    }
+
+    private function isStudentProgrammable(string $studentId): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*)
+                FROM rapport_etudiants r
+                JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
+                LEFT JOIN valider v ON v.id_rapport = r.id_rapport
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
+                WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?)
+                  AND v.decision_validation = 'valider'
+                  AND EXISTS (
+                      SELECT 1
+                      FROM compte_rendu cr
+                      LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                      WHERE crr.id_rapport = r.id_rapport
+                         OR cr.num_etu = e.num_carte_etud
+                         OR cr.num_etu = e.num_ident_etud
+                  )
+            ");
+            $stmt->execute([$studentId, $studentId]);
+            return (int) $stmt->fetchColumn() > 0;
+        } catch (Exception $e) {
+            error_log('Erreur isStudentProgrammable: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -68,16 +118,13 @@ class ProgrammationSoutenanceService
                 return null;
             }
             $idCol = $this->getProgrammationIdColumn($progTable);
+            $yearExpr = $this->columnExists($progTable, 'id_annee_acad')
+                ? 'p.id_annee_acad'
+                : "COALESCE(" . $this->getFallbackStudentYearExpr('e') . ")";
             $stmt = $this->pdo->prepare("
-                SELECT ins.id_annee_acad
+                SELECT {$yearExpr}
                 FROM {$progTable} p
-                INNER JOIN etudiants e ON p.num_etud = e.num_carte_etud
-                LEFT JOIN LATERAL (
-                        SELECT i2.num_carte_etud, i2.id_annee_acad, i2.num_versement, i2.date_inscription
-                        FROM inscriptions i2 
-                        WHERE i2.num_carte_etud = e.num_carte_etud 
-                        ORDER BY i2.date_inscription DESC, i2.num_versement DESC LIMIT 1
-                    ) ins ON TRUE
+                INNER JOIN etudiants e ON (p.num_etud = e.num_carte_etud OR p.num_etud = e.num_ident_etud)
                 WHERE p.{$idCol} = ?
                 LIMIT 1
             ");
@@ -96,7 +143,7 @@ class ProgrammationSoutenanceService
         $selectedYearId = $this->getSelectedAcademicYearId();
 
         if ($selectedYearId !== null && $targetYearId !== null && $selectedYearId !== $targetYearId) {
-            throw new Exception("L'attribution ne correspond pas a l'annee academique actuellement selectionnee.");
+            throw new Exception("L'attribution ne correspond pas à l'année académique actuellement sélectionnée.");
         }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $targetYearId, $context);
@@ -142,6 +189,118 @@ class ProgrammationSoutenanceService
             $this->columnExistsCache[$key] = false;
             return false;
         }
+    }
+
+    private function studentJoinCondition(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        $conditions = [
+            "{$programmationAlias}.num_etud = {$studentAlias}.num_carte_etud",
+        ];
+
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            $conditions[] = "{$programmationAlias}.num_etud = {$studentAlias}.num_ident_etud";
+        }
+
+        return implode(' OR ', $conditions);
+    }
+
+    private function studentIdentifierExpr(string $studentAlias = 'e', string $programmationAlias = 'p'): string
+    {
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), NULLIF({$studentAlias}.num_ident_etud, ''), {$programmationAlias}.num_etud)";
+        }
+
+        return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), {$programmationAlias}.num_etud)";
+    }
+
+    private function studentCarteExpr(string $studentAlias = 'e'): string
+    {
+        if ($this->columnExists('etudiants', 'num_ident_etud')) {
+            return "COALESCE(NULLIF({$studentAlias}.num_carte_etud, ''), NULLIF({$studentAlias}.num_ident_etud, ''))";
+        }
+
+        return "{$studentAlias}.num_carte_etud";
+    }
+
+    private function rapportDateExpr(string $alias = 'r'): string
+    {
+        if ($this->columnExists('rapport_etudiants', 'date_rapport')) {
+            return $alias . '.date_rapport';
+        }
+        if ($this->columnExists('rapport_etudiants', 'date_redaction_rapport')) {
+            return $alias . '.date_redaction_rapport';
+        }
+        return 'NULL';
+    }
+
+    private function getFallbackStudentYearExpr(string $studentAlias = 'e'): string
+    {
+        return "
+            (SELECT i.id_annee_acad
+             FROM inscriptions i
+             WHERE i.num_carte_etud = " . $this->studentCarteExpr($studentAlias) . "
+             ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getAcademicYearFromDateExpr(string $dateExpr): string
+    {
+        return "
+            (SELECT aa.id_annee_acad
+             FROM annee_academique aa
+             WHERE DATE($dateExpr) BETWEEN aa.date_deb AND aa.date_fin
+             ORDER BY aa.date_deb DESC
+             LIMIT 1)
+        ";
+    }
+
+    private function getReportAcademicYearExpr(string $rapportAlias = 'r', string $studentAlias = 'e', ?string $depotAlias = null): string
+    {
+        $candidates = [];
+
+        if ($depotAlias !== null && $this->tableExists('deposer')) {
+            $candidates[] = $this->getAcademicYearFromDateExpr($depotAlias . '.date_depot');
+        }
+
+        $dateExpr = $this->rapportDateExpr($rapportAlias);
+        if ($dateExpr !== 'NULL') {
+            $candidates[] = $this->getAcademicYearFromDateExpr($dateExpr);
+        }
+
+        $candidates[] = $this->getFallbackStudentYearExpr($studentAlias);
+
+        return 'COALESCE(' . implode(', ', $candidates) . ')';
+    }
+
+    private function latestCandidatureJoin(string $rapportAlias = 'r', string $studentAlias = 'e', string $candidatureAlias = 'cs'): string
+    {
+        if (!$this->tableExists('candidature_soutenance')) {
+            return '';
+        }
+
+        return "
+            LEFT JOIN candidature_soutenance {$candidatureAlias} ON {$candidatureAlias}.id_candidature = (
+                SELECT cs2.id_candidature
+                FROM candidature_soutenance cs2
+                WHERE (
+                    cs2.id_candidature = {$rapportAlias}.id_candidature
+                    OR (
+                        ({$rapportAlias}.id_candidature IS NULL OR {$rapportAlias}.id_candidature = 0)
+                        AND (cs2.num_etu = {$studentAlias}.num_carte_etud OR cs2.num_etu = {$studentAlias}.num_ident_etud)
+                    )
+                )
+                ORDER BY cs2.date_candidature DESC, cs2.id_candidature DESC
+                LIMIT 1
+            )
+        ";
+    }
+
+    private function validatedCandidatureWhere(string $candidatureAlias = 'cs'): string
+    {
+        return $this->tableExists('candidature_soutenance')
+            ? " AND {$candidatureAlias}.statut_candidature IN ('Validee', 'Validée')"
+            : '';
     }
 
     private function getProgrammationTable()
@@ -359,15 +518,16 @@ class ProgrammationSoutenanceService
 
             $sql = "
                 SELECT DISTINCT
-                    e.num_carte_etud as id_etudiant,
+                    " . $this->studentCarteExpr('e') . " as id_etudiant,
                     e.nom_etu as nom_etudiant,
                     e.prenom_etu as prenom_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
-                    e.num_carte_etud as matricule_etudiant,
+                    " . $this->studentCarteExpr('e') . " as matricule_etudiant,
                     e.email_etu as email_etudiant,
                     e.promotion_etu,
                     e.promotion_etu as lib_specialite,
                     r.theme_rapport,
+                    " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
                     ist.id_maitre_stage,
                     CONCAT(ms.prenom, ' ', ms.Nom) as maitre_stage_nom,
                     ms.email as maitre_stage_email,
@@ -400,16 +560,25 @@ class ProgrammationSoutenanceService
                         ELSE 'available'
                     END as statut_programmation
                 FROM etudiants e
-                INNER JOIN rapport_etudiants r ON e.num_carte_etud = r.num_etu
+                INNER JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                 LEFT JOIN valider v ON r.id_rapport = v.id_rapport
-                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
+                LEFT JOIN informations_stage ist ON (e.num_carte_etud = ist.num_etu OR e.num_ident_etud = ist.num_etu)
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
-                LEFT JOIN {$progTable} p ON e.num_carte_etud = p.num_etud
-                WHERE (v.decision_validation = 'valider' OR COALESCE(r.statut_rapport, '') IN ('valider', 'valide'))
+                LEFT JOIN {$progTable} p ON (e.num_carte_etud = p.num_etud OR e.num_ident_etud = p.num_etud)
+                WHERE v.decision_validation = 'valider'
+                AND EXISTS (
+                    SELECT 1
+                    FROM compte_rendu cr
+                    LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
+                    WHERE crr.id_rapport = r.id_rapport
+                       OR cr.num_etu = e.num_carte_etud
+                       OR cr.num_etu = e.num_ident_etud
+                )
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
-                $sql .= " AND EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                $sql .= " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = :id_annee_acad";
             }
 
             $sql .= " ORDER BY e.nom_etu, e.prenom_etu";
@@ -547,11 +716,22 @@ class ProgrammationSoutenanceService
             $directeurNom = $this->juryNameExpr('directeur', 'p');
             $encadreurId = $this->juryIdExpr('encadreur', 'p');
             $encadreurNom = $this->juryNameExpr('encadreur', 'p');
-            $maitreId = $this->juryIdExpr('maitre_stage', 'p');
-            $maitreNom = $this->juryNameExpr('maitre_stage', 'p');
+            // Le maître de stage n'est pas dans `enseignants` mais dans `maitre_de_stage`.
+            // On utilise une sous-requête directe sur informations_stage → maitre_de_stage.
+            $maitreNomExpr = "(SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                              FROM informations_stage ist2
+                              JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                              WHERE ist2.num_etu = p.num_etud
+                              LIMIT 1)";
+            $maitreIdExpr = "(SELECT ist2.id_maitre_stage
+                             FROM informations_stage ist2
+                             WHERE ist2.num_etu = p.num_etud
+                             LIMIT 1)";
             $yearSelect = $this->columnExists($progTable, 'id_annee_acad')
                 ? 'p.id_annee_acad as id_annee_acad,'
                 : 'NULL as id_annee_acad,';
+            $studentJoin = $this->studentJoinCondition('e', 'p');
+            $studentIdentifier = $this->studentIdentifierExpr('e', 'p');
 
             $sql = "
                 SELECT
@@ -562,9 +742,9 @@ class ProgrammationSoutenanceService
                     p.heure_soutenance,
                     p.id_salle,
                     s.lib_salle as nom_salle,
-                    e.num_carte_etud as id_etudiant,
+                    {$studentIdentifier} as id_etudiant,
                     CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_etudiant,
-                    e.num_carte_etud as matricule_etudiant,
+                    {$studentIdentifier} as matricule_etudiant,
                     e.promotion_etu,
                     {$presidentId} as president_id,
                     {$presidentNom} as president_nom,
@@ -574,21 +754,24 @@ class ProgrammationSoutenanceService
                     {$directeurNom} as directeur_nom,
                     {$encadreurId} as encadreur_id,
                     {$encadreurNom} as encadreur_nom,
-                    {$maitreId} as maitre_stage_id,
-                    COALESCE({$maitreNom}, CONCAT(ms.prenom, ' ', ms.Nom)) as maitre_stage_nom,
-                    COALESCE({$maitreId}, ist.id_maitre_stage) as maitre_stage_ref
+                    {$maitreIdExpr} as maitre_stage_id,
+                    {$maitreNomExpr} as maitre_stage_nom,
+                    {$maitreIdExpr} as maitre_stage_ref
                 FROM {$progTable} p
-                LEFT JOIN etudiants e ON p.num_etud = e.num_carte_etud
+                LEFT JOIN etudiants e ON {$studentJoin}
+                LEFT JOIN rapport_etudiants r ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
+                " . $this->latestCandidatureJoin('r', 'e', 'cs') . "
+                LEFT JOIN valider v ON v.id_rapport = r.id_rapport
                 LEFT JOIN salles s ON p.id_salle = s.id_salle
-                LEFT JOIN informations_stage ist ON e.num_carte_etud = ist.num_etu
-                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
+                WHERE 1=1
+                " . $this->validatedCandidatureWhere('cs') . "
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
                 if ($this->columnExists($progTable, 'id_annee_acad')) {
-                    $sql .= " WHERE p.id_annee_acad = :id_annee_acad";
+                    $sql .= " AND p.id_annee_acad = :id_annee_acad";
                 } else {
-                    $sql .= " WHERE EXISTS (SELECT 1 FROM inscriptions i WHERE i.num_carte_etud = e.num_carte_etud AND i.id_annee_acad = :id_annee_acad)";
+                    $sql .= " AND " . $this->getFallbackStudentYearExpr('e') . " = :id_annee_acad";
                 }
             }
 
@@ -647,6 +830,10 @@ class ProgrammationSoutenanceService
                 throw new Exception('Aucune table de programmation de soutenance disponible');
             }
 
+            if (!$this->isStudentProgrammable((string) $data['id_etudiant'])) {
+                throw new Exception('Cet étudiant ne peut pas être programmé tant que son rapport validé n\'a pas de compte rendu.');
+            }
+
             $this->ensureWritableStudent((string) $data['id_etudiant'], 'une programmation de soutenance');
 
             $this->pdo->beginTransaction();
@@ -682,18 +869,26 @@ class ProgrammationSoutenanceService
             } else {
                 $idDomaine = !empty($data['id_domaine']) ? (int) $data['id_domaine'] : $this->getDefaultId('domaine', 'id_domaine');
                 $idSession = !empty($data['id_session']) ? (int) $data['id_session'] : $this->getDefaultId('session', 'id_session');
+                $selectedYearId = $this->getSelectedAcademicYearId();
 
                 $nextStmt = $this->pdo->prepare("SELECT COALESCE(MAX(CAST(num_soutenance AS UNSIGNED)), 0) + 1 as next_id FROM programmer_soutenance");
                 $nextStmt->execute();
                 $numSoutenance = (string) ((int) ($nextStmt->fetch(PDO::FETCH_ASSOC)['next_id'] ?? 1));
 
-                $sql = "
-                    INSERT INTO programmer_soutenance (
-                        num_soutenance, num_etud, theme_soutenance, id_domaine, id_session, id_salle, date_soutenance, heure_soutenance
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ";
+                $hasYearColumn = $this->columnExists('programmer_soutenance', 'id_annee_acad');
+                $sql = $hasYearColumn
+                    ? "
+                        INSERT INTO programmer_soutenance (
+                            num_soutenance, num_etud, theme_soutenance, id_domaine, id_session, id_salle, date_soutenance, heure_soutenance, id_annee_acad
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    "
+                    : "
+                        INSERT INTO programmer_soutenance (
+                            num_soutenance, num_etud, theme_soutenance, id_domaine, id_session, id_salle, date_soutenance, heure_soutenance
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([
+                $params = [
                     $numSoutenance,
                     (string) $data['id_etudiant'],
                     trim((string) $data['theme_soutenance']),
@@ -702,7 +897,11 @@ class ProgrammationSoutenanceService
                     (int) $data['id_salle'],
                     (string) $data['date_soutenance'],
                     (string) $data['heure_soutenance'],
-                ]);
+                ];
+                if ($hasYearColumn) {
+                    $params[] = $selectedYearId;
+                }
+                $stmt->execute($params);
                 $attributionId = $numSoutenance;
                 $juryRef = $numSoutenance;
             }
@@ -856,6 +1055,39 @@ class ProgrammationSoutenanceService
     /**
      * Insérer les membres du jury avec leurs rôles.
      */
+    private function enseignantExists(string $enseignantId): bool
+    {
+        if ($enseignantId === '') {
+            return false;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("SELECT 1 FROM enseignants WHERE id_enseignant = ? LIMIT 1");
+            $stmt->execute([$enseignantId]);
+            return (bool) $stmt->fetchColumn();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    private function resolveJuryTeacherId(string $roleKey, $rawValue): string
+    {
+        $submittedId = trim((string) $rawValue);
+        if ($submittedId === '') {
+            return '';
+        }
+
+        if ($this->enseignantExists($submittedId)) {
+            return $submittedId;
+        }
+
+        if ($roleKey === 'maitre_stage' && $this->enseignantExists('MS_NON_RENSEIGNE')) {
+            return 'MS_NON_RENSEIGNE';
+        }
+
+        return '';
+    }
+
     private function insertJuryMembers($juryRef, array $data): void
     {
         $juryTable = $this->getJuryTable();
@@ -865,7 +1097,7 @@ class ProgrammationSoutenanceService
 
         $roleIds = $this->getRoleIds();
         $juryRefCol = $this->getJuryRefColumn($juryTable);
-        $insertSql = "INSERT INTO {$juryTable} ({$juryRefCol}, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, UNIX_TIMESTAMP())";
+        $insertSql = "INSERT INTO {$juryTable} ({$juryRefCol}, id_enseignant, id_qualite_jury, date_composer_jury) VALUES (?, ?, ?, NOW())";
         $stmt = $this->pdo->prepare($insertSql);
 
         $members = [
@@ -877,7 +1109,7 @@ class ProgrammationSoutenanceService
         ];
 
         foreach ($members as $field => $roleKey) {
-            $enseignantId = $data[$field] ?? '';
+            $enseignantId = $this->resolveJuryTeacherId($roleKey, $data[$field] ?? '');
             $roleId = $roleIds[$roleKey] ?? '';
             if ($enseignantId !== '' && $roleId !== '') {
                 $stmt->execute([(string) $juryRef, (string) $enseignantId, (string) $roleId]);
@@ -895,6 +1127,99 @@ class ProgrammationSoutenanceService
             return $enseignantJury;
         } catch (Exception $e) {
             throw $e;
+        }
+    }
+
+    public function notifierAjoutJury(array $data): void
+    {
+        $notifService = new \NotificationService();
+        $membres = [
+            'president' => 'President',
+            'examinateur' => 'Examinateur',
+            'directeur' => 'Directeur de memoire',
+            'encadreur' => 'Encadreur',
+        ];
+        foreach ($membres as $field => $roleLabel) {
+            $enseignantId = trim((string)($data[$field . '_id'] ?? ''));
+            if ($enseignantId === '') {
+                continue;
+            }
+            $email = $notifService->getEnseignantEmail($enseignantId);
+            $nomEns = $notifService->getEnseignantNom($enseignantId);
+            if ($email === null) {
+                continue;
+            }
+            $this->emailService->sendTemplate('AJOUT_JURY', $email, [
+                'nom_enseignant' => htmlspecialchars($nomEns),
+                'role' => $roleLabel,
+                'nom_etudiant' => htmlspecialchars((string)($data['nom_etudiant'] ?? $data['id_etudiant'] ?? '')),
+                'theme' => htmlspecialchars((string)($data['theme_soutenance'] ?? '')),
+                'date_soutenance' => (string)($data['date_soutenance'] ?? ''),
+                'heure_soutenance' => (string)($data['heure_soutenance'] ?? ''),
+                'salle' => htmlspecialchars((string)($data['lib_salle'] ?? $data['id_salle'] ?? '')),
+            ]);
+        }
+    }
+
+    public function notifierRetraitJury(string $enseignantId, string $roleLabel, array $soutenanceData): void
+    {
+        $notifService = new \NotificationService();
+        $email = $notifService->getEnseignantEmail($enseignantId);
+        $nomEns = $notifService->getEnseignantNom($enseignantId);
+        if ($email === null) {
+            return;
+        }
+        $this->emailService->sendTemplate('RETRAIT_JURY', $email, [
+            'nom_enseignant' => htmlspecialchars($nomEns),
+            'role' => $roleLabel,
+            'nom_etudiant' => htmlspecialchars((string)($soutenanceData['nom_etudiant'] ?? '')),
+            'theme' => htmlspecialchars((string)($soutenanceData['theme_soutenance'] ?? '')),
+        ]);
+    }
+
+    public function notifierProgrammationSoutenance(string $numSoutenance, array $data): void
+    {
+        $notifService = new \NotificationService();
+        $nomEtudiant = htmlspecialchars((string)($data['nom_etudiant'] ?? $data['id_etudiant'] ?? ''));
+        $theme = htmlspecialchars((string)($data['theme_soutenance'] ?? ''));
+        $dateSout = (string)($data['date_soutenance'] ?? '');
+        $heureSout = (string)($data['heure_soutenance'] ?? '');
+        $salle = htmlspecialchars((string)($data['lib_salle'] ?? $data['id_salle'] ?? ''));
+
+        // Notifier l'etudiant
+        $etudiantEmail = $data['email_etudiant'] ?? '';
+        if ($etudiantEmail !== '') {
+            $this->emailService->sendTemplate('SOUTENANCE_PROGRAMMEE', $etudiantEmail, [
+                'nom' => $nomEtudiant,
+                'nom_etudiant' => $nomEtudiant,
+                'theme' => $theme,
+                'date_soutenance' => $dateSout,
+                'heure_soutenance' => $heureSout,
+                'salle' => $salle,
+                'composition_jury' => '',
+            ]);
+        }
+
+        // Notifier les membres du jury
+        try {
+            $juryMembres = $notifService->getJuryMembres($numSoutenance);
+        } catch (\Exception $e) {
+            $juryMembres = [];
+        }
+        foreach ($juryMembres as $membre) {
+            $email = trim((string)($membre['email'] ?? ''));
+            if ($email === '') {
+                continue;
+            }
+            $this->emailService->sendTemplate('SOUTENANCE_PROGRAMMEE', $email, [
+                'nom' => htmlspecialchars((string)($membre['nom'] ?? '')),
+                'nom_etudiant' => $nomEtudiant,
+                'theme' => $theme,
+                'date_soutenance' => $dateSout,
+                'heure_soutenance' => $heureSout,
+                'salle' => $salle,
+                'composition_jury' => '',
+            ]);
         }
     }
 }

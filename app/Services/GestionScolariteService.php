@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Scolarite.php';
 require_once __DIR__ . '/../models/AnneeAcademique.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../Services/Document/DocumentStorageService.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use Scolarite;
@@ -47,46 +48,36 @@ class GestionScolariteService
     }
 
     /**
-     * Récupère toutes les listes de référence nécessaires aux vues
+     * Récupère toutes les listes de référence nécessaires aux vues.
+     * Les filtres sont appliqués en SQL (pas de array_filter PHP).
      *
      * @return array Tableau associatif des listes
      */
     public function getReferenceLists(): array
     {
         $selectedYearId = \AcademicYear::getSelectedIdFromSession();
-        $etudiantsInscrits = $this->scolariteModel->getEtudiantsInscrits();
-        $listeAllEtudiant = $this->scolariteModel->getAllEtudiants();
-        $listeVersement = $this->scolariteModel->getAllVersements();
+        $writableYearId = \AcademicYear::getWritableIdFromSession();
 
-        if ($selectedYearId !== null && $selectedYearId > 0) {
-            $etudiantsInscrits = array_values(array_filter($etudiantsInscrits, static function (array $row) use ($selectedYearId): bool {
-                return (int) ($row['id_annee_acad'] ?? 0) === $selectedYearId;
-            }));
+        // Ces deux requêtes filtrent déjà par année en SQL
+        $etudiantsInscrits = $this->scolariteModel->getEtudiantsInscrits($selectedYearId);
+        $listeVersement = $this->scolariteModel->getAllVersements($selectedYearId, 500);
 
-            $listeVersement = array_values(array_filter($listeVersement, static function (array $row) use ($selectedYearId): bool {
-                $label = trim((string) ($row['date_deb'] ?? '')) !== '' && trim((string) ($row['date_fin'] ?? '')) !== ''
-                    ? date('Y', strtotime((string) $row['date_deb'])) . '-' . date('Y', strtotime((string) $row['date_fin']))
-                    : '';
+        // Pour le sélecteur : on charge seulement les champs nécessaires, limité à 500
+        $listeAllEtudiant = $this->scolariteModel->getAllEtudiants(null, 500);
 
-                return $label !== '' && $label === \AcademicYear::getSelectedLabelFromSession();
-            }));
-        }
-
+        // Déduire les non-inscrits par différence PHP (opération légère car listes filtrées)
         $inscritsByStudent = [];
         foreach ($etudiantsInscrits as $row) {
-            $studentId = (string) ($row['num_carte_etud'] ?? '');
+            $studentId = (string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? '');
             if ($studentId !== '') {
                 $inscritsByStudent[$studentId] = true;
             }
         }
 
         $etudiantsNonInscrits = array_values(array_filter($listeAllEtudiant, static function (array $row) use ($inscritsByStudent): bool {
-            $studentId = (string) ($row['num_carte_etud'] ?? '');
+            $studentId = (string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? '');
             return $studentId !== '' && !isset($inscritsByStudent[$studentId]);
         }));
-
-        // Récupérer l'année d'écriture pour avoir les montants de frais_inscription
-        $writableYearId = \AcademicYear::getWritableIdFromSession();
 
         return [
             'etudiantsNonInscrits' => $etudiantsNonInscrits,
@@ -309,15 +300,15 @@ class GestionScolariteService
      * @param int   $userId Identifiant de l'utilisateur connecté
      * @return array ['success' => bool, 'message' => string, 'refreshLists' => bool]
      */
-    public function enregistrerPaiement(array $data, int $userId): array
+    public function enregistrerPaiement(array $data, array $files, int $userId): array
     {
         try {
             $isNewInscription = isset($data['is_new_inscription']) && $data['is_new_inscription'] === 'true';
 
             if ($isNewInscription) {
-                return $this->enregistrerNouvelleInscription($data, $userId);
+                return $this->enregistrerNouvelleInscription($data, $files, $userId);
             } else {
-                return $this->enregistrerVersementComplementaire($data, $userId);
+                return $this->enregistrerVersementComplementaire($data, $files, $userId);
             }
         } catch (\Exception $e) {
             error_log('Erreur dans enregistrerPaiement : ' . $e->getMessage());
@@ -332,7 +323,7 @@ class GestionScolariteService
      * @param int   $userId Identifiant de l'utilisateur connecté
      * @return array ['success' => bool, 'message' => string, 'refreshLists' => bool]
      */
-    private function enregistrerNouvelleInscription(array $data, int $userId): array
+    private function enregistrerNouvelleInscription(array $data, array $files, int $userId): array
     {
         if (
             empty($data['etudiant']) || empty($data['niveau']) ||
@@ -369,7 +360,12 @@ class GestionScolariteService
             ];
         }
 
-        $id_inscription = $this->scolariteModel->creerInscription(
+        $uploadValidationError = $this->validateInscriptionUploadsForSubmission($files);
+        if ($uploadValidationError !== null) {
+            return ['success' => false, 'message' => $uploadValidationError, 'refreshLists' => false];
+        }
+
+        $inscriptionSuccess = $this->scolariteModel->creerInscription(
             $id_etudiant,
             $id_niveau,
             $id_annee_acad,
@@ -378,12 +374,21 @@ class GestionScolariteService
             $num_piece
         );
 
-        if ($id_inscription) {
+        if ($inscriptionSuccess) {
             $reste_a_payer = $montant_total - $montant_premier_versement;
             $this->auditLog->logCreation($userId, 'inscriptions', 'Succès');
+            $documentFeedback = $this->processInscriptionDocumentsAfterPayment(
+                (string) $id_etudiant,
+                (int) $id_annee_acad,
+                $files,
+                $userId
+            );
             return [
                 'success' => true,
-                'message' => '✅ Inscription créée avec succès ! Versement de ' . number_format($montant_premier_versement, 0, ',', ' ') . ' FCFA. Reste : ' . number_format($reste_a_payer, 0, ',', ' ') . ' FCFA.',
+                'message' => $this->buildPaiementSuccessMessage(
+                    '✅ Inscription créée avec succès ! Versement de ' . number_format($montant_premier_versement, 0, ',', ' ') . ' FCFA. Reste : ' . number_format($reste_a_payer, 0, ',', ' ') . ' FCFA.',
+                    $documentFeedback
+                ),
                 'refreshLists' => true
             ];
         } else {
@@ -399,7 +404,7 @@ class GestionScolariteService
      * @param int   $userId Identifiant de l'utilisateur connecté
      * @return array ['success' => bool, 'message' => string, 'refreshLists' => bool]
      */
-    private function enregistrerVersementComplementaire(array $data, int $userId): array
+    private function enregistrerVersementComplementaire(array $data, array $files, int $userId): array
     {
         if (
             empty($data['etudiant']) || empty($data['montant_versement']) ||
@@ -419,8 +424,12 @@ class GestionScolariteService
             return ['success' => false, 'message' => '⚠️ Aucune inscription trouvée.', 'refreshLists' => false];
         }
 
-        $id_niveau = $derniere_inscription['id_niveau'];
+        $id_niveau = $derniere_inscription['id_niv_etude'] ?? $derniere_inscription['id_niveau'] ?? null;
         $id_annee_acad = $derniere_inscription['id_annee_acad'];
+
+        if ($id_niveau === null || $id_niveau === '') {
+            return ['success' => false, 'message' => '⚠️ Niveau d\'inscription introuvable pour cet étudiant.', 'refreshLists' => false];
+        }
 
         $writeGuard = \AcademicYear::ensureWritableYear($this->db, $id_annee_acad, "un versement");
         if (!$writeGuard['success']) {
@@ -445,7 +454,12 @@ class GestionScolariteService
             ];
         }
 
-        $id_inscription = $this->scolariteModel->creerInscription(
+        $uploadValidationError = $this->validateInscriptionUploadsForSubmission($files);
+        if ($uploadValidationError !== null) {
+            return ['success' => false, 'message' => $uploadValidationError, 'refreshLists' => false];
+        }
+
+        $inscriptionSuccess = $this->scolariteModel->creerInscription(
             $id_etudiant,
             $id_niveau,
             $id_annee_acad,
@@ -454,17 +468,372 @@ class GestionScolariteService
             $num_piece
         );
 
-        if ($id_inscription) {
+        if ($inscriptionSuccess) {
             $this->auditLog->logCreation($userId, 'inscriptions', 'Succès - Versement');
             $nouveau_reste = $infos_paiement['reste_a_payer'] - $montant;
+            $documentFeedback = $this->processInscriptionDocumentsAfterPayment(
+                (string) $id_etudiant,
+                (int) $id_annee_acad,
+                $files,
+                $userId
+            );
             return [
                 'success' => true,
-                'message' => '✅ Versement de ' . number_format($montant, 0, ',', ' ') . ' FCFA enregistré ! Reste : ' . number_format($nouveau_reste, 0, ',', ' ') . ' FCFA.',
+                'message' => $this->buildPaiementSuccessMessage(
+                    '✅ Versement de ' . number_format($montant, 0, ',', ' ') . ' FCFA enregistré ! Reste : ' . number_format($nouveau_reste, 0, ',', ' ') . ' FCFA.',
+                    $documentFeedback
+                ),
                 'refreshLists' => true
             ];
         } else {
             $this->auditLog->logCreation($userId, 'inscriptions', 'Erreur');
             return ['success' => false, 'message' => "❌ Erreur lors de l'enregistrement.", 'refreshLists' => false];
         }
+    }
+
+    /**
+     * Pré-valide les documents optionnels avant l'enregistrement du paiement.
+     *
+     * @param array<string, mixed> $files
+     */
+    private function validateInscriptionUploadsForSubmission(array $files): ?string
+    {
+        foreach ($this->getInscriptionDocumentDefinitions() as $field => $definition) {
+            $file = $files[$field] ?? null;
+            if (!$this->isUploadPresent($file)) {
+                continue;
+            }
+
+            $error = $this->validateInscriptionUpload(is_array($file) ? $file : [], (string) $definition['label']);
+            if ($error !== null) {
+                return $error;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function getInscriptionDocumentDefinitions(): array
+    {
+        return [
+            'fiche_inscription_file' => [
+                'type_document' => 'fiche_inscription',
+                'label' => "fiche d'inscription",
+                'success_label' => "fiche d'inscription",
+                'update_fiche' => true,
+            ],
+            'recu_inscription_file' => [
+                'type_document' => 'recu',
+                'label' => "reçu d'inscription",
+                'success_label' => "reçu d'inscription",
+                'update_fiche' => false,
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $feedback
+     */
+    private function buildPaiementSuccessMessage(string $baseMessage, array $feedback): string
+    {
+        $message = $baseMessage;
+        $messages = is_array($feedback['messages'] ?? null) ? $feedback['messages'] : [];
+        $warnings = is_array($feedback['warnings'] ?? null) ? $feedback['warnings'] : [];
+
+        if ($messages !== []) {
+            $message .= ' Documents importés : ' . implode(', ', array_map('strval', $messages)) . '.';
+        }
+
+        if ($warnings !== []) {
+            $message .= ' Avertissement : ' . implode(' ', array_map('strval', $warnings));
+        }
+
+        return $message;
+    }
+
+    /**
+     * @param array<string, mixed> $files
+     * @return array{messages: array<int, string>, warnings: array<int, string>}
+     */
+    private function processInscriptionDocumentsAfterPayment(string $numCarteEtud, int $idAnneeAcad, array $files, int $userId): array
+    {
+        $idInscription = $this->getLatestInscriptionCompositeId($numCarteEtud, $idAnneeAcad);
+        if ($idInscription === null) {
+            return [
+                'messages' => [],
+                'warnings' => ['Impossible de retrouver l\'inscription pour associer les documents.'],
+            ];
+        }
+
+        $messages = [];
+        $warnings = [];
+
+        foreach ($this->getInscriptionDocumentDefinitions() as $field => $definition) {
+            $file = $files[$field] ?? null;
+            if (!$this->isUploadPresent($file)) {
+                continue;
+            }
+
+            $result = $this->storeInscriptionDocument(
+                $idInscription,
+                is_array($file) ? $file : null,
+                $userId,
+                (string) $definition['type_document'],
+                (string) $definition['label'],
+                (bool) $definition['update_fiche']
+            );
+
+            if (($result['success'] ?? false) === true && ($result['stored'] ?? false) === true) {
+                $messages[] = (string) $definition['success_label'];
+                continue;
+            }
+
+            if (!empty($result['message'])) {
+                $warnings[] = (string) $result['message'];
+            }
+        }
+
+        return [
+            'messages' => $messages,
+            'warnings' => $warnings,
+        ];
+    }
+
+    private function getLatestInscriptionCompositeId(string $numCarteEtud, int $idAnneeAcad): ?string
+    {
+        if ($numCarteEtud === '' || $idAnneeAcad <= 0) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT MAX(num_versement) AS num_versement
+                 FROM inscriptions
+                 WHERE num_carte_etud = :num_carte_etud
+                   AND id_annee_acad = :id_annee_acad'
+            );
+            $stmt->execute([
+                ':num_carte_etud' => $numCarteEtud,
+                ':id_annee_acad' => $idAnneeAcad,
+            ]);
+            $numVersement = (int) ($stmt->fetchColumn() ?: 0);
+            if ($numVersement <= 0) {
+                return null;
+            }
+
+            return $numCarteEtud . '-' . $idAnneeAcad . '-' . $numVersement;
+        } catch (\Throwable $e) {
+            error_log('Erreur getLatestInscriptionCompositeId: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function isUploadPresent($file): bool
+    {
+        if (!is_array($file)) {
+            return false;
+        }
+
+        $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($errorCode === UPLOAD_ERR_NO_FILE) {
+            return false;
+        }
+
+        return trim((string) ($file['name'] ?? '')) !== '';
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     */
+    private function validateInscriptionUpload(array $file, string $label): ?string
+    {
+        $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($errorCode !== UPLOAD_ERR_OK) {
+            return 'Erreur lors du téléchargement de ' . $label . ' (code ' . $errorCode . ').';
+        }
+
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || !is_file($tmpName) || !is_readable($tmpName)) {
+            return 'Le fichier pour ' . $label . ' est invalide.';
+        }
+
+        $detectedMime = null;
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mime = finfo_file($finfo, $tmpName);
+                finfo_close($finfo);
+                if (is_string($mime) && $mime !== '') {
+                    $detectedMime = $mime;
+                }
+            }
+        }
+
+        if ($detectedMime === null && function_exists('mime_content_type')) {
+            $mime = @mime_content_type($tmpName);
+            if (is_string($mime) && $mime !== '') {
+                $detectedMime = $mime;
+            }
+        }
+
+        if ($detectedMime === null) {
+            return 'Impossible de déterminer le type du fichier pour ' . $label . '.';
+        }
+
+        $allowedMimes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        if (!in_array($detectedMime, $allowedMimes, true)) {
+            return 'Type de fichier non autorisé pour ' . $label . ' (PDF, JPEG, PNG acceptés).';
+        }
+
+        $maxSize = 5 * 1024 * 1024;
+        if ((int) ($file['size'] ?? 0) > $maxSize) {
+            return 'Le fichier pour ' . $label . ' dépasse la taille maximale autorisée (5 Mo).';
+        }
+
+        return null;
+    }
+
+    private function getUploadExtensionFromMime(string $mimeType): string
+    {
+        return match ($mimeType) {
+            'application/pdf' => 'pdf',
+            'image/jpeg', 'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            default => 'bin',
+        };
+    }
+
+    /**
+     * @param array<string, mixed>|null $file
+     * @return array{success: bool, stored: bool, message: string}
+     */
+    private function storeInscriptionDocument(string $idInscription, ?array $file, int $userId, string $typeDocument, string $label, bool $updateFicheColumn = false): array
+    {
+        if ($idInscription === '' || !$this->isUploadPresent($file)) {
+            return ['success' => true, 'stored' => false, 'message' => ''];
+        }
+
+        $fileInfo = $file;
+        if ($fileInfo === null) {
+            return ['success' => false, 'stored' => false, 'message' => 'Fichier manquant pour ' . $label . '.'];
+        }
+
+        $validationError = $this->validateInscriptionUpload($fileInfo, $label);
+        if ($validationError !== null) {
+            return ['success' => false, 'stored' => false, 'message' => $validationError];
+        }
+
+        $tmpName = (string) ($fileInfo['tmp_name'] ?? '');
+        $mimeType = null;
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mime = finfo_file($finfo, $tmpName);
+                finfo_close($finfo);
+                if (is_string($mime) && $mime !== '') {
+                    $mimeType = $mime;
+                }
+            }
+        }
+        if ($mimeType === null && function_exists('mime_content_type')) {
+            $mime = @mime_content_type($tmpName);
+            if (is_string($mime) && $mime !== '') {
+                $mimeType = $mime;
+            }
+        }
+
+        if ($mimeType === null) {
+            return ['success' => false, 'stored' => false, 'message' => 'Impossible de déterminer le type du fichier pour ' . $label . '.'];
+        }
+
+        $subDir = $typeDocument === 'recu' ? 'recus' : 'fiches';
+        $uploadDir = __DIR__ . '/../../ressources/uploads/' . $subDir;
+
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+            error_log("Impossible de créer le dossier: $uploadDir");
+            return ['success' => false, 'stored' => false, 'message' => 'Erreur interne lors de la création du dossier de stockage.'];
+        }
+
+        $extension = $this->getUploadExtensionFromMime($mimeType);
+        $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '_', $idInscription);
+        $safeFilename = $typeDocument . '_' . $safeId . '.' . $extension;
+        $destination = $uploadDir . DIRECTORY_SEPARATOR . $safeFilename;
+
+        if (is_file($destination) && !unlink($destination)) {
+            return ['success' => false, 'stored' => false, 'message' => 'Impossible de remplacer le fichier existant pour ' . $label . '.'];
+        }
+
+        if (!move_uploaded_file($tmpName, $destination)) {
+            return ['success' => false, 'stored' => false, 'message' => 'Erreur lors du déplacement du fichier pour ' . $label . '.'];
+        }
+
+        $relativePath = $subDir . '/' . $safeFilename;
+
+        if ($updateFicheColumn && !$this->scolariteModel->updateFicheInscription($idInscription, $relativePath)) {
+            return ['success' => false, 'stored' => false, 'message' => 'Erreur lors de l\'enregistrement du chemin de la fiche.'];
+        }
+
+        try {
+            $storage = new \App\Services\Document\DocumentStorageService($this->db, dirname(__DIR__, 2));
+            $document = $storage->storeFileFromPath(
+                $typeDocument,
+                $destination,
+                'inscriptions',
+                $idInscription,
+                $userId > 0 ? $userId : null,
+                null,
+                $updateFicheColumn ? 'source' : 'upload',
+                true
+            );
+
+            if ($document === null) {
+                return ['success' => false, 'stored' => false, 'message' => 'Le fichier a été copié, mais l\'index documentaire de ' . $label . ' n\'a pas pu être créé.'];
+            }
+        } catch (\Throwable $e) {
+            error_log('Erreur storeInscriptionDocument: ' . $e->getMessage());
+            return ['success' => false, 'stored' => false, 'message' => 'Erreur lors de l\'enregistrement documentaire de ' . $label . '.'];
+        }
+
+        $this->auditLog->logModification($userId, 'inscriptions', 'Succès - ' . ucfirst(strtolower($label)) . ' importé');
+
+        return [
+            'success' => true,
+            'stored' => true,
+            'message' => ucfirst($label) . ' importé avec succès.',
+        ];
+    }
+
+    /**
+     * Upload de la fiche d'inscription (scan du dossier).
+     *
+     * @param array $post  Données POST (doit contenir 'id_inscription')
+     * @param array $files Fichier uploadé (doit contenir 'fiche')
+     * @param int   $userId
+     * @return array{success: bool, message: string}
+     */
+    public function uploadFicheInscription(array $post, array $files, int $userId): array
+    {
+        $idInscription = isset($post['id_inscription']) ? trim((string) $post['id_inscription']) : '';
+        if ($idInscription === '') {
+            return ['success' => false, 'message' => 'Identifiant d\'inscription manquant.'];
+        }
+
+        $result = $this->storeInscriptionDocument(
+            $idInscription,
+            is_array($files['fiche'] ?? null) ? $files['fiche'] : null,
+            $userId,
+            'fiche_inscription',
+            "fiche d'inscription",
+            true
+        );
+
+        if (($result['success'] ?? false) === true) {
+            return ['success' => true, 'message' => 'Fiche d\'inscription uploadée avec succès.'];
+        }
+
+        return ['success' => false, 'message' => (string) ($result['message'] ?? 'Erreur lors de l\'upload de la fiche.')];
     }
 }

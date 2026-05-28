@@ -205,6 +205,64 @@ class ArchiveService
     }
 
     // ------------------------------------------------------------------
+    //  Export historique CSV
+    // ------------------------------------------------------------------
+
+    /**
+     * Ecrit les donnees d historique dans un flux CSV
+     */
+    public function exportHistoryToStream($output, string $tab, ?string $anneeAcad, ?string $statut, ?string $search): void
+    {
+        try {
+            switch ($tab) {
+                case 'students':
+                    $students = $this->archive->getStudentHistory($anneeAcad, $statut, $search, 10000, 0);
+                    foreach ($students as $student) {
+                        fputcsv($output, [
+                            $student['num_ident_etud'] ?? $student['num_carte_etud'] ?? '',
+                            $student['nom_etu'] ?? '',
+                            $student['prenom_etu'] ?? '',
+                            $student['email_etu'] ?? '',
+                            $student['promotion_etu'] ?? '',
+                            $student['statut'] ?? 'En cours',
+                            $student['theme_rapport'] ?? '',
+                        ]);
+                    }
+                    break;
+
+                case 'jury':
+                    $juries = $this->archive->getJuryHistory($anneeAcad, null, 10000, 0);
+                    foreach ($juries as $jury) {
+                        fputcsv($output, [
+                            $jury['nom_enseignant'] ?? '',
+                            $jury['role'] ?? '',
+                            $jury['num_soutenance'] ?? '',
+                            $jury['date_soutenance'] ?? '',
+                        ]);
+                    }
+                    break;
+
+                case 'stats':
+                default:
+                    $students = $this->archive->getStudentHistory($anneeAcad, $statut, $search, 10000, 0);
+                    foreach ($students as $student) {
+                        fputcsv($output, [
+                            $student['num_ident_etud'] ?? $student['num_carte_etud'] ?? '',
+                            $student['nom_etu'] ?? '',
+                            $student['prenom_etu'] ?? '',
+                            $student['promotion_etu'] ?? '',
+                            $student['statut'] ?? '-',
+                            $student['moyenne'] ?? '-',
+                        ]);
+                    }
+                    break;
+            }
+        } catch (Exception $e) {
+            error_log('Erreur exportHistoryToStream: ' . $e->getMessage());
+        }
+    }
+
+    // ------------------------------------------------------------------
     //  Audit helpers
     // ------------------------------------------------------------------
 
