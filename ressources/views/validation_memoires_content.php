@@ -181,6 +181,7 @@ $myUserId = (int) ($_SESSION['id_utilisateur'] ?? 0);
                                 $statut = strtolower((string) ($memoire['statut'] ?? 'en_attente'));
                                 $statutMeta = $statusLabels[$statut] ?? $statusLabels['en_attente'];
                                 $numSoutenance = (string) ($memoire['num_soutenance'] ?? '');
+                                $documentId = (int) ($memoire['id_document'] ?? 0);
                                 $memoireName = (string) ($memoire['nom_fichier'] ?? $memoire['fichier'] ?? 'memoire.pdf');
                                 $memoireTheme = (string) ($memoire['theme_soutenance'] ?? $memoire['theme'] ?? '');
                                 $promotion = (string) ($memoire['promotion'] ?? $memoire['promotion_etu'] ?? '');
@@ -229,7 +230,13 @@ $myUserId = (int) ($_SESSION['id_utilisateur'] ?? 0);
                                         <?php echo htmlspecialchars($memoireTheme, ENT_QUOTES, 'UTF-8'); ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php if ($numSoutenance !== ''): ?>
+                                        <?php if ($documentId > 0): ?>
+                                            <a class="cm-link"
+                                                href="?page=docviewer&type=memoire&id=<?php echo urlencode((string) $documentId); ?>&action=preview"
+                                                target="_blank">
+                                                <?php echo htmlspecialchars($memoireName, ENT_QUOTES, 'UTF-8'); ?>
+                                            </a>
+                                        <?php elseif ($numSoutenance !== ''): ?>
                                             <a class="cm-link"
                                                 href="?page=docviewer&type=memoire&id=<?php echo urlencode($numSoutenance); ?>&action=preview"
                                                 target="_blank">

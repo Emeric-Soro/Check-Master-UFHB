@@ -46,7 +46,7 @@ class ValidationMemoireService
             $this->pdo->exec("
                 CREATE TABLE IF NOT EXISTS " . self::TABLE_EVALUATIONS_MEMOIRES . " (
                     id_evaluation INT NOT NULL AUTO_INCREMENT,
-                    id_document INT NOT NULL,
+                    id_document BIGINT UNSIGNED NOT NULL,
                     id_rapport INT NULL,
                     id_evaluateur INT NOT NULL,
                     type_evaluateur ENUM('encadrant', 'directeur', 'responsable_filiere') NOT NULL,
@@ -397,6 +397,27 @@ class ValidationMemoireService
         return null;
     }
 
+    private function resolveRapportIdForMemoire(array $memoire): ?int
+    {
+        foreach (['id_rapport', 'rapport_id'] as $key) {
+            $value = $memoire[$key] ?? null;
+            if (is_numeric($value) && (int) $value > 0) {
+                return (int) $value;
+            }
+        }
+
+        $numCarte = trim((string) ($memoire['num_carte_etud'] ?? ''));
+        $numIdent = trim((string) ($memoire['num_ident_etud'] ?? ''));
+        $numEtu = trim((string) ($memoire['num_etu'] ?? $memoire['rapport_num_etu'] ?? ''));
+
+        if ($numCarte === '' && $numIdent === '' && $numEtu !== '') {
+            $numCarte = $numEtu;
+            $numIdent = $numEtu;
+        }
+
+        return $this->resolveLatestRapportId($numCarte, $numIdent);
+    }
+
     public function getIndexData(array $session): array
     {
         $this->ensureEvaluationsMemoireTable();
@@ -416,9 +437,7 @@ class ValidationMemoireService
         $enseignantId = $isResponsable ? null : $this->resolveEnseignantIdFromSession($session);
 
         foreach ($this->memoireService->getMemoiresEnLigne() as $memoire) {
-            $numCarte = trim((string) ($memoire['num_carte_etud'] ?? ''));
-            $numIdent = trim((string) ($memoire['num_ident_etud'] ?? ''));
-            $rapportId = $this->resolveLatestRapportId($numCarte, $numIdent);
+            $rapportId = $this->resolveRapportIdForMemoire($memoire);
             $numSoutenance = trim((string) ($memoire['num_soutenance'] ?? ''));
             $encadrement = $this->resolveEncadrement($rapportId, $numSoutenance);
 
@@ -479,9 +498,7 @@ class ValidationMemoireService
             return ['success' => false, 'message' => 'Memoire introuvable ou non actif.'];
         }
 
-        $numCarte = trim((string) ($memoire['num_carte_etud'] ?? ''));
-        $numIdent = trim((string) ($memoire['num_ident_etud'] ?? ''));
-        $rapportId = $this->resolveLatestRapportId($numCarte, $numIdent);
+        $rapportId = $this->resolveRapportIdForMemoire($memoire);
         $numSoutenance = trim((string) ($memoire['num_soutenance'] ?? ''));
         $encadrement = $this->resolveEncadrement($rapportId, $numSoutenance);
 

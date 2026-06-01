@@ -66,15 +66,13 @@ foreach ($etudiants as $etudiant) {
 
                 <div class="cm-grid-2">
                     <?php
-                    cm_component('form/select-search', [
+                    cm_component('form/select', [
                         'name' => 'cm_memoire_etudiant',
                         'id' => 'cmMemoireEtudiantSelect',
                         'label' => 'Étudiant',
                         'required' => true,
                         'options' => $etudiantOptions,
                         'placeholder' => '-- Sélectionner --',
-                        'search_placeholder' => 'Rechercher un étudiant...',
-                        'show_selected_label' => false,
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_memoire_promotion',
@@ -83,6 +81,18 @@ foreach ($etudiants as $etudiant) {
                         'readonly' => true,
                         'maxlength' => 9,
                         'attrs' => ['size' => '9'],
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'cm_memoire_session_previsionnelle',
+                        'id' => 'cmMemoireSessionPrevisionnelle',
+                        'label' => 'Session previsionnelle',
+                        'readonly' => true,
+                    ]);
+                    cm_component('form/input-text', [
+                        'name' => 'cm_memoire_date_limite',
+                        'id' => 'cmMemoireDateLimite',
+                        'label' => 'Date limite',
+                        'readonly' => true,
                     ]);
                     cm_component('form/textarea', [
                         'name' => 'cm_memoire_theme',
@@ -260,10 +270,11 @@ foreach ($etudiants as $etudiant) {
     (function () {
         const etudiants = <?php echo json_encode($etudiants, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
-        const etudiantSelect = document.getElementById('cmMemoireEtudiantSelect_hidden');
+        const etudiantSelect = document.getElementById('cmMemoireEtudiantSelect');
         const numEtuInput = document.getElementById('cmMemoireNumEtu');
-        const etudiantSearchInput = document.getElementById('cmMemoireEtudiantSelect_search');
         const promotionInput = document.getElementById('cmMemoirePromotion');
+        const sessionInput = document.getElementById('cmMemoireSessionPrevisionnelle');
+        const dateLimiteInput = document.getElementById('cmMemoireDateLimite');
         const themeInput = document.getElementById('cmMemoireTheme');
         const pdfInput = document.getElementById('cmMemoirePdf');
         const pdfBtn = document.getElementById('cmMemoirePdfBtn');
@@ -351,11 +362,19 @@ foreach ($etudiants as $etudiant) {
             const info = getEtudiantByNumEtu(numEtu);
             if (!info) {
                 if (promotionInput) promotionInput.value = '';
+                if (sessionInput) sessionInput.value = '';
+                if (dateLimiteInput) dateLimiteInput.value = '';
                 if (themeInput) themeInput.value = '';
                 return;
             }
 
             if (promotionInput) promotionInput.value = info.promotion || '';
+            if (sessionInput) {
+                const session = info.num_session_previsionnelle ? 'Session ' + info.num_session_previsionnelle : '';
+                const date = info.date_session_previsionnelle || '';
+                sessionInput.value = [session, date].filter(Boolean).join(' - ');
+            }
+            if (dateLimiteInput) dateLimiteInput.value = info.date_limite_memoire || '';
             if (themeInput) themeInput.value = info.theme || '';
         }
 
@@ -398,19 +417,14 @@ foreach ($etudiants as $etudiant) {
             resetBtn.addEventListener('click', function () {
                 if (etudiantSelect) etudiantSelect.value = '';
                 if (numEtuInput) numEtuInput.value = '';
-                if (etudiantSearchInput) etudiantSearchInput.value = '';
                 if (promotionInput) promotionInput.value = '';
+                if (sessionInput) sessionInput.value = '';
+                if (dateLimiteInput) dateLimiteInput.value = '';
                 if (themeInput) themeInput.value = '';
                 if (pdfInput) pdfInput.value = '';
                 if (pdfLabel) {
                     pdfLabel.textContent = 'Aucun fichier';
                     pdfLabel.style.color = '#6b7280';
-                }
-                // Fermer la liste déroulante du select-search
-                const wrapper = document.getElementById('cmMemoireEtudiantSelect_wrapper');
-                if (wrapper) {
-                    wrapper.classList.remove('is-open');
-                    wrapper.setAttribute('aria-expanded', 'false');
                 }
             });
         }
@@ -495,7 +509,7 @@ foreach ($etudiants as $etudiant) {
                 }
                 if (etudiantSelect) {
                     etudiantSelect.value = numEtu;
-                    // Déclencher l'événement change pour le select-search
+                    // Déclencher l'événement change pour le select.
                     etudiantSelect.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 if (numEtuInput) {

@@ -39,7 +39,7 @@ ON DUPLICATE KEY UPDATE
 -- 3) Table d'historique des validations de memoires
 CREATE TABLE IF NOT EXISTS evaluations_memoires (
     id_evaluation INT NOT NULL AUTO_INCREMENT,
-    id_document INT NOT NULL,
+    id_document BIGINT UNSIGNED NOT NULL,
     id_rapport INT NULL,
     id_evaluateur INT NOT NULL,
     type_evaluateur ENUM('encadrant', 'directeur', 'responsable_filiere') NOT NULL,

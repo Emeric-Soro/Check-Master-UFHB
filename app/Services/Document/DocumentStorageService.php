@@ -269,7 +269,7 @@ final class DocumentStorageService
                 : null,
             'fiche_inscription' => $this->findLatestByEntity('inscriptions', $id, ['fiche_inscription']),
             'recu' => $this->findLatestByEntity('inscriptions', $id, ['recu']),
-            'memoire' => $this->findLatestByEntity('programmer_soutenance', $id, ['memoire'], null, 'application/pdf'),
+            'memoire' => $this->findMemoireForViewer($id),
             'pv_commission' => ctype_digit($id)
                 ? $this->findLatestByEntity('compte_rendu', $id, ['pv_commission'], null, 'application/pdf')
                 : null,
@@ -283,6 +283,30 @@ final class DocumentStorageService
                 : null,
             default => null,
         };
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findMemoireForViewer(string $id): ?array
+    {
+        if (ctype_digit($id)) {
+            $byDocumentId = $this->getById((int) $id);
+            if (
+                is_array($byDocumentId)
+                && $this->matchesViewerType($byDocumentId, 'memoire')
+                && (string) ($byDocumentId['statut'] ?? '') === 'actif'
+            ) {
+                return $byDocumentId;
+            }
+
+            $byRapport = $this->findLatestByEntity('rapport_etudiants', $id, ['memoire'], null, 'application/pdf');
+            if (is_array($byRapport)) {
+                return $byRapport;
+            }
+        }
+
+        return $this->findLatestByEntity('programmer_soutenance', $id, ['memoire'], null, 'application/pdf');
     }
 
     /**

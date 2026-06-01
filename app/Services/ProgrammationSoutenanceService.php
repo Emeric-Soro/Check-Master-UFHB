@@ -11,6 +11,8 @@ use PDO;
 
 class ProgrammationSoutenanceService
 {
+    private const TABLE_EVALUATIONS_MEMOIRES = 'evaluations_memoires';
+
     private $pdo;
     private $tableExistsCache = [];
     private $columnExistsCache = [];
@@ -39,6 +41,7 @@ class ProgrammationSoutenanceService
     private function getStudentAcademicYearId(string $studentId): ?int
     {
         try {
+            $memoireValidationWhere = $this->validatedMemoireWhere('r');
             $stmt = $this->pdo->prepare("
                 SELECT " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad
                 FROM rapport_etudiants r
@@ -47,14 +50,7 @@ class ProgrammationSoutenanceService
                 LEFT JOIN valider v ON v.id_rapport = r.id_rapport
                 WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?)
                   AND v.decision_validation = 'valider'
-                  AND EXISTS (
-                      SELECT 1
-                      FROM compte_rendu cr
-                      LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
-                      WHERE crr.id_rapport = r.id_rapport
-                         OR cr.num_etu = e.num_carte_etud
-                         OR cr.num_etu = e.num_ident_etud
-                  )
+                  {$memoireValidationWhere}
                 ORDER BY COALESCE(d.date_depot, " . $this->rapportDateExpr('r') . ") DESC, r.id_rapport DESC
                 LIMIT 1
             ");
@@ -85,6 +81,7 @@ class ProgrammationSoutenanceService
     private function isStudentProgrammable(string $studentId): bool
     {
         try {
+            $memoireValidationWhere = $this->validatedMemoireWhere('r');
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(*)
                 FROM rapport_etudiants r
@@ -93,14 +90,7 @@ class ProgrammationSoutenanceService
                 LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                 WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?)
                   AND v.decision_validation = 'valider'
-                  AND EXISTS (
-                      SELECT 1
-                      FROM compte_rendu cr
-                      LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
-                      WHERE crr.id_rapport = r.id_rapport
-                         OR cr.num_etu = e.num_carte_etud
-                         OR cr.num_etu = e.num_ident_etud
-                  )
+                  {$memoireValidationWhere}
             ");
             $stmt->execute([$studentId, $studentId]);
             return (int) $stmt->fetchColumn() > 0;
@@ -189,6 +179,110 @@ class ProgrammationSoutenanceService
             $this->columnExistsCache[$key] = false;
             return false;
         }
+    }
+
+    private function ensureEvaluationsMemoireTable(): bool
+    {
+        if ($this->tableExists(self::TABLE_EVALUATIONS_MEMOIRES)) {
+            return true;
+        }
+
+        try {
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS " . self::TABLE_EVALUATIONS_MEMOIRES . " (
+                    id_evaluation INT NOT NULL AUTO_INCREMENT,
+                    id_document BIGINT UNSIGNED NOT NULL,
+                    id_rapport INT NULL,
+                    id_evaluateur INT NOT NULL,
+                    type_evaluateur ENUM('encadrant', 'directeur', 'responsable_filiere') NOT NULL,
+                    decision ENUM('valider', 'rejeter') NOT NULL,
+                    commentaire TEXT NULL,
+                    date_evaluation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    date_modification DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (id_evaluation),
+                    UNIQUE KEY uq_eval_memoire_document_role (id_document, type_evaluateur),
+                    KEY idx_eval_memoire_document (id_document),
+                    KEY idx_eval_memoire_rapport (id_rapport),
+                    KEY idx_eval_memoire_evaluateur (id_evaluateur)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+            $this->tableExistsCache[self::TABLE_EVALUATIONS_MEMOIRES] = true;
+            return true;
+        } catch (Exception $e) {
+            error_log('Erreur ensureEvaluationsMemoireTable: ' . $e->getMessage());
+            $this->tableExistsCache[self::TABLE_EVALUATIONS_MEMOIRES] = false;
+            return false;
+        }
+    }
+
+    private function validatedMemoireWhere(string $rapportAlias = 'r'): string
+    {
+        if (!$this->tableExists('documents') || !$this->ensureEvaluationsMemoireTable()) {
+            return ' AND 1 = 0';
+        }
+
+        return "
+            AND EXISTS (
+                SELECT 1
+                FROM documents d_mem
+                INNER JOIN evaluations_memoires em_enc
+                    ON em_enc.id_document = d_mem.id_document
+                   AND em_enc.type_evaluateur = 'encadrant'
+                   AND em_enc.decision = 'valider'
+                INNER JOIN evaluations_memoires em_dir
+                    ON em_dir.id_document = d_mem.id_document
+                   AND em_dir.type_evaluateur = 'directeur'
+                   AND em_dir.decision = 'valider'
+                INNER JOIN evaluations_memoires em_resp
+                    ON em_resp.id_document = d_mem.id_document
+                   AND em_resp.type_evaluateur = 'responsable_filiere'
+                   AND em_resp.decision = 'valider'
+                WHERE d_mem.entite_type = 'rapport_etudiants'
+                  AND d_mem.type_document = 'memoire'
+                  AND d_mem.statut = 'actif'
+                  AND d_mem.entite_id = CAST({$rapportAlias}.id_rapport AS CHAR)
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM evaluations_memoires em_rej
+                      WHERE em_rej.id_document = d_mem.id_document
+                        AND em_rej.decision = 'rejeter'
+                  )
+            )
+        ";
+    }
+
+    private function validatedMemoireDocumentExpr(string $rapportAlias = 'r'): string
+    {
+        if (!$this->tableExists('documents') || !$this->ensureEvaluationsMemoireTable()) {
+            return 'NULL';
+        }
+
+        return "(SELECT d_mem.id_document
+                 FROM documents d_mem
+                 INNER JOIN evaluations_memoires em_enc
+                     ON em_enc.id_document = d_mem.id_document
+                    AND em_enc.type_evaluateur = 'encadrant'
+                    AND em_enc.decision = 'valider'
+                 INNER JOIN evaluations_memoires em_dir
+                     ON em_dir.id_document = d_mem.id_document
+                    AND em_dir.type_evaluateur = 'directeur'
+                    AND em_dir.decision = 'valider'
+                 INNER JOIN evaluations_memoires em_resp
+                     ON em_resp.id_document = d_mem.id_document
+                    AND em_resp.type_evaluateur = 'responsable_filiere'
+                    AND em_resp.decision = 'valider'
+                 WHERE d_mem.entite_type = 'rapport_etudiants'
+                   AND d_mem.type_document = 'memoire'
+                   AND d_mem.statut = 'actif'
+                   AND d_mem.entite_id = CAST({$rapportAlias}.id_rapport AS CHAR)
+                   AND NOT EXISTS (
+                       SELECT 1
+                       FROM evaluations_memoires em_rej
+                       WHERE em_rej.id_document = d_mem.id_document
+                         AND em_rej.decision = 'rejeter'
+                   )
+                 ORDER BY d_mem.date_creation DESC, d_mem.id_document DESC
+                 LIMIT 1)";
     }
 
     private function studentJoinCondition(string $studentAlias = 'e', string $programmationAlias = 'p'): string
@@ -515,6 +609,8 @@ class ProgrammationSoutenanceService
                 return [];
             }
             $selectedYearId = $this->getSelectedAcademicYearId();
+            $memoireValidationWhere = $this->validatedMemoireWhere('r');
+            $memoireDocumentExpr = $this->validatedMemoireDocumentExpr('r');
 
             $sql = "
                 SELECT DISTINCT
@@ -527,6 +623,7 @@ class ProgrammationSoutenanceService
                     e.promotion_etu,
                     e.promotion_etu as lib_specialite,
                     r.theme_rapport,
+                    {$memoireDocumentExpr} AS id_memoire_document,
                     " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
                     ist.id_maitre_stage,
                     CONCAT(ms.prenom, ' ', ms.Nom) as maitre_stage_nom,
@@ -567,14 +664,7 @@ class ProgrammationSoutenanceService
                 LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
                 LEFT JOIN {$progTable} p ON (e.num_carte_etud = p.num_etud OR e.num_ident_etud = p.num_etud)
                 WHERE v.decision_validation = 'valider'
-                AND EXISTS (
-                    SELECT 1
-                    FROM compte_rendu cr
-                    LEFT JOIN compte_rendu_rapport crr ON crr.id_CR = cr.id_CR
-                    WHERE crr.id_rapport = r.id_rapport
-                       OR cr.num_etu = e.num_carte_etud
-                       OR cr.num_etu = e.num_ident_etud
-                )
+                {$memoireValidationWhere}
             ";
 
             if ($selectedYearId !== null && $selectedYearId > 0) {
@@ -831,7 +921,7 @@ class ProgrammationSoutenanceService
             }
 
             if (!$this->isStudentProgrammable((string) $data['id_etudiant'])) {
-                throw new Exception('Cet étudiant ne peut pas être programmé tant que son rapport validé n\'a pas de compte rendu.');
+                throw new Exception('Cet etudiant ne peut pas etre programme tant que son memoire n\'est pas valide par l\'encadrant, le directeur de memoire et le responsable de filiere.');
             }
 
             $this->ensureWritableStudent((string) $data['id_etudiant'], 'une programmation de soutenance');
