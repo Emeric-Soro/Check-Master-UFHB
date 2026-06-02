@@ -90,6 +90,9 @@ class Enseignant{
     }
 
     public function getEnseignantByLogin($login) {
+        $normalizeUserName = "LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(u.nom_utilisateur, '')), ' ', ''), '-', ''), '''', ''))";
+        $normalizeTeacherForward = "LOWER(REPLACE(REPLACE(REPLACE(TRIM(CONCAT(COALESCE(e.nom_enseignant, ''), COALESCE(e.prenom_enseignant, ''))), ' ', ''), '-', ''), '''', ''))";
+        $normalizeTeacherReverse = "LOWER(REPLACE(REPLACE(REPLACE(TRIM(CONCAT(COALESCE(e.prenom_enseignant, ''), COALESCE(e.nom_enseignant, ''))), ' ', ''), '-', ''), '''', ''))";
         $query = "SELECT e.*, e.id_enseignant AS matricule_enseignant, f.lib_fonction,f.id_fonction, g.lib_grade, g.id_grade, s.lib_specialite,
                         a.date_grade, o.date_occupation
                  FROM enseignants e 
@@ -98,9 +101,21 @@ class Enseignant{
                  LEFT JOIN occuper o ON e.id_enseignant = o.id_enseignant
                  LEFT JOIN fonction f ON o.id_fonction = f.id_fonction
                  LEFT JOIN specialite s ON e.id_specialite = s.id_specialite 
-                 WHERE e.mail_enseignant = :login";
+                 WHERE e.mail_enseignant = :login_email
+                    OR EXISTS (
+                        SELECT 1
+                        FROM utilisateur u
+                        WHERE u.login_utilisateur = :login_user
+                          AND {$normalizeUserName} <> ''
+                          AND ({$normalizeUserName} = {$normalizeTeacherForward}
+                               OR {$normalizeUserName} = {$normalizeTeacherReverse})
+                    )
+                 ORDER BY CASE WHEN e.mail_enseignant = :login_order THEN 0 ELSE 1 END
+                 LIMIT 1";
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':login', $login);
+        $stmt->bindValue(':login_email', $login);
+        $stmt->bindValue(':login_user', $login);
+        $stmt->bindValue(':login_order', $login);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_OBJ);
     }

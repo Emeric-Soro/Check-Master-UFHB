@@ -1936,6 +1936,7 @@ class ParametreService
                     continue;
                 }
                 $sessionForm[$numSession]['date_debut'] = (string) ($row['date_debut'] ?? '');
+                $sessionForm[$numSession]['date_fin'] = (string) ($row['date_fin'] ?? '');
             }
         }
 
@@ -1960,16 +1961,36 @@ class ParametreService
             $payloads = [];
             if ($messageErreur === '') {
                 for ($i = 1; $i <= 3; $i++) {
-                    $date = trim((string) ($post['session_' . $i . '_debut'] ?? ''));
+                    $dateDebut = trim((string) ($post['session_' . $i . '_debut'] ?? ''));
+                    $dateFin = trim((string) ($post['session_' . $i . '_fin'] ?? ''));
 
-                    $sessionForm[$i]['date_debut'] = $date;
+                    $sessionForm[$i]['date_debut'] = $dateDebut;
+                    $sessionForm[$i]['date_fin'] = $dateFin;
 
-                    if ($date === '') {
+                    if ($dateDebut === '' && $dateFin === '') {
                         $payloads[$i] = null;
                         continue;
                     }
 
-                    $payloads[$i] = $date;
+                    if ($dateDebut === '' || $dateFin === '') {
+                        $messageErreur = 'Veuillez renseigner la date de debut et la date de fin pour la session ' . $i . '.';
+                        break;
+                    }
+
+                    if (!$this->isValidDateValue($dateDebut) || !$this->isValidDateValue($dateFin)) {
+                        $messageErreur = 'Format de date invalide pour la session ' . $i . '.';
+                        break;
+                    }
+
+                    if ($dateDebut > $dateFin) {
+                        $messageErreur = 'La date de fin doit etre superieure ou egale a la date de debut pour la session ' . $i . '.';
+                        break;
+                    }
+
+                    $payloads[$i] = [
+                        'date_debut' => $dateDebut,
+                        'date_fin' => $dateFin,
+                    ];
                 }
             }
 
@@ -1985,7 +2006,8 @@ class ParametreService
                         !$this->programmationSessionSoutenance->upsertSession(
                             $selectedYearId,
                             (int) $numSession,
-                            $data
+                            (string) ($data['date_debut'] ?? ''),
+                            (string) ($data['date_fin'] ?? '')
                         )
                     ) {
                         $success = false;
@@ -2182,7 +2204,7 @@ class ParametreService
             'niveau_etude' => ['id_niv_etude', 'lib_niv_etude'],
             'permissions' => ['id_GU', 'id_fonctionnalite', 'peut_voir', 'peut_creer', 'peut_modifier', 'peut_supprimer'],
             'qualite_jury' => ['id_role_jury', 'lib_role'],
-            'programmation_sessions_soutenance' => ['id_programmation', 'id_annee_acad', 'num_session', 'date_debut', 'created_at', 'updated_at'],
+            'programmation_sessions_soutenance' => ['id_programmation', 'id_annee_acad', 'num_session', 'date_debut', 'date_fin', 'created_at', 'updated_at'],
             'route_actions' => ['id_route_action', 'id_fonctionnalite', 'route_pattern', 'http_method', 'action_crud', 'is_public', 'actif'],
             'salles' => ['id_salle', 'nom_salle', 'capacite'],
             'semestre' => ['id_semestre', 'code_semestre', 'lib_semestre'],
@@ -2415,9 +2437,9 @@ class ParametreService
     private function buildEmptySessionForm(): array
     {
         return [
-            1 => ['date_debut' => ''],
-            2 => ['date_debut' => ''],
-            3 => ['date_debut' => ''],
+            1 => ['date_debut' => '', 'date_fin' => ''],
+            2 => ['date_debut' => '', 'date_fin' => ''],
+            3 => ['date_debut' => '', 'date_fin' => ''],
         ];
     }
 
@@ -2440,12 +2462,28 @@ class ParametreService
             return '-';
         }
 
-        $date = is_array($row) ? (string) ($row['date_debut'] ?? '') : (string) ($row->date_debut ?? '');
-        if ($date === '') {
+        $dateDebut = is_array($row) ? (string) ($row['date_debut'] ?? '') : (string) ($row->date_debut ?? '');
+        $dateFin = is_array($row) ? (string) ($row['date_fin'] ?? '') : (string) ($row->date_fin ?? '');
+
+        if ($dateDebut === '' && $dateFin === '') {
             return '-';
         }
 
-        return date('d/m/Y', strtotime($date));
+        if ($dateDebut === '') {
+            return date('d/m/Y', strtotime($dateFin));
+        }
+
+        if ($dateFin === '' || $dateFin === $dateDebut) {
+            return date('d/m/Y', strtotime($dateDebut));
+        }
+
+        return date('d/m/Y', strtotime($dateDebut)) . ' - ' . date('d/m/Y', strtotime($dateFin));
+    }
+
+    private function isValidDateValue(string $date): bool
+    {
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        return $parsed instanceof \DateTimeImmutable && $parsed->format('Y-m-d') === $date;
     }
 
     private function tableExists(string $table): bool

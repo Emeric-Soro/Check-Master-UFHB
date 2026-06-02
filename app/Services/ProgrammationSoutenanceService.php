@@ -12,6 +12,7 @@ use PDO;
 class ProgrammationSoutenanceService
 {
     private const TABLE_EVALUATIONS_MEMOIRES = 'evaluations_memoires';
+    private const TABLE_MEMOIRE_METADATA = 'memoire_metadonnees';
 
     private $pdo;
     private $tableExistsCache = [];
@@ -283,6 +284,27 @@ class ProgrammationSoutenanceService
                    )
                  ORDER BY d_mem.date_creation DESC, d_mem.id_document DESC
                  LIMIT 1)";
+    }
+
+    private function memoireThemeExpr(string $rapportAlias = 'r'): string
+    {
+        if (!$this->tableExists('documents') || !$this->tableExists(self::TABLE_MEMOIRE_METADATA)) {
+            return "{$rapportAlias}.theme_rapport";
+        }
+
+        return "COALESCE(
+            (SELECT mm.theme_memoire
+             FROM documents d_mem_theme
+             INNER JOIN " . self::TABLE_MEMOIRE_METADATA . " mm
+                ON mm.id_document = d_mem_theme.id_document
+             WHERE d_mem_theme.entite_type = 'rapport_etudiants'
+               AND d_mem_theme.type_document = 'memoire'
+               AND d_mem_theme.statut = 'actif'
+               AND d_mem_theme.entite_id = CAST({$rapportAlias}.id_rapport AS CHAR)
+             ORDER BY d_mem_theme.date_creation DESC, d_mem_theme.id_document DESC
+             LIMIT 1),
+            {$rapportAlias}.theme_rapport
+        )";
     }
 
     private function studentJoinCondition(string $studentAlias = 'e', string $programmationAlias = 'p'): string
@@ -611,6 +633,7 @@ class ProgrammationSoutenanceService
             $selectedYearId = $this->getSelectedAcademicYearId();
             $memoireValidationWhere = $this->validatedMemoireWhere('r');
             $memoireDocumentExpr = $this->validatedMemoireDocumentExpr('r');
+            $memoireThemeExpr = $this->memoireThemeExpr('r');
 
             $sql = "
                 SELECT DISTINCT
@@ -622,7 +645,7 @@ class ProgrammationSoutenanceService
                     e.email_etu as email_etudiant,
                     e.promotion_etu,
                     e.promotion_etu as lib_specialite,
-                    r.theme_rapport,
+                    {$memoireThemeExpr} AS theme_rapport,
                     {$memoireDocumentExpr} AS id_memoire_document,
                     " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
                     ist.id_maitre_stage,

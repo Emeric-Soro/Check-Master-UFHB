@@ -28,9 +28,9 @@ foreach ($annees as $annee) {
 }
 
 $sessionForm = array_replace([
-    1 => ['date_debut' => ''],
-    2 => ['date_debut' => ''],
-    3 => ['date_debut' => ''],
+    1 => ['date_debut' => '', 'date_fin' => ''],
+    2 => ['date_debut' => '', 'date_fin' => ''],
+    3 => ['date_debut' => '', 'date_fin' => ''],
 ], $sessionForm);
 ?>
 <style>
@@ -112,28 +112,43 @@ $sessionForm = array_replace([
                 <div class="cm-session-block">
                     <?php cm_component('form/input-date', [
                         'name' => 'session_1_debut',
-                        'label' => 'Date',
+                        'label' => 'Date debut',
                         'value' => (string) ($sessionForm[1]['date_debut'] ?? ''),
+                    ]); ?>
+                    <?php cm_component('form/input-date', [
+                        'name' => 'session_1_fin',
+                        'label' => 'Date fin',
+                        'value' => (string) ($sessionForm[1]['date_fin'] ?? ''),
                     ]); ?>
                 </div>
                 <div class="cm-session-block">
                     <?php cm_component('form/input-date', [
                         'name' => 'session_2_debut',
-                        'label' => 'Date',
+                        'label' => 'Date debut',
                         'value' => (string) ($sessionForm[2]['date_debut'] ?? ''),
+                    ]); ?>
+                    <?php cm_component('form/input-date', [
+                        'name' => 'session_2_fin',
+                        'label' => 'Date fin',
+                        'value' => (string) ($sessionForm[2]['date_fin'] ?? ''),
                     ]); ?>
                 </div>
                 <div class="cm-session-block">
                     <?php cm_component('form/input-date', [
                         'name' => 'session_3_debut',
-                        'label' => 'Date',
+                        'label' => 'Date debut',
                         'value' => (string) ($sessionForm[3]['date_debut'] ?? ''),
+                    ]); ?>
+                    <?php cm_component('form/input-date', [
+                        'name' => 'session_3_fin',
+                        'label' => 'Date fin',
+                        'value' => (string) ($sessionForm[3]['date_fin'] ?? ''),
                     ]); ?>
                 </div>
             </div>
 
             <div class="cm-form-hint" style="margin-top: 0.35rem;">
-                Renseignez une date pour chaque session. Laissez vide pour retirer une session.
+                Renseignez une date de debut et une date de fin pour chaque session. Laissez les deux dates vides pour retirer une session.
             </div>
 
             <?php

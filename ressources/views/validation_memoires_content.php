@@ -183,7 +183,7 @@ $myUserId = (int) ($_SESSION['id_utilisateur'] ?? 0);
                                 $numSoutenance = (string) ($memoire['num_soutenance'] ?? '');
                                 $documentId = (int) ($memoire['id_document'] ?? 0);
                                 $memoireName = (string) ($memoire['nom_fichier'] ?? $memoire['fichier'] ?? 'memoire.pdf');
-                                $memoireTheme = (string) ($memoire['theme_soutenance'] ?? $memoire['theme'] ?? '');
+                                $memoireTheme = (string) ($memoire['theme_memoire'] ?? $memoire['theme'] ?? $memoire['theme_soutenance'] ?? '');
                                 $promotion = (string) ($memoire['promotion'] ?? $memoire['promotion_etu'] ?? '');
                                 $etudiantNom = trim(
                                     (string) ($memoire['nom_etudiant'] ?? $memoire['nom_etu'] ?? '') .

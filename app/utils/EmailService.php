@@ -6,6 +6,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 class EmailService
 {
     private $mailer;
+    private array $config = [];
 
     public function __construct()
     {
@@ -17,6 +18,7 @@ class EmailService
     {
         try {
             $config = require __DIR__ . '/../config/email.php';
+            $this->config = is_array($config) ? $config : [];
 
             $this->mailer->isSMTP();
             $this->mailer->Host = $config['smtp']['host'];
@@ -31,6 +33,43 @@ class EmailService
         } catch (Exception $e) {
             error_log('[EmailService] configureMailer failed.');
         }
+    }
+
+    private function getRedirectEmail(): ?string
+    {
+        $delivery = is_array($this->config['delivery'] ?? null) ? $this->config['delivery'] : [];
+        $enabled = (bool) ($delivery['redirect_all'] ?? false);
+        $redirectTo = trim((string) ($delivery['redirect_to'] ?? ''));
+
+        if (!$enabled || $redirectTo === '' || filter_var($redirectTo, FILTER_VALIDATE_EMAIL) === false) {
+            return null;
+        }
+
+        return $redirectTo;
+    }
+
+    private function getRedirectSubject(string $subject, string $originalTo): string
+    {
+        $delivery = is_array($this->config['delivery'] ?? null) ? $this->config['delivery'] : [];
+        $prefix = (string) ($delivery['subject_prefix'] ?? '[TEST] ');
+        $originalTo = preg_replace('/[\r\n]+/', ' ', $originalTo) ?: $originalTo;
+        return $prefix . $subject . ' [destinataire reel: ' . $originalTo . ']';
+    }
+
+    private function appendRedirectNotice(string $originalTo): void
+    {
+        $noticeText = "Mode test Check Master: email redirige. Destinataire reel: {$originalTo}.";
+        $noticeHtml = '<div style="margin:0 0 16px;padding:10px 12px;border:1px solid #f59e0b;background:#fffbeb;color:#92400e;font-family:Arial,sans-serif;font-size:13px;">'
+            . htmlspecialchars($noticeText, ENT_QUOTES, 'UTF-8')
+            . '</div>';
+
+        if (stripos((string) $this->mailer->ContentType, 'text/html') !== false) {
+            $this->mailer->Body = $noticeHtml . $this->mailer->Body;
+        } else {
+            $this->mailer->Body = $noticeText . "\n\n" . $this->mailer->Body;
+        }
+
+        $this->mailer->AltBody = trim($noticeText . "\n\n" . (string) $this->mailer->AltBody);
     }
 
     public function sendEmail($to, $subject, $message, $isHTML = false): bool
@@ -125,11 +164,27 @@ class EmailService
     private function doSend(string $to, string $subject, callable $sendBlock): bool
     {
         try {
+            $originalTo = trim($to);
+            $redirectTo = $this->getRedirectEmail();
+            $recipient = $redirectTo ?? $originalTo;
+
             $this->mailer->clearAddresses();
+            $this->mailer->clearCCs();
+            $this->mailer->clearBCCs();
             $this->mailer->clearAttachments();
-            $this->mailer->addAddress($to);
-            $this->mailer->Subject = $subject;
+            $this->mailer->isHTML(false);
+            if (method_exists($this->mailer, 'clearCustomHeaders')) {
+                $this->mailer->clearCustomHeaders();
+            }
+
+            $this->mailer->addAddress($recipient);
+            $this->mailer->Subject = $redirectTo !== null ? $this->getRedirectSubject($subject, $originalTo) : $subject;
             $sendBlock();
+            if ($redirectTo !== null) {
+                $this->appendRedirectNotice($originalTo);
+                $headerOriginalTo = preg_replace('/[\r\n]+/', ' ', $originalTo) ?: $originalTo;
+                $this->mailer->addCustomHeader('X-CheckMaster-Original-To', $headerOriginalTo);
+            }
             return $this->mailer->send();
         } catch (Exception $e) {
             error_log('[EmailService] send failed: ' . $e->getMessage());

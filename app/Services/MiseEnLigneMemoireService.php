@@ -12,6 +12,7 @@ use CheckMaster\Security\PermissionRegistry;
 final class MiseEnLigneMemoireService
 {
     private const MAX_FILE_SIZE = 20971520;
+    private const TABLE_MEMOIRE_METADATA = 'memoire_metadonnees';
 
     private PDO $db;
     private DocumentStorageService $storage;
@@ -42,12 +43,17 @@ final class MiseEnLigneMemoireService
             return ['success' => false, 'message' => 'Le registre documentaire n\'est pas disponible.'];
         }
 
-        $numEtu = trim((string) ($post['num_etu'] ?? ''));
+        $numEtu = trim((string) ($post['num_etu'] ?? $post['cm_memoire_etudiant'] ?? ''));
         if ($numEtu === '') {
             return ['success' => false, 'message' => 'Veuillez selectionner un etudiant.'];
         }
 
-        $eligibility = $this->getMemoireUploadEligibility($numEtu);
+        $selectedSessionNumber = (int) ($post['cm_memoire_session_previsionnelle'] ?? $post['num_session_previsionnelle'] ?? 0);
+        if ($selectedSessionNumber <= 0) {
+            return ['success' => false, 'message' => 'Veuillez selectionner une session previsionnelle.'];
+        }
+
+        $eligibility = $this->getMemoireUploadEligibility($numEtu, null, $selectedSessionNumber);
         if (!($eligibility['allowed'] ?? false)) {
             return [
                 'success' => false,
@@ -58,6 +64,15 @@ final class MiseEnLigneMemoireService
         $rapport = $eligibility['rapport'] ?? null;
         if (!is_array($rapport) || (int) ($rapport['id_rapport'] ?? 0) <= 0) {
             return ['success' => false, 'message' => 'Aucun rapport valide n\'a ete trouve pour cet etudiant.'];
+        }
+        $selectedSession = is_array($eligibility['session'] ?? null) ? $eligibility['session'] : null;
+        if ($selectedSession === null) {
+            return ['success' => false, 'message' => 'Session previsionnelle introuvable.'];
+        }
+
+        $themeMemoire = $this->normalizeMemoireTheme((string) ($post['cm_memoire_theme'] ?? $post['theme_memoire'] ?? ''));
+        if ($themeMemoire === '') {
+            return ['success' => false, 'message' => 'Veuillez renseigner le theme du memoire.'];
         }
 
         $file = $files['memoire_pdf'] ?? null;
@@ -110,24 +125,48 @@ final class MiseEnLigneMemoireService
         $safeStudent = preg_replace('/[^A-Za-z0-9_-]/', '_', (string) ($rapport['num_etu'] ?? $numEtu));
         $storedName = 'memoire_' . $safeStudent . '_' . date('Y-m-d') . '.pdf';
 
-        $document = $this->storage->storeDocument(
-            'memoire',
-            $storedName,
-            $content,
-            'application/pdf',
-            'rapport_etudiants',
-            (string) ((int) ($rapport['id_rapport'] ?? 0)),
-            $userId,
-            null,
-            null,
-            $originalName,
-            true
-        );
+        try {
+            $this->ensureMemoireMetadataTable();
+            $this->db->beginTransaction();
 
-        if (!is_array($document)) {
+            $document = $this->storage->storeDocument(
+                'memoire',
+                $storedName,
+                $content,
+                'application/pdf',
+                'rapport_etudiants',
+                (string) ((int) ($rapport['id_rapport'] ?? 0)),
+                $userId,
+                null,
+                null,
+                $originalName,
+                true
+            );
+
+            if (!is_array($document)) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'L\'enregistrement du memoire a echoue.'];
+            }
+
+            $this->saveMemoireMetadata(
+                (int) ($document['id_document'] ?? 0),
+                (int) ($rapport['id_rapport'] ?? 0),
+                $numEtu,
+                $themeMemoire,
+                $selectedSession
+            );
+
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[MiseEnLigneMemoireService] upload failed: ' . $e->getMessage());
             return ['success' => false, 'message' => 'L\'enregistrement du memoire a echoue.'];
         }
 
+        $rapport['theme_memoire'] = $themeMemoire;
+        $rapport['theme'] = $themeMemoire;
         $this->notifyMemoireValidators($rapport, $document);
 
         return ['success' => true, 'message' => 'Memoire mis en ligne avec succes.'];
@@ -225,7 +264,8 @@ final class MiseEnLigneMemoireService
             }
 
             $anneeId = $this->resolveAcademicYearForMemoire($latestRapport);
-            $session = $anneeId !== null ? $this->findNextPrevisionSession($anneeId) : null;
+            $sessions = $anneeId !== null ? $this->getPrevisionSessionsByYear($anneeId) : [];
+            $session = $sessions[0] ?? null;
             $dateLimite = '';
             if (is_array($session) && !empty($session['date_debut'])) {
                 try {
@@ -255,7 +295,9 @@ final class MiseEnLigneMemoireService
                 'id_annee_acad' => (int) ($anneeId ?? 0),
                 'num_session_previsionnelle' => is_array($session) ? (int) ($session['num_session'] ?? 0) : 0,
                 'date_session_previsionnelle' => is_array($session) ? (string) ($session['date_debut'] ?? '') : '',
+                'date_fin_session_previsionnelle' => is_array($session) ? (string) ($session['date_fin'] ?? '') : '',
                 'date_limite_memoire' => $dateLimite,
+                'sessions_previsionnelles' => $sessions,
             ];
         }
 
@@ -297,7 +339,7 @@ final class MiseEnLigneMemoireService
     /**
      * @return array<string, mixed>|null
      */
-    private function findLatestSoutenanceByStudent(string $numEtu): ?array
+    private function findLatestSoutenanceByStudent(string $numEtu, bool $ignoreSelectedAcademicYear = false): ?array
     {
         if (!$this->tableExists('programmer_soutenance')) {
             return null;
@@ -324,7 +366,7 @@ final class MiseEnLigneMemoireService
                     OR e.num_ident_etud = :num_etu)';
 
         $params = [':num_etu' => $numEtu];
-        $anneeId = $this->getSelectedAcademicYearId();
+        $anneeId = $ignoreSelectedAcademicYear ? null : $this->getSelectedAcademicYearId();
         if ($anneeId !== null) {
             $sql .= ' AND ps.id_annee_acad = :annee_id';
             $params[':annee_id'] = $anneeId;
@@ -428,10 +470,10 @@ final class MiseEnLigneMemoireService
     }
 
     /**
-     * @param array<string,mixed> $rapport
+     * @param array<string,mixed>|null $rapport
      * @return array{allowed:bool,message:string,rapport:array<string,mixed>|null,session:array<string,mixed>|null,id_annee_acad:int|null,date_limite:string|null}
      */
-    private function getMemoireUploadEligibility(string $numEtu, ?array $rapport = null): array
+    private function getMemoireUploadEligibility(string $numEtu, ?array $rapport = null, ?int $numSession = null): array
     {
         if ($rapport === null) {
             $rapport = $this->findLatestRapportAvecCompteRenduByStudent($numEtu);
@@ -471,11 +513,15 @@ final class MiseEnLigneMemoireService
             ];
         }
 
-        $session = $this->findNextPrevisionSession($anneeId);
+        $session = $numSession !== null && $numSession > 0
+            ? $this->findPrevisionSession($anneeId, $numSession)
+            : $this->findNextPrevisionSession($anneeId);
         if ($session === null) {
             return [
                 'allowed' => false,
-                'message' => 'Aucune date previsionnelle de soutenance future n\'est parametree pour cette annee academique.',
+                'message' => $numSession !== null && $numSession > 0
+                    ? 'La session previsionnelle selectionnee n\'est pas parametree pour cette annee academique.'
+                    : 'Aucune date previsionnelle de soutenance future n\'est parametree pour cette annee academique.',
                 'rapport' => $rapport,
                 'session' => null,
                 'id_annee_acad' => $anneeId,
@@ -588,6 +634,105 @@ final class MiseEnLigneMemoireService
     /**
      * @return array<string,mixed>|null
      */
+    private function findPrevisionSession(int $anneeId, int $numSession): ?array
+    {
+        if ($anneeId <= 0 || $numSession <= 0 || !$this->tableExists('programmation_sessions_soutenance')) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT id_programmation, id_annee_acad, num_session, date_debut, date_fin
+                 FROM programmation_sessions_soutenance
+                 WHERE id_annee_acad = :annee_id
+                   AND num_session = :num_session
+                   AND date_debut IS NOT NULL
+                 LIMIT 1'
+            );
+            $stmt->bindValue(':annee_id', $anneeId, PDO::PARAM_INT);
+            $stmt->bindValue(':num_session', $numSession, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return is_array($row) ? $this->mapPrevisionSession($row) : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getPrevisionSessionsByYear(int $anneeId): array
+    {
+        if ($anneeId <= 0 || !$this->tableExists('programmation_sessions_soutenance')) {
+            return [];
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                'SELECT id_programmation, id_annee_acad, num_session, date_debut, date_fin
+                 FROM programmation_sessions_soutenance
+                 WHERE id_annee_acad = :annee_id
+                   AND date_debut IS NOT NULL
+                   AND date_debut >= CURDATE()
+                   AND DATE_SUB(date_debut, INTERVAL 1 MONTH) >= CURDATE()
+                 ORDER BY date_debut ASC, num_session ASC'
+            );
+            $stmt->execute([':annee_id' => $anneeId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            return array_map(fn(array $row): array => $this->mapPrevisionSession($row), $rows);
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private function mapPrevisionSession(array $row): array
+    {
+        $dateDebut = (string) ($row['date_debut'] ?? '');
+        $dateFin = (string) ($row['date_fin'] ?? '');
+        $dateLimite = '';
+
+        if ($dateDebut !== '') {
+            try {
+                $dateLimite = (new \DateTimeImmutable($dateDebut))->modify('-1 month')->format('Y-m-d');
+            } catch (\Throwable) {
+                $dateLimite = '';
+            }
+        }
+
+        return [
+            'id_programmation' => (int) ($row['id_programmation'] ?? 0),
+            'id_annee_acad' => (int) ($row['id_annee_acad'] ?? 0),
+            'num_session' => (int) ($row['num_session'] ?? 0),
+            'date_debut' => $dateDebut,
+            'date_fin' => $dateFin,
+            'date_limite_memoire' => $dateLimite,
+            'label' => $this->formatPrevisionSessionLabel((int) ($row['num_session'] ?? 0), $dateDebut, $dateFin),
+        ];
+    }
+
+    private function formatPrevisionSessionLabel(int $numSession, string $dateDebut, string $dateFin): string
+    {
+        $label = $numSession > 0 ? 'Session ' . $numSession : 'Session';
+        if ($dateDebut === '') {
+            return $label;
+        }
+
+        $start = date('d/m/Y', strtotime($dateDebut));
+        if ($dateFin === '' || $dateFin === $dateDebut) {
+            return $label . ' - ' . $start;
+        }
+
+        return $label . ' - ' . $start . ' au ' . date('d/m/Y', strtotime($dateFin));
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
     private function findNextPrevisionSession(int $anneeId): ?array
     {
         if ($anneeId <= 0 || !$this->tableExists('programmation_sessions_soutenance')) {
@@ -601,12 +746,13 @@ final class MiseEnLigneMemoireService
                  WHERE id_annee_acad = :annee_id
                    AND date_debut IS NOT NULL
                    AND date_debut >= CURDATE()
+                   AND DATE_SUB(date_debut, INTERVAL 1 MONTH) >= CURDATE()
                  ORDER BY date_debut ASC, num_session ASC
                  LIMIT 1'
             );
             $stmt->execute([':annee_id' => $anneeId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return is_array($row) ? $row : null;
+            return is_array($row) ? $this->mapPrevisionSession($row) : null;
         } catch (\Throwable) {
             return null;
         }
@@ -886,6 +1032,20 @@ final class MiseEnLigneMemoireService
             return [];
         }
 
+        $hasMetadata = $this->tableExists(self::TABLE_MEMOIRE_METADATA);
+        $metadataJoin = $hasMetadata
+            ? 'LEFT JOIN ' . self::TABLE_MEMOIRE_METADATA . ' mm ON mm.id_document = d.id_document'
+            : '';
+        $metadataSelect = $hasMetadata
+            ? 'COALESCE(mm.theme_memoire, r.theme_rapport, "") AS theme_memoire,
+               mm.num_session_previsionnelle,
+               mm.date_debut_session,
+               mm.date_fin_session,'
+            : 'COALESCE(r.theme_rapport, "") AS theme_memoire,
+               NULL AS num_session_previsionnelle,
+               NULL AS date_debut_session,
+               NULL AS date_fin_session,';
+
         $sql = 'SELECT
                     d.id_document,
                     d.nom_fichier,
@@ -894,6 +1054,7 @@ final class MiseEnLigneMemoireService
                     r.id_rapport,
                     r.num_etu AS rapport_num_etu,
                     COALESCE(r.theme_rapport, "") AS theme_rapport,
+                    ' . $metadataSelect . '
                     e.num_carte_etud,
                     e.num_ident_etud,
                     e.nom_etu,
@@ -902,6 +1063,7 @@ final class MiseEnLigneMemoireService
                 FROM documents d
                 INNER JOIN rapport_etudiants r
                     ON CAST(r.id_rapport AS CHAR) = d.entite_id
+                ' . $metadataJoin . '
                 INNER JOIN etudiants e
                     ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
                 WHERE d.entite_type = "rapport_etudiants"
@@ -930,6 +1092,20 @@ final class MiseEnLigneMemoireService
             return [];
         }
 
+        $hasMetadata = $this->tableExists(self::TABLE_MEMOIRE_METADATA);
+        $metadataJoin = $hasMetadata
+            ? 'LEFT JOIN ' . self::TABLE_MEMOIRE_METADATA . ' mm ON mm.id_document = d.id_document'
+            : '';
+        $metadataSelect = $hasMetadata
+            ? 'COALESCE(mm.theme_memoire, ps.theme_soutenance, "") AS theme_memoire,
+               mm.num_session_previsionnelle,
+               mm.date_debut_session,
+               mm.date_fin_session,'
+            : 'COALESCE(ps.theme_soutenance, "") AS theme_memoire,
+               NULL AS num_session_previsionnelle,
+               NULL AS date_debut_session,
+               NULL AS date_fin_session,';
+
         $sql = 'SELECT
                     d.id_document,
                     d.nom_fichier,
@@ -938,6 +1114,7 @@ final class MiseEnLigneMemoireService
                     ps.num_soutenance,
                     ps.num_etud,
                     ps.theme_soutenance,
+                    ' . $metadataSelect . '
                     e.num_carte_etud,
                     e.num_ident_etud,
                     e.nom_etu,
@@ -948,6 +1125,7 @@ final class MiseEnLigneMemoireService
                 FROM documents d
                 INNER JOIN programmer_soutenance ps
                     ON CAST(ps.num_soutenance AS CHAR) = d.entite_id
+                ' . $metadataJoin . '
                 INNER JOIN etudiants e
                     ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                 LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
@@ -980,7 +1158,8 @@ final class MiseEnLigneMemoireService
     private function mapMemoireRow(array $row, bool $legacySoutenance): array
     {
         $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['num_etud'] ?? $row['rapport_num_etu'] ?? ''));
-        $soutenance = (!$legacySoutenance && $numEtu !== '') ? $this->findLatestSoutenanceByStudent($numEtu) : null;
+        $soutenance = (!$legacySoutenance && $numEtu !== '') ? $this->findLatestSoutenanceByStudent($numEtu, true) : null;
+        $themeMemoire = (string) ($row['theme_memoire'] ?? ($legacySoutenance ? ($row['theme_soutenance'] ?? '') : ($row['theme_rapport'] ?? '')));
 
         return [
             'id_document' => (int) ($row['id_document'] ?? 0),
@@ -995,9 +1174,13 @@ final class MiseEnLigneMemoireService
             'matricule' => $numEtu,
             'promotion' => $this->formatPromotion($row),
             'promotion_etu' => (string) ($row['promotion_etu'] ?? ''),
-            'theme' => $legacySoutenance ? (string) ($row['theme_soutenance'] ?? '') : (string) ($row['theme_rapport'] ?? ''),
+            'theme' => $themeMemoire,
+            'theme_memoire' => $themeMemoire,
             'theme_soutenance' => $legacySoutenance ? (string) ($row['theme_soutenance'] ?? '') : (string) ($soutenance['theme'] ?? ''),
             'theme_rapport' => $legacySoutenance ? '' : (string) ($row['theme_rapport'] ?? ''),
+            'num_session_previsionnelle' => (int) ($row['num_session_previsionnelle'] ?? 0),
+            'date_debut_session' => (string) ($row['date_debut_session'] ?? ''),
+            'date_fin_session' => (string) ($row['date_fin_session'] ?? ''),
             'fichier' => (string) ($row['nom_fichier'] ?? ''),
             'nom_fichier' => (string) ($row['nom_fichier'] ?? ''),
             'date_depot' => (string) ($row['date_creation'] ?? ''),
@@ -1040,6 +1223,121 @@ final class MiseEnLigneMemoireService
     {
         $eligibility = $this->getMemoireUploadEligibility($numEtu);
         return (bool) ($eligibility['allowed'] ?? false);
+    }
+
+    private function normalizeMemoireTheme(string $theme): string
+    {
+        $normalized = preg_replace('/\s+/', ' ', trim($theme));
+        if (!is_string($normalized)) {
+            return '';
+        }
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($normalized, 0, 500);
+        }
+
+        return substr($normalized, 0, 500);
+    }
+
+    private function ensureMemoireMetadataTable(): void
+    {
+        if ($this->tableExists(self::TABLE_MEMOIRE_METADATA)) {
+            $this->ensureMemoireMetadataColumns();
+            return;
+        }
+
+        $this->db->exec('
+            CREATE TABLE IF NOT EXISTS ' . self::TABLE_MEMOIRE_METADATA . ' (
+                id_memoire_metadata INT NOT NULL AUTO_INCREMENT,
+                id_document BIGINT UNSIGNED NOT NULL,
+                id_rapport INT NULL,
+                num_etu VARCHAR(25) NOT NULL,
+                theme_memoire VARCHAR(500) NOT NULL,
+                num_session_previsionnelle TINYINT NULL,
+                date_debut_session DATE NULL,
+                date_fin_session DATE NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id_memoire_metadata),
+                UNIQUE KEY uq_memoire_metadata_document (id_document),
+                KEY idx_memoire_metadata_rapport (id_rapport),
+                KEY idx_memoire_metadata_num_etu (num_etu)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ');
+
+        $this->tableExistsCache[self::TABLE_MEMOIRE_METADATA] = true;
+        $this->ensureMemoireMetadataColumns();
+    }
+
+    private function ensureMemoireMetadataColumns(): void
+    {
+        $columns = [
+            'num_session_previsionnelle' => 'TINYINT NULL AFTER theme_memoire',
+            'date_debut_session' => 'DATE NULL AFTER num_session_previsionnelle',
+            'date_fin_session' => 'DATE NULL AFTER date_debut_session',
+        ];
+
+        foreach ($columns as $column => $definition) {
+            if ($this->columnExists(self::TABLE_MEMOIRE_METADATA, $column)) {
+                continue;
+            }
+
+            $this->db->exec('ALTER TABLE ' . self::TABLE_MEMOIRE_METADATA . ' ADD COLUMN ' . $column . ' ' . $definition);
+            $this->columnExistsCache[strtolower(self::TABLE_MEMOIRE_METADATA . '.' . $column)] = true;
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $session
+     */
+    private function saveMemoireMetadata(int $documentId, int $rapportId, string $numEtu, string $themeMemoire, array $session): void
+    {
+        if ($documentId <= 0 || $numEtu === '' || $themeMemoire === '') {
+            throw new \RuntimeException('Metadonnees memoire invalides.');
+        }
+
+        $stmt = $this->db->prepare('
+            INSERT INTO ' . self::TABLE_MEMOIRE_METADATA . ' (
+                id_document,
+                id_rapport,
+                num_etu,
+                theme_memoire,
+                num_session_previsionnelle,
+                date_debut_session,
+                date_fin_session
+            ) VALUES (
+                :id_document,
+                :id_rapport,
+                :num_etu,
+                :theme_memoire,
+                :num_session_previsionnelle,
+                :date_debut_session,
+                :date_fin_session
+            )
+            ON DUPLICATE KEY UPDATE
+                id_rapport = VALUES(id_rapport),
+                num_etu = VALUES(num_etu),
+                theme_memoire = VALUES(theme_memoire),
+                num_session_previsionnelle = VALUES(num_session_previsionnelle),
+                date_debut_session = VALUES(date_debut_session),
+                date_fin_session = VALUES(date_fin_session),
+                updated_at = CURRENT_TIMESTAMP
+        ');
+        $stmt->bindValue(':id_document', $documentId, PDO::PARAM_INT);
+        if ($rapportId > 0) {
+            $stmt->bindValue(':id_rapport', $rapportId, PDO::PARAM_INT);
+        } else {
+            $stmt->bindValue(':id_rapport', null, PDO::PARAM_NULL);
+        }
+        $stmt->bindValue(':num_etu', $numEtu);
+        $stmt->bindValue(':theme_memoire', $themeMemoire);
+        $numSession = (int) ($session['num_session'] ?? 0);
+        $stmt->bindValue(':num_session_previsionnelle', $numSession > 0 ? $numSession : null, $numSession > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $dateDebut = trim((string) ($session['date_debut'] ?? ''));
+        $dateFin = trim((string) ($session['date_fin'] ?? ''));
+        $stmt->bindValue(':date_debut_session', $dateDebut !== '' ? $dateDebut : null, $dateDebut !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':date_fin_session', $dateFin !== '' ? $dateFin : null, $dateFin !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->execute();
     }
 
     /**
@@ -1139,7 +1437,7 @@ final class MiseEnLigneMemoireService
     {
         try {
             $numEtu = trim((string) ($memoireContext['num_etu'] ?? $memoireContext['num_ident_etud'] ?? $memoireContext['num_carte_etud'] ?? ''));
-            $soutenance = $this->findLatestSoutenanceByStudent($numEtu);
+            $soutenance = $this->findLatestSoutenanceByStudent($numEtu, true);
             $numSoutenance = trim((string) ($soutenance['num_soutenance'] ?? ''));
             $rapportId = (int) ($memoireContext['id_rapport'] ?? 0);
             $encadrement = $this->resolveEncadrementForMemoire($rapportId > 0 ? $rapportId : null, $numSoutenance);
@@ -1148,7 +1446,7 @@ final class MiseEnLigneMemoireService
             $emailService = $notificationService->getEmailService();
             $baseData = [
                 'nom_etudiant' => htmlspecialchars(trim((string) ($memoireContext['nom_etu'] ?? '') . ' ' . (string) ($memoireContext['prenom_etu'] ?? '')) ?: 'Etudiant', ENT_QUOTES, 'UTF-8'),
-                'theme' => htmlspecialchars((string) ($memoireContext['theme_rapport'] ?? $memoireContext['theme'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'theme' => htmlspecialchars((string) ($memoireContext['theme_memoire'] ?? $memoireContext['theme'] ?? $memoireContext['theme_rapport'] ?? ''), ENT_QUOTES, 'UTF-8'),
                 'promotion' => htmlspecialchars($this->formatPromotion($memoireContext), ENT_QUOTES, 'UTF-8'),
                 'nom_fichier' => htmlspecialchars((string) ($document['nom_fichier'] ?? 'memoire.pdf'), ENT_QUOTES, 'UTF-8'),
                 'num_soutenance' => htmlspecialchars($numSoutenance, ENT_QUOTES, 'UTF-8'),

@@ -58,8 +58,7 @@ foreach ($etudiants as $etudiant) {
         <!-- Formulaire de mise en ligne -->
         <div class="cm-pole-superieur">
             <div class="cm-text-md cm-text-semibold cm-mb-md">Mise en ligne de mémoire</div>
-<form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data"
-                data-cm-ajax-form="true">
+            <form id="cmMemoireForm" method="POST" action="?page=mise_en_ligne_memoire" enctype="multipart/form-data">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="upload_memoire">
                 <input type="hidden" name="num_etu" id="cmMemoireNumEtu" value="">
@@ -82,11 +81,13 @@ foreach ($etudiants as $etudiant) {
                         'maxlength' => 9,
                         'attrs' => ['size' => '9'],
                     ]);
-                    cm_component('form/input-text', [
+                    cm_component('form/select', [
                         'name' => 'cm_memoire_session_previsionnelle',
                         'id' => 'cmMemoireSessionPrevisionnelle',
                         'label' => 'Session previsionnelle',
-                        'readonly' => true,
+                        'required' => true,
+                        'options' => [],
+                        'placeholder' => '-- Selectionner une session --',
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_memoire_date_limite',
@@ -97,9 +98,11 @@ foreach ($etudiants as $etudiant) {
                     cm_component('form/textarea', [
                         'name' => 'cm_memoire_theme',
                         'id' => 'cmMemoireTheme',
-                        'label' => 'Thème',
-                        'readonly' => true,
+                        'label' => 'Theme du memoire',
+                        'required' => true,
+                        'maxlength' => 500,
                         'rows' => 3,
+                        'hint' => 'Vous pouvez l adapter si le theme du memoire differe du rapport de stage.',
                     ]);
                     ?>
                     <div class="cm-form-group">
@@ -108,7 +111,7 @@ foreach ($etudiants as $etudiant) {
                         </label>
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
                             <input type="file" name="memoire_pdf" id="cmMemoirePdf" class="cm-form-control"
-                                accept=".pdf,application/pdf" required style="display: none;">
+                                accept=".pdf,application/pdf" style="display: none;">
                             <button type="button" class="cm-btn is-light" id="cmMemoirePdfBtn"
                                 style="white-space: nowrap;">
                                 <i class="fas fa-folder-open" aria-hidden="true"></i>
@@ -271,6 +274,7 @@ foreach ($etudiants as $etudiant) {
         const etudiants = <?php echo json_encode($etudiants, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
         const etudiantSelect = document.getElementById('cmMemoireEtudiantSelect');
+        const form = document.getElementById('cmMemoireForm');
         const numEtuInput = document.getElementById('cmMemoireNumEtu');
         const promotionInput = document.getElementById('cmMemoirePromotion');
         const sessionInput = document.getElementById('cmMemoireSessionPrevisionnelle');
@@ -358,24 +362,110 @@ foreach ($etudiants as $etudiant) {
             }) || null;
         }
 
+        function clearSessionOptions() {
+            if (!sessionInput) {
+                return;
+            }
+
+            sessionInput.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '-- Selectionner une session --';
+            sessionInput.appendChild(placeholder);
+        }
+
+        function updateDateLimiteFromSelectedSession() {
+            if (!sessionInput || !dateLimiteInput) {
+                return;
+            }
+
+            const selected = sessionInput.options[sessionInput.selectedIndex] || null;
+            dateLimiteInput.value = selected ? (selected.getAttribute('data-date-limite') || '') : '';
+        }
+
+        function fillSessionOptions(info) {
+            clearSessionOptions();
+            if (!sessionInput || !info) {
+                return;
+            }
+
+            const sessions = Array.isArray(info.sessions_previsionnelles) ? info.sessions_previsionnelles : [];
+            sessions.forEach(function (session) {
+                const numSession = String(session.num_session || '');
+                if (!numSession) {
+                    return;
+                }
+
+                const option = document.createElement('option');
+                option.value = numSession;
+                option.textContent = session.label || ('Session ' + numSession);
+                option.setAttribute('data-date-limite', session.date_limite_memoire || '');
+                option.setAttribute('data-date-debut', session.date_debut || '');
+                option.setAttribute('data-date-fin', session.date_fin || '');
+                sessionInput.appendChild(option);
+            });
+
+            const defaultSession = String(info.num_session_previsionnelle || '');
+            if (defaultSession) {
+                sessionInput.value = defaultSession;
+            }
+
+            if (!sessionInput.value && sessionInput.options.length > 1) {
+                sessionInput.selectedIndex = 1;
+            }
+
+            updateDateLimiteFromSelectedSession();
+        }
+
         function fillEtudiantInfo(numEtu) {
             const info = getEtudiantByNumEtu(numEtu);
             if (!info) {
                 if (promotionInput) promotionInput.value = '';
-                if (sessionInput) sessionInput.value = '';
+                clearSessionOptions();
                 if (dateLimiteInput) dateLimiteInput.value = '';
                 if (themeInput) themeInput.value = '';
                 return;
             }
 
             if (promotionInput) promotionInput.value = info.promotion || '';
-            if (sessionInput) {
-                const session = info.num_session_previsionnelle ? 'Session ' + info.num_session_previsionnelle : '';
-                const date = info.date_session_previsionnelle || '';
-                sessionInput.value = [session, date].filter(Boolean).join(' - ');
-            }
-            if (dateLimiteInput) dateLimiteInput.value = info.date_limite_memoire || '';
+            fillSessionOptions(info);
             if (themeInput) themeInput.value = info.theme || '';
+        }
+
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                const selectedNumEtu = etudiantSelect ? (etudiantSelect.value || '') : '';
+                if (numEtuInput && selectedNumEtu) {
+                    numEtuInput.value = selectedNumEtu;
+                }
+
+                if (!selectedNumEtu) {
+                    event.preventDefault();
+                    setAlert('error', 'Veuillez selectionner un etudiant.');
+                    return;
+                }
+
+                if (!sessionInput || !sessionInput.value) {
+                    event.preventDefault();
+                    setAlert('error', 'Veuillez selectionner une session previsionnelle.');
+                    return;
+                }
+
+                if (!themeInput || !String(themeInput.value || '').trim()) {
+                    event.preventDefault();
+                    setAlert('error', 'Veuillez renseigner le theme du memoire.');
+                    if (themeInput && typeof themeInput.focus === 'function') {
+                        themeInput.focus();
+                    }
+                    return;
+                }
+
+                if (!pdfInput || !pdfInput.files || pdfInput.files.length === 0) {
+                    event.preventDefault();
+                    setAlert('error', 'Veuillez selectionner un fichier PDF.');
+                    return;
+                }
+            });
         }
 
         function deleteMemoire(numEtu) {
@@ -412,13 +502,17 @@ foreach ($etudiants as $etudiant) {
             });
         }
 
+        if (sessionInput) {
+            sessionInput.addEventListener('change', updateDateLimiteFromSelectedSession);
+        }
+
         // Event: Réinitialiser le formulaire
         if (resetBtn) {
             resetBtn.addEventListener('click', function () {
                 if (etudiantSelect) etudiantSelect.value = '';
                 if (numEtuInput) numEtuInput.value = '';
                 if (promotionInput) promotionInput.value = '';
-                if (sessionInput) sessionInput.value = '';
+                clearSessionOptions();
                 if (dateLimiteInput) dateLimiteInput.value = '';
                 if (themeInput) themeInput.value = '';
                 if (pdfInput) pdfInput.value = '';

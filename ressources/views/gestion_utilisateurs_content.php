@@ -221,7 +221,8 @@ foreach ($personnelNonUtilisateurs as $row) {
                         'control_class' => 'cm-field-lg',
                     ]);
                     ?>
-                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif', 'Suspendu' => 'Suspendu'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-sm']); ?>
+                    <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-sm']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue, 'control_class' => 'cm-field-md']); ?>
                     <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login', 'control_class' => 'cm-field-md']); ?>
                 </div>
                 <div class="cm-form-group"><small id="cmLoginHint" class="cm-text-muted"></small></div>
