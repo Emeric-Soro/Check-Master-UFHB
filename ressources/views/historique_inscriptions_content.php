@@ -1,10 +1,11 @@
 <?php
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $historyBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=historique_inscriptions'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=historique_inscriptions'
     : '?page=historique_inscriptions';
 $ficheBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=fiche_etudiant_complete'
     : '?page=fiche_etudiant_complete';
 ?>
 <div class="cm-prd3-screen">

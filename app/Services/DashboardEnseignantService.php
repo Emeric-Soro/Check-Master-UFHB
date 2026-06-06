@@ -131,10 +131,26 @@ class DashboardEnseignantService
      * Récupère les niveaux d'étude gérés par un enseignant
      */
     private function getNiveauxByEnseignant($enseignantId) {
-        $sql = "SELECT * FROM niveau_etude WHERE id_enseignant = ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$enseignantId]);
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        // Vérifier d'abord si la colonne id_enseignant existe encore dans niveau_etude
+        try {
+            $check = $this->db->prepare("SHOW COLUMNS FROM niveau_etude LIKE 'id_enseignant'");
+            $check->execute();
+            if (!$check->fetchColumn()) {
+                return [];
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        try {
+            $sql = "SELECT * FROM niveau_etude WHERE id_enseignant = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$enseignantId]);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\Throwable $e) {
+            error_log('[DashboardEnseignantService] getNiveauxByEnseignant failed: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**

@@ -7,6 +7,8 @@
  * filtres avancés (entité, action, date) et export CSV.
  */
 
+// @todo REFACTOR: Vue auto-contenue avec service + logique d'export CSV (couplage vue ↔ métier).
+// Déplacer la logique dans layout.php (case 'historique_modifications') et/ou un contrôleur dédié.
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/Services/HistoriqueModificationsService.php';
 

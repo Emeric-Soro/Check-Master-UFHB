@@ -515,7 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         timeout = setTimeout(function() {
-            fetch('?page=recherche_globale&ajax=1&q=' + encodeURIComponent(query))
+            fetch('?page=parametres_generaux&action=recherche_globale&ajax=1&q=' + encodeURIComponent(query))
                 .then(r => r.json())
                 .then(data => {
                     dropdown.innerHTML = '';

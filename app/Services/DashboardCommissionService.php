@@ -190,6 +190,33 @@ class DashboardCommissionService
     }
 
     /**
+     * Récupère les statistiques agrégées en UNE requête (au lieu de 5 requêtes individuelles).
+     *
+     * @return array
+     */
+    public function getAggregatedStats(): array
+    {
+        $defaults = ['total_valider' => 0, 'valides_valider' => 0, 'rejetes_valider' => 0,
+                     'valides_statut' => 0, 'rejetes_statut' => 0, 'en_attente' => 0];
+        try {
+            $sql = "SELECT
+                        (SELECT COUNT(DISTINCT id_rapport) FROM valider) AS total_valider,
+                        (SELECT COUNT(DISTINCT id_rapport) FROM valider WHERE decision_validation = 'valider') AS valides_valider,
+                        (SELECT COUNT(DISTINCT id_rapport) FROM valider WHERE decision_validation = 'rejeter') AS rejetes_valider,
+                        (SELECT COUNT(*) FROM rapport_etudiants WHERE statut_rapport = 'valider') AS valides_statut,
+                        (SELECT COUNT(*) FROM rapport_etudiants WHERE statut_rapport = 'rejeter') AS rejetes_statut,
+                        (SELECT COUNT(*) FROM rapport_etudiants WHERE statut_rapport IS NULL OR statut_rapport NOT IN ('valider', 'rejeter')) AS en_attente";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ?: $defaults;
+        } catch (Exception $e) {
+            error_log("Erreur getAggregatedStats: " . $e->getMessage());
+            return $defaults;
+        }
+    }
+
+    /**
      * Récupère toutes les données pour le tableau de bord de la commission
      *
      * @return array Les données du tableau de bord
@@ -213,14 +240,24 @@ class DashboardCommissionService
 
         try {
             $stats['annee_academique'] = $this->getAnneeAcademiqueActive();
-            $stats['total_rapports'] = $this->getTotalRapports();
-            $stats['taux_validation'] = $this->getTauxValidation();
-            $stats['temps_moyen'] = $this->getTempsMoyenTraitement();
-            $stats['en_attente'] = $this->getRapportsEnAttente();
-            $stats['rapports_valides'] = $this->getNombreRapportsValides();
-            $stats['rapports_rejetes'] = $this->getNombreRapportsRejetes();
-            $stats['evolution_mensuelle'] = $this->getEvolutionMensuelle();
+
+            // Agrégation unique remplaçant 5 requêtes COUNT individuelles
+            $agg = $this->getAggregatedStats();
+            $stats['total_rapports'] = (int) ($agg['total_valider'] ?? 0);
+            $stats['rapports_valides'] = (int) ($agg['valides_statut'] ?? 0);
+            $stats['rapports_rejetes'] = (int) ($agg['rejetes_statut'] ?? 0);
+            $stats['en_attente'] = (int) ($agg['en_attente'] ?? 0);
+
+            // Taux de validation
+            $totalValider = (int) ($agg['total_valider'] ?? 0);
+            $validesValider = (int) ($agg['valides_valider'] ?? 0);
+            $stats['taux_validation'] = $totalValider > 0 ? round(($validesValider / $totalValider) * 100, 1) : 0;
+
+            // Réutilisation de la répartition
             $stats['repartition_statuts'] = $this->getRepartitionStatuts();
+
+            $stats['temps_moyen'] = $this->getTempsMoyenTraitement();
+            $stats['evolution_mensuelle'] = $this->getEvolutionMensuelle();
             $stats['performance_categories'] = $this->getPerformanceCategories();
             $stats['activites_recentes'] = $this->getActivitesRecentes();
             $stats['rapports_details'] = $this->getRapportsDetails();

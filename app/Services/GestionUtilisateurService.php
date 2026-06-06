@@ -552,6 +552,25 @@ class GestionUtilisateurService
     }
 
     /**
+     * Supprime plusieurs utilisateurs
+     *
+     * @param array $ids Liste d'identifiants
+     * @param int   $userId Identifiant de l'utilisateur connecté
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function deleteMultipleUtilisateurs(array $ids, int $userId): array
+    {
+        foreach ($ids as $id) {
+            if (!$this->utilisateur->supprimerUtilisateur($id)) {
+                $this->auditLog->logSuppression($userId, 'utilisateur', 'Erreur');
+                return ['success' => false, 'message' => "Erreur lors de la suppression des utilisateurs."];
+            }
+        }
+        $this->auditLog->logSuppression($userId, 'utilisateur', 'Succès');
+        return ['success' => true, 'message' => 'Utilisateurs supprimés avec succès.'];
+    }
+
+    /**
      * Envoie les accès par email à plusieurs utilisateurs
      *
      * @param array $ids Liste d'identifiants

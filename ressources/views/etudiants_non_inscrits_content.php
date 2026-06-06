@@ -3,14 +3,17 @@
  * P2.6 — Étudiants non inscrits
  * Slug: etudiants_non_inscrits | Permission: gestion_scolarite
  */
+// @todo REFACTOR: Vue auto-contenue avec modèle (couplage vue ↔ métier).
+// Déplacer la logique dans layout.php (case 'etudiants_non_inscrits').
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Scolarite.php';
 
 $scolarite = new Scolarite(Database::getConnection());
 $id_annee = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $ficheBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=fiche_etudiant_complete'
     : '?page=fiche_etudiant_complete';
 
 $etudiants = $scolarite->getEtudiantsNonInscrits($id_annee);

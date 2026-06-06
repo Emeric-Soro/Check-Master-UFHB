@@ -234,8 +234,13 @@ final class RouteActionResolver
      */
     private static function resolveExtraToken(array $get): ?string
     {
-        foreach (['detail', 'fichier', 'export', 'download', 'preview', 'examiner'] as $key) {
+        foreach (['ajax', 'op', 'detail', 'fichier', 'export', 'download', 'preview', 'examiner'] as $key) {
             if (array_key_exists($key, $get)) {
+                $value = $get[$key];
+                if (in_array($key, ['ajax', 'op'], true) && is_string($value) && trim($value) !== '') {
+                    return $key . '=' . trim($value);
+                }
+
                 return $key . '=1';
             }
         }

@@ -282,7 +282,8 @@ final class PvFinalGeneratorService
 
         $pdf->Ln(1);
         $pdf->Cell(18, 6, 'THEME :', 0, 0);
-        $pdf->Cell(0, 6, (string) $data['theme'], 0, 1);
+        // MultiCell permet au thème long de passer à la ligne
+        $pdf->MultiCell(0, 6, (string) $data['theme'], 0, 'L');
 
         $pdf->Cell(70, 6, 'NOM ET PRENOMS DE L\'IMPETRANT :', 0, 0);
         $pdf->Cell(0, 6, (string) $data['nom_etudiant'], 0, 1);
@@ -443,14 +444,34 @@ final class PvFinalGeneratorService
             default => 'P.V. FINAL',
         };
 
-        $this->pdfGenerator->addHeader($pdf, 'ANNEXE ' . $annexeNum . ' / FILIERES / PROFESSIONNALISEES', $title);
+        // ── En-tête avec logos ──
+        // On appelle addHeader avec un titre court pour éviter le chevauchement
+        // avec les logos (25 mm de chaque côté). On gère le sous-titre nous-mêmes.
+        $this->pdfGenerator->addHeader($pdf, 'ANNEXE ' . $annexeNum, null);
 
+        // Sous-titre : thème de l'annexe, centré en 11pt gras (pas d'italique pour lisibilité réduite)
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, 7, (string) $title, 0, 1, 'C');
+        $pdf->Ln(4);
+
+        // ── Bande colorée d'identification UFR ──
         $pdf->SetFillColor($colors[0], $colors[1], $colors[2]);
         $pdf->SetTextColor(255, 255, 255);
-        $pdf->SetFont('helvetica', 'B', 9);
-        $pdf->Cell(0, 7, 'UFR de Mathematiques et Informatique Filieres Professionnalisees MIAGE-GI', 0, 1, 'C', true);
+        $pdf->SetFont('helvetica', 'B', 8);
+        // Texte scindé en deux lignes : ne pas dépasser la largeur disponible entre logos
+        $pdf->Cell(0, 6, 'UFR DE MATHÉMATIQUES ET INFORMATIQUE', 0, 1, 'C', true);
+        $pdf->Cell(0, 6, 'FILIÈRES PROFESSIONNALISÉES MIAGE-GI', 0, 1, 'C', true);
         $pdf->SetTextColor(0, 0, 0);
         $pdf->Ln(3);
+
+        // ── Ligne de séparation aux couleurs de l'annexe ──
+        $pdf->SetDrawColor($colors[0], $colors[1], $colors[2]);
+        $pdf->SetLineWidth(0.5);
+        $marginLeft = 15.0;
+        $marginRight = 15.0;
+        $pdf->Line($marginLeft, $pdf->GetY(), $pdf->getPageWidth() - $marginRight, $pdf->GetY());
+        $pdf->SetLineWidth(0.2);
+        $pdf->Ln(5);
     }
 
     public function calculerMoyenneCoeff(float $note, int $coeff): float

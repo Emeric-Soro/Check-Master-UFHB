@@ -561,5 +561,70 @@ class ArchiveDocumentController
                 ))";
     }
 
+    /**
+     * Récupère la liste des mémoires archivés avec leurs métadonnées et évaluations.
+     */
+    public function getMemoires(): array
+    {
+        try {
+            $anneeId = $_SESSION['archive_annee_acad'] ?? null;
+            if (!is_numeric($anneeId)) {
+                $anneeId = null;
+            }
+
+            $anneeJoin = '';
+            $params = [];
+            if ($anneeId !== null) {
+                $anneeJoin = 'AND ps.id_annee_acad = :annee_id';
+                $params[':annee_id'] = (int) $anneeId;
+            }
+
+            $sql = "SELECT
+                        d.id_document,
+                        d.nom_fichier,
+                        d.taille_fichier,
+                        d.date_creation AS date_depot,
+                        d.version,
+                        mm.theme_memoire,
+                        mm.num_etu,
+                        CONCAT(e.nom_etu, ' ', e.prenom_etu) AS etudiant_nom,
+                        COALESCE(e.num_ident_etud, e.num_carte_etud) AS num_carte_etud,
+                        ps.num_soutenance,
+                        ps.theme_soutenance,
+                        ps.date_soutenance,
+                        CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS annee_academique,
+                        s.lib_session,
+                        (SELECT COUNT(*) FROM evaluations_memoires em WHERE em.id_document = d.id_document) AS nb_evaluations,
+                        (SELECT GROUP_CONCAT(DISTINCT em.decision SEPARATOR ', ') FROM evaluations_memoires em WHERE em.id_document = d.id_document) AS decisions
+                    FROM documents d
+                    JOIN memoire_metadonnees mm ON mm.id_document = d.id_document
+                    JOIN etudiants e ON (e.num_carte_etud = mm.num_etu OR e.num_ident_etud = mm.num_etu)
+                    LEFT JOIN programmer_soutenance ps ON (ps.num_etud = e.num_carte_etud OR ps.num_etud = e.num_ident_etud)
+                    LEFT JOIN annee_academique aa ON aa.id_annee_acad = COALESCE(ps.id_annee_acad, :annee_fallback)
+                    LEFT JOIN session s ON s.id_session = ps.id_session
+                    WHERE d.type_document = 'memoire'
+                      AND d.statut = 'actif'
+                      {$anneeJoin}
+                    ORDER BY d.date_creation DESC";
+
+            $params[':annee_fallback'] = $anneeId !== null ? (int) $anneeId : 0;
+
+            $stmt = $this->db->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $stmt->execute();
+            $memoires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return [
+                'memoires' => $memoires,
+                'total' => count($memoires),
+            ];
+        } catch (\Exception $e) {
+            error_log('ArchiveDocumentController::getMemoires error: ' . $e->getMessage());
+            return ['memoires' => [], 'total' => 0];
+        }
+    }
+
 
 }

@@ -54,7 +54,7 @@ usort($utilisateursFiltres, static function ($a, $b): int {
 $total = count($utilisateursFiltres);
 $rowsPage = $utilisateursFiltres;
 
-$typeOptions = ['' => '-- Sélectionner --'];
+$typeOptions = [];
 foreach ($typesUtilisateur as $type) {
     $id = (string) ($type->id_type_utilisateur ?? '');
     if ($id !== '') {
@@ -121,6 +121,21 @@ foreach ($personnelNonUtilisateurs as $row) {
     $allNameOptions[$label] = $label . (trim((string) ($row->email_pers_admin ?? '')) ? '' : ' (sans email)');
     $userDataMap[$label] = ['id' => (string) ($row->id_pers_admin ?? ''), 'email' => trim((string) ($row->email_pers_admin ?? ''))];
 }
+
+// Mapping nom -> type de personne (pour filtrage JS)
+$namePersonTypeMap = [];
+foreach ($etudiantsNonUtilisateurs as $row) {
+    $lbl = trim((string) (($row->nom_etu ?? '') . ' ' . ($row->prenom_etu ?? '')));
+    if ($lbl !== '') { $namePersonTypeMap[$lbl] = 'etu'; }
+}
+foreach ($enseignantsNonUtilisateurs as $row) {
+    $lbl = trim((string) (($row->nom_enseignant ?? '') . ' ' . ($row->prenom_enseignant ?? '')));
+    if ($lbl !== '') { $namePersonTypeMap[$lbl] = 'ens'; }
+}
+foreach ($personnelNonUtilisateurs as $row) {
+    $lbl = trim((string) (($row->nom_pers_admin ?? '') . ' ' . ($row->prenom_pers_admin ?? '')));
+    if ($lbl !== '') { $namePersonTypeMap[$lbl] = 'pers'; }
+}
 ?>
 <?php if (!canView()): ?>
     <?php cm_component('ui/alert-box', ['type' => 'danger', 'message' => "Vous n'avez pas l'autorisation d'accéder à cette page."]); ?>
@@ -148,7 +163,7 @@ foreach ($personnelNonUtilisateurs as $row) {
 <form method="POST" action="?page=gestion_utilisateurs" id="cmUsersMassForm" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <div class="cm-grid-4">
-                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmMassTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmMassTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'placeholder' => '-- Sélectionner --', 'control_class' => 'cm-field-lg']); ?>
                     <div class="cm-form-group">
                         <label for="cmMassGroupeUtilisateur" class="cm-form-label">Groupe utilisateur</label>
                         <select name="id_GU" id="cmMassGroupeUtilisateur" class="cm-form-control cm-field-md" required>
@@ -160,7 +175,7 @@ foreach ($personnelNonUtilisateurs as $row) {
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'control_class' => 'cm-field-lg']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'label' => 'Niveau accès', 'required' => true, 'options' => $niveauOptions, 'placeholder' => '-- Sélectionner --', 'control_class' => 'cm-field-lg']); ?>
                     <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => 'Actif', 'control_class' => 'cm-field-sm']); ?>
                 </div>
                 <div class="cm-form-group">
@@ -198,7 +213,7 @@ foreach ($personnelNonUtilisateurs as $row) {
                 <input type="hidden" name="source_reference_id" id="cmSourceReferenceId" value="">
                 <input type="hidden" name="source_reference_email" id="cmSourceReferenceEmail" value="">
                 <div class="cm-grid-4">
-                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'selected' => $editTypeValue, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_type_utilisateur', 'id' => 'cmTypeUtilisateur', 'label' => 'Type utilisateur', 'required' => true, 'options' => $typeOptions, 'selected' => $editTypeValue, 'placeholder' => '-- Sélectionner --', 'control_class' => 'cm-field-lg']); ?>
                     <div class="cm-form-group">
                         <label for="cmGroupeUtilisateur" class="cm-form-label">Groupe utilisateur</label>
                         <select name="id_GU" id="cmGroupeUtilisateur" class="cm-form-control cm-field-md" required>
@@ -222,7 +237,7 @@ foreach ($personnelNonUtilisateurs as $row) {
                     ]);
                     ?>
                     <?php cm_component('form/select', ['name' => 'statut_utilisateur', 'id' => 'cmStatutUtilisateur', 'label' => 'Statut', 'required' => true, 'options' => ['Actif' => 'Actif', 'Inactif' => 'Inactif'], 'selected' => $editStatutValue, 'control_class' => 'cm-field-sm']); ?>
-                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau acces', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue, 'control_class' => 'cm-field-md']); ?>
+                    <?php cm_component('form/select', ['name' => 'id_niveau_acces', 'id' => 'cmNiveauAcces', 'label' => 'Niveau accès', 'required' => true, 'options' => $niveauOptions, 'selected' => $editNiveauValue, 'placeholder' => '-- Sélectionner --', 'control_class' => 'cm-field-lg']); ?>
                     <?php cm_component('form/input-text', ['name' => 'login_utilisateur', 'id' => 'cmLoginUtilisateur', 'label' => 'Login', 'required' => true, 'value' => $editLoginValue, 'placeholder' => 'login', 'control_class' => 'cm-field-md']); ?>
                 </div>
                 <div class="cm-form-group"><small id="cmLoginHint" class="cm-text-muted"></small></div>
@@ -281,6 +296,7 @@ foreach ($personnelNonUtilisateurs as $row) {
                     <input type="hidden" name="submit_disable_multiple" id="cmSubmitDisable" value="0">
                     <input type="hidden" name="submit_enable_multiple" id="cmSubmitEnable" value="0">
                     <input type="hidden" name="submit_send_access" id="cmSubmitSendAccess" value="0">
+                    <input type="hidden" name="submit_delete_multiple" id="cmSubmitDelete" value="0">
                     <?php cm_component('crud/data-table', [
                         'id' => 'cmUsersTable',
                         'columns' => [
@@ -318,6 +334,7 @@ $allUserData = array_merge(
 );
 ?>
 window._allUserData = <?= json_encode($allUserData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+window._namePersonTypeMap = <?= json_encode($namePersonTypeMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
 (function () {
     const typeSelect = document.getElementById('cmTypeUtilisateur');
@@ -408,6 +425,44 @@ window._allUserData = <?= json_encode($allUserData, JSON_UNESCAPED_UNICODE | JSO
         if (sourceIdInput) sourceIdInput.value = '';
         if (sourceEmailInput) sourceEmailInput.value = '';
     }
+    function mapTypeToPersonKinds(typeId) {
+        const id = String(typeId || '').trim();
+        if (id === '4') return ['pers'];
+        if (id === '5' || id === '6') return ['ens'];
+        if (id === '7') return ['etu'];
+        return [];
+    }
+    function filterNamesByType() {
+        if (!typeSelect) return;
+        const wrapper = document.getElementById('cmNomUtilisateurSelect_wrapper');
+        if (!wrapper) return;
+        const selectedType = String(typeSelect.value || '').trim();
+        const allowedKinds = mapTypeToPersonKinds(selectedType);
+        const nameMap = window._namePersonTypeMap || {};
+        const options = wrapper.querySelectorAll('.cm-select-search__option');
+        let visibleCount = 0;
+        options.forEach(function (opt) {
+            var optLabel = String(opt.getAttribute('data-label') || '').trim();
+            var optKind = nameMap[optLabel] || '';
+            var shouldShow = selectedType === '' || !optKind || allowedKinds.includes(optKind);
+            opt.style.display = shouldShow ? '' : 'none';
+            if (shouldShow) visibleCount++;
+        });
+        var emptyEl = wrapper.querySelector('.cm-select-search__empty');
+        if (emptyEl) emptyEl.style.display = visibleCount > 0 ? 'none' : '';
+        var hiddenInput = document.getElementById('cmNomUtilisateurSelect_hidden');
+        if (hiddenInput && hiddenInput.value) {
+            var currentKind = nameMap[hiddenInput.value] || '';
+            if (selectedType !== '' && currentKind && !allowedKinds.includes(currentKind)) {
+                hiddenInput.value = '';
+                var selectedLabel = wrapper.querySelector('.cm-select-search__selected-label');
+                if (selectedLabel) selectedLabel.textContent = '';
+                if (loginInput) loginInput.value = '';
+                if (sourceIdInput) sourceIdInput.value = '';
+                if (sourceEmailInput) sourceEmailInput.value = '';
+            }
+        }
+    }
     function bindGroupByType() {
         if (!typeSelect || !groupSelect) return;
         const selectedType = typeSelect.value;
@@ -416,6 +471,7 @@ window._allUserData = <?= json_encode($allUserData, JSON_UNESCAPED_UNICODE | JSO
             option.hidden = !!(optionType && selectedType && optionType !== selectedType && option.value !== '');
         });
         if (groupSelect.selectedOptions.length && groupSelect.selectedOptions[0].hidden) groupSelect.value = '';
+        filterNamesByType();
     }
     function generateLoginFromName(value) {
         const p = String(value || '').trim().split(/\s+/).filter(Boolean);
@@ -519,6 +575,7 @@ window._allUserData = <?= json_encode($allUserData, JSON_UNESCAPED_UNICODE | JSO
     const submitDisable = document.getElementById('cmSubmitDisable');
     const submitEnable = document.getElementById('cmSubmitEnable');
     const submitSend = document.getElementById('cmSubmitSendAccess');
+    const submitDelete = document.getElementById('cmSubmitDelete');
     function rowChecks() { return table ? Array.from(table.querySelectorAll('.cm-table-check-row')) : []; }
     function selectedIds() { return rowChecks().filter(cb => cb.checked).map(cb => cb.value); }
     function setSelectedIds(ids) {
@@ -538,10 +595,11 @@ window._allUserData = <?= json_encode($allUserData, JSON_UNESCAPED_UNICODE | JSO
         const ids = selectedIds();
         if (!ids.length) { window.alert('Sélectionnez au moins un utilisateur.'); return; }
         setSelectedIds(ids);
-        if (submitDisable) submitDisable.value = '0'; if (submitEnable) submitEnable.value = '0'; if (submitSend) submitSend.value = '0';
+        if (submitDisable) submitDisable.value = '0'; if (submitEnable) submitEnable.value = '0'; if (submitSend) submitSend.value = '0'; if (submitDelete) submitDelete.value = '0';
         if (mode === 'disable' && submitDisable) submitDisable.value = '2';
         if (mode === 'enable' && submitEnable) submitEnable.value = '3';
         if (mode === 'send' && submitSend) submitSend.value = '4';
+        if (mode === 'delete' && submitDelete) submitDelete.value = '5';
         if (typeof bulkForm.requestSubmit === 'function') {
             bulkForm.requestSubmit();
         } else {
@@ -618,6 +676,24 @@ window._allUserData = <?= json_encode($allUserData, JSON_UNESCAPED_UNICODE | JSO
             return;
         }
         window.location.href = editUrl;
+    });
+    if (table) table.addEventListener('click', async function (event) {
+        const deleteRowBtn = event.target.closest('.js-user-delete');
+        if (!deleteRowBtn) return;
+        const userId = deleteRowBtn.getAttribute('data-row-id') || '';
+        if (!userId) return;
+        if (!(await confirmBulkAction('Supprimer cet utilisateur ?'))) return;
+        if (submitDelete) submitDelete.value = '5';
+        if (submitDisable) submitDisable.value = '0';
+        if (submitEnable) submitEnable.value = '0';
+        if (submitSend) submitSend.value = '0';
+        bulkForm.querySelectorAll('input[data-generated-selected="1"]').forEach(function (el) { el.remove(); });
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden'; hidden.name = 'selected_ids[]';
+        hidden.value = userId; hidden.setAttribute('data-generated-selected', '1');
+        bulkForm.appendChild(hidden);
+        if (typeof bulkForm.requestSubmit === 'function') bulkForm.requestSubmit();
+        else bulkForm.submit();
     });
 })();
 </script>

@@ -195,7 +195,7 @@ $addFeature([
 $addFeature([
     'slug' => 'validation_memoires',
     'code' => 'MEMOIRE_VALIDATION',
-    'label' => 'Validation des memoires',
+    'label' => 'Validation des mémoires',
     'category_code' => 'ENV_ENSEIGNANT',
     'menu_url' => '?page=validation_memoires',
     'routes' => [
@@ -262,6 +262,7 @@ $addFeature([
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
     ],
 ]);
 
@@ -1158,10 +1159,12 @@ $addFeature([
     'code' => 'RECH_GLOBALE',
     'label' => 'Recherche globale',
     'category_code' => 'ADMIN_PLATEFORME',
-    'menu_url' => '?page=recherche_globale',
+    'menu_url' => '?page=parametres_generaux&action=recherche_globale',
     'routes' => [
         ['pattern' => 'page=recherche_globale', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=recherche_globale&ajax=1', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=recherche_globale', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=recherche_globale&ajax=1', 'method' => 'GET', 'crud' => 'voir'],
     ],
     'permissions' => [
         $groups['administrateur'] => $view,
@@ -1369,7 +1372,7 @@ $addFeature([
     'code' => 'SCOLA_SUIVI',
     'label' => 'Suivi & Scolarité',
     'category_code' => 'SCOLARITE',
-    'menu_url' => '?page=suivi_scolarite',
+    'menu_url' => '?page=parametres_generaux&action=suivi_scolarite',
     'routes' => [
         ['pattern' => 'page=suivi_scolarite', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=suivi_scolarite&tab=fiche_financiere_annee', 'method' => 'GET', 'crud' => 'voir'],
@@ -1382,6 +1385,18 @@ $addFeature([
         ['pattern' => 'page=suivi_scolarite&tab=visualisation_fiche_inscription', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=suivi_scolarite&tab=fiche_etudiant_complete', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=suivi_scolarite&tab=timeline_parcours_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+        // Nouvelles routes parametres_generaux
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=fiche_financiere_annee', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=historique_inscriptions', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=etudiants_sans_rapport', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=etudiants_non_inscrits', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=etudiants_sans_compte', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=etudiants_sans_compte&sub_action=creer_comptes_masse', 'method' => 'POST', 'crud' => 'creer'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=echeancier_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=visualisation_fiche_inscription', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=fiche_etudiant_complete', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=suivi_scolarite&tab=timeline_parcours_etudiant', 'method' => 'GET', 'crud' => 'voir'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -1406,6 +1421,7 @@ $addFeature([
         ['pattern' => 'page=commissions_archives&tab=archive_comptes_rendus', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=commissions_archives&tab=fiche_commission', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=commissions_archives&tab=workflow_validation', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=commissions_archives&tab=archives_memoires', 'method' => 'GET', 'crud' => 'voir'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -1418,7 +1434,7 @@ $addFeature([
     'code' => 'ENS_GESTION',
     'label' => 'Gestion des Enseignants',
     'category_code' => 'ENV_ENSEIGNANT',
-    'menu_url' => '?page=enseignant_gestion',
+    'menu_url' => '?page=parametres_generaux&action=enseignant_gestion',
     'routes' => [
         ['pattern' => 'page=enseignant_gestion', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=enseignant_gestion&tab=repertoire_enseignant', 'method' => 'GET', 'crud' => 'voir'],
@@ -1427,6 +1443,14 @@ $addFeature([
         ['pattern' => 'page=enseignant_gestion&tab=stats_encadrement_enseignant', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=enseignant_gestion&tab=portfolio_enseignant', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=enseignant_gestion&tab=annuaire_enseignants', 'method' => 'GET', 'crud' => 'voir'],
+        // Nouvelles routes parametres_generaux
+        ['pattern' => 'page=parametres_generaux&action=enseignant_gestion', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=enseignant_gestion&tab=repertoire_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=enseignant_gestion&tab=fiche_enseignante', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=enseignant_gestion&tab=planning_jurys_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=enseignant_gestion&tab=stats_encadrement_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=enseignant_gestion&tab=portfolio_enseignant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=enseignant_gestion&tab=annuaire_enseignants', 'method' => 'GET', 'crud' => 'voir'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -1442,7 +1466,7 @@ $addFeature([
     'code' => 'ADM_OUTILS_DIRECTION',
     'label' => 'Outils & Direction',
     'category_code' => 'ADMIN_PLATEFORME',
-    'menu_url' => '?page=outils_direction',
+    'menu_url' => '?page=parametres_generaux&action=outils_direction',
     'routes' => [
         ['pattern' => 'page=outils_direction', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=outils_direction&tab=documents', 'method' => 'GET', 'crud' => 'voir'],
@@ -1454,11 +1478,64 @@ $addFeature([
         ['pattern' => 'page=outils_direction&tab=comparaison_versions_document', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=outils_direction&tab=fiche_personnel_admin', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=outils_direction&tab=dashboard_direction', 'method' => 'GET', 'crud' => 'voir'],
+        // Nouvelles routes parametres_generaux
+        ['pattern' => 'page=parametres_generaux&action=outils_direction', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=historique_modifications', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=historique_modifications&export=csv', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=export_masse_documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=export_masse_documents&action=generate_zip', 'method' => 'POST', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=dashboard_securite', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=comparaison_versions_document', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=fiche_personnel_admin', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=outils_direction&tab=dashboard_direction', 'method' => 'GET', 'crud' => 'voir'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
         $groups['secretaire'] => $view,
         $groups['responsable_scolarite'] => $view,
+        $groups['responsable_filiere'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'documents',
+    'code' => 'DOCUMENTS',
+    'label' => 'Documents',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=parametres_generaux&action=documents',
+    'routes' => [
+        ['pattern' => 'page=documents', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=documents', 'method' => 'GET', 'crud' => 'voir'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
+        $groups['secretaire'] => $view,
+        $groups['responsable_scolarite'] => $view,
+        $groups['responsable_filiere'] => $view,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'purge_cycle_etudiant',
+    'code' => 'PARAM_PURGE_CYCLE_ETUDIANT',
+    'label' => 'Gestion ciblée du cycle étudiant',
+    'category_code' => 'ADMIN_PLATEFORME',
+    'menu_url' => '?page=parametres_generaux&action=purge_cycle_etudiant',
+    'routes' => [
+        ['pattern' => 'page=parametres_generaux&action=purge_cycle_etudiant', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=purge_cycle_etudiant&ajax=search', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=purge_cycle_etudiant&ajax=inventory', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=purge_cycle_etudiant&ajax=rebuild_draft', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_generaux&action=purge_cycle_etudiant&op=dry_run', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=parametres_generaux&action=purge_cycle_etudiant&op=purge', 'method' => 'POST', 'crud' => 'supprimer'],
+        ['pattern' => 'page=parametres_generaux&action=purge_cycle_etudiant&op=rebuild', 'method' => 'POST', 'crud' => 'modifier'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
     ],
 ]);
 

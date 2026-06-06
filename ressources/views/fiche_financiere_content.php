@@ -25,9 +25,10 @@ foreach ($listeAnnees as $aa) {
     }
 }
 
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $baseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=fiche_financiere_annee'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=fiche_financiere_annee'
     : '?page=fiche_financiere_annee';
 $messageSuccess = $_SESSION['success'] ?? '';
 $messageErreur = $_SESSION['error'] ?? '';
@@ -58,7 +59,8 @@ unset($_SESSION['success'], $_SESSION['error']);
             <div>
                 <form method="GET" action="<?= htmlspecialchars($baseUrl) ?>" class="cm-inline-form" style="display:inline-flex;align-items:center;gap:0.5rem;">
                     <?php if ($isHubContext): ?>
-                        <input type="hidden" name="page" value="suivi_scolarite">
+                        <input type="hidden" name="page" value="parametres_generaux">
+                        <input type="hidden" name="action" value="suivi_scolarite">
                         <input type="hidden" name="tab" value="fiche_financiere_annee">
                     <?php endif; ?>
                     <label for="ficheAnneeSelect" class="cm-text-sm cm-font-medium">Année :</label>
@@ -380,9 +382,9 @@ unset($_SESSION['success'], $_SESSION['error']);
                 detailBody.innerHTML = '<div class="cm-text-center cm-p-4 cm-text-gray-500"><i class="fas fa-spinner fa-spin cm-mr-2"></i>Chargement...</div>';
             }
 
-            fetch('layout.php?page=' + encodeURIComponent(<?= json_encode($isHubContext ? 'suivi_scolarite' : 'fiche_financiere_annee') ?>) +
-                <?= $isHubContext ? " '&tab=fiche_financiere_annee'" : " ''" ?> +
-                '&action=detail_etudiant&num_etu=' + encodeURIComponent(numEtu) + '&id_annee_acad=' + idAnnee, {
+            fetch('layout.php?page=' + encodeURIComponent(<?= json_encode($isHubContext ? 'parametres_generaux' : 'fiche_financiere_annee') ?>) +
+                <?= $isHubContext ? " '&action=suivi_scolarite&tab=fiche_financiere_annee'" : " ''" ?> +
+                '&sub_action=detail_etudiant&num_etu=' + encodeURIComponent(numEtu) + '&id_annee_acad=' + idAnnee, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(function(r) { return r.json(); })

@@ -170,48 +170,56 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const ctx = document.getElementById('chartRepartitionRapports');
-            if (ctx && typeof Chart !== 'undefined') {
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Validés', 'En attente', 'Rejetés'],
-                        datasets: [{
-                            label: 'Rapports',
-                            data: [<?php echo $valides; ?>, <?php echo $enAttente; ?>, <?php echo $rejetes; ?>],
-                            backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
-                            borderColor: ['#059669', '#2563eb', '#dc2626'],
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function (context) {
-                                        const label = context.label || '';
-                                        const value = context.parsed.y || 0;
-                                        const total = <?php echo $totalRapports; ?>;
-                                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                        return label + ': ' + value + ' (' + percentage + '%)';
+        (function () {
+            function initChart() {
+                var ctx = document.getElementById('chartRepartitionRapports');
+                if (ctx && typeof Chart !== 'undefined') {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Validés', 'En attente', 'Rejetés'],
+                            datasets: [{
+                                label: 'Rapports',
+                                data: [<?php echo $valides; ?>, <?php echo $enAttente; ?>, <?php echo $rejetes; ?>],
+                                backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
+                                borderColor: ['#059669', '#2563eb', '#dc2626'],
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function (context) {
+                                            var label = context.label || '';
+                                            var value = context.parsed.y || 0;
+                                            var total = <?php echo $totalRapports; ?>;
+                                            var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                            return label + ': ' + value + ' (' + percentage + '%)';
+                                        }
                                     }
                                 }
+                            },
+                            scales: {
+                                x: { grid: { display: false } },
+                                y: { beginAtZero: true, ticks: { precision: 0 } }
                             }
-                        },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: { beginAtZero: true, ticks: { precision: 0 } }
                         }
-                    }
-                });
+                    });
+                }
             }
-        });
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initChart);
+            } else {
+                initChart();
+            }
+        })();
     </script>
 
     <!-- Activités récentes et actions rapides -->

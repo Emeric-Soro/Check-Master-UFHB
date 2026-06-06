@@ -17,7 +17,7 @@ $hubTabs = [
 $requestedTab = (string) ($_GET['tab'] ?? 'repertoire_enseignant');
 $allowedIds = array_column($hubTabs, 'id');
 $currentTab = in_array($requestedTab, $allowedIds, true) ? $requestedTab : 'repertoire_enseignant';
-$baseUrl = '?page=enseignant_gestion';
+$baseUrl = '?page=parametres_generaux&action=enseignant_gestion';
 $partialsPath = __DIR__ . DIRECTORY_SEPARATOR;
 ?>
 <section class="cm-prd3-screen">

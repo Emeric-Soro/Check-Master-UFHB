@@ -10,14 +10,15 @@ require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/Utilisateur.php';
 
 $utilisateurModel = new Utilisateur(Database::getConnection());
-$etudiants = $utilisateurModel->getEtudiantsNonUtilisateurs();
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$etudiants = $utilisateurModel->getEtudiantsInscritsNonUtilisateurs();
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $accountsActionUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=etudiants_sans_compte&action=creer_comptes_masse'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=etudiants_sans_compte&sub_action=creer_comptes_masse'
     : '?page=etudiants_sans_compte&action=creer_comptes_masse';
 
 // Traitement AJAX pour la création en masse
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_GET['action']) && $_GET['action'] === 'creer_comptes_masse') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (isset($_GET['sub_action']) && $_GET['sub_action'] === 'creer_comptes_masse' || isset($_GET['action']) && $_GET['action'] === 'creer_comptes_masse')) {
     try {
         cm_csrf_verify($_POST['csrf_token'] ?? '');
     } catch (Exception $e) {
@@ -64,6 +65,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_GET['action']) &
         }
         if (!$etu) {
             $errors[] = "Étudiant $numEtu non trouvé";
+            continue;
+        }
+
+        if (!$utilisateurModel->isEtudiantInscrit($etu->num_etu ?? $numEtu)) {
+            $errors[] = "Étudiant $numEtu : non inscrit";
             continue;
         }
 

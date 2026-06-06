@@ -12,15 +12,16 @@ require_once __DIR__ . '/partials/_student_record_helpers.php';
 $profile = $data['profile'] ?? [];
 $matricule = $data['matricule'] ?? ($_GET['id'] ?? '');
 $ongletActif = $data['onglet_actif'] ?? ($_GET['onglet'] ?? 'identite');
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $ficheBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=fiche_etudiant_complete'
     : '?page=fiche_etudiant_complete';
 $timelineUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=timeline_parcours_etudiant&num_etu=' . urlencode((string) $matricule)
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=timeline_parcours_etudiant&num_etu=' . urlencode((string) $matricule)
     : '?page=parcours_etudiant&id=' . urlencode((string) $matricule);
 $returnUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=historique_inscriptions&num_etu=' . urlencode((string) $matricule)
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=historique_inscriptions&num_etu=' . urlencode((string) $matricule)
     : '?page=archives_etudiants';
 
 if (empty($profile)): ?>

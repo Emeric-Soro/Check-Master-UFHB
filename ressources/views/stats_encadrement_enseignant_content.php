@@ -7,6 +7,8 @@
  * widgets (nb étudiants, taux réussite, note moyenne) + tableau détaillé.
  */
 
+// @todo REFACTOR: Cette vue instancie son propre service (couplage vue ↔ métier).
+// Déplacer dans le hub (layout.php, case 'stats_encadrement_enseignant') et passer les données via \$GLOBALS.
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/Services/StatsEncadrementEnseignantService.php';
 

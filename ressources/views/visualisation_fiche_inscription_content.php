@@ -2,12 +2,15 @@
 /**
  * Visualisation de la fiche d'inscription d'un etudiant
  * Permission: archives_etudiants
+ * @todo REFACTOR: Vue auto-contenue avec requêtes SQL directes (couplage vue ↔ données).
+ * Déplacer dans un contrôleur dédié et ajouter au switch layout.php.
  */
 $matricule = trim((string) ($_GET['num_etu'] ?? $_GET['matricule'] ?? ''));
 $anneeId = (int) ($_GET['id_annee'] ?? 0);
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $visualisationBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=visualisation_fiche_inscription'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=visualisation_fiche_inscription'
     : '?page=visualisation_fiche_inscription';
 
 $fichePath = '';

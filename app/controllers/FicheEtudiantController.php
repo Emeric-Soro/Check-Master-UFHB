@@ -10,6 +10,8 @@ require_once __DIR__ . '/../Services/EtudiantFicheService.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
+use CheckMaster\Services\EtudiantFicheService;
+
 class FicheEtudiantController
 {
     private $db;

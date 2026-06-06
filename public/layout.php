@@ -261,6 +261,7 @@ include __DIR__ . '/../ressources/routes/exportMasseDocumentsRoutes.php';
 include __DIR__ . '/../ressources/routes/historiqueModificationsRoutes.php';
 include __DIR__ . '/../ressources/routes/timelineParcoursRoutes.php';
 include __DIR__ . '/../ressources/routes/annuaireEnseignantsRoutes.php';
+include __DIR__ . '/../ressources/routes/parametreGenerauxRouteur.php';
 
 $menuController = new MenuController();
 
@@ -577,6 +578,137 @@ switch ($currentMenuSlug) {
                 break;
             }
 
+            // ════════════════════════════════════════════════════════
+            // Pages migrées vers Paramètres Généraux (2026-06-05)
+            // Ces pages ont leurs propres contrôleurs et vues.
+            // ════════════════════════════════════════════════════════
+            switch ($currentAction) {
+                case 'suivi_scolarite':
+                    $hubTab = (string) ($_GET['tab'] ?? 'fiche_financiere_annee');
+                    switch ($hubTab) {
+                        case 'fiche_financiere_annee':
+                            require_once __DIR__ . '/../app/controllers/FicheFinanciereController.php';
+                            $ficheFinanciereController = new FicheFinanciereController();
+                            if ((string) ($_GET['sub_action'] ?? '') === 'detail_etudiant') {
+                                $ficheFinanciereController->detailEtudiant();
+                            }
+                            $ficheFinanciereController->index();
+                            break;
+                        case 'historique_inscriptions':
+                            require_once __DIR__ . '/../app/controllers/HistoriqueInscriptionsController.php';
+                            $histData = (new HistoriqueInscriptionsController())->index();
+                            $etudiant = $histData['etudiant'] ?? null;
+                            if ($etudiant !== null && is_object($etudiant))
+                                $etudiant = (array) $etudiant;
+                            $parcours = $histData['parcours'] ?? [];
+                            $notes = $histData['notes'] ?? [];
+                            break;
+                        case 'timeline_parcours_etudiant':
+                            try {
+                                require_once __DIR__ . '/../app/controllers/ArchiveEtudiantController.php';
+                                $matriculeTl = trim((string) ($_GET['num_etu'] ?? $_GET['matricule'] ?? $_GET['id'] ?? ''));
+                                if ($matriculeTl === '') {
+                                    $GLOBALS['timeline_error'] = 'Matricule étudiant requis.';
+                                    $GLOBALS['timeline_data'] = ['matricule' => '', 'evenements' => []];
+                                } else {
+                                    $GLOBALS['timeline_data'] = (new ArchiveEtudiantController(Database::getConnection()))->parcours($matriculeTl);
+                                }
+                            } catch (Exception $e) {
+                                error_log('Erreur timeline hub: ' . $e->getMessage());
+                                $GLOBALS['timeline_error'] = 'Erreur de chargement.';
+                                $GLOBALS['timeline_data'] = ['matricule' => '', 'evenements' => []];
+                            }
+                            break;
+                        case 'fiche_etudiant_complete':
+                            require_once __DIR__ . '/../app/controllers/FicheEtudiantController.php';
+                            $data = (new FicheEtudiantController())->index();
+                            break;
+                        case 'etudiants_sans_compte':
+                            require_once __DIR__ . '/../app/models/Utilisateur.php';
+                            $utilisateurModel = new Utilisateur(Database::getConnection());
+                            $etudiantsSansCompteList = $utilisateurModel->getEtudiantsNonUtilisateurs();
+                            break;
+                        case 'etudiants_sans_rapport':
+                        case 'etudiants_non_inscrits':
+                        case 'echeancier_etudiant':
+                        case 'visualisation_fiche_inscription':
+                            break;
+                    }
+                    $contentFile = $partialsBasePath . 'suivi_scolarite_content.php';
+                    $currentPageLabel = 'Suivi & Scolarité';
+                    break 2;
+
+                case 'enseignant_gestion':
+                    $hubTab = (string) ($_GET['tab'] ?? 'repertoire_enseignant');
+                    switch ($hubTab) {
+                        case 'repertoire_enseignant':
+                            $repService = new \CheckMaster\Services\RepertoireEnseignantService(Database::getConnection());
+                            $repService->index();
+                            break;
+                        case 'fiche_enseignante':
+                            require_once __DIR__ . '/../app/controllers/FicheEnseignantController.php';
+                            $ensCtrl = new FicheEnseignantController();
+                            if ((string) ($_GET['view'] ?? 'liste') === 'fiche' && isset($_GET['id']) && $_GET['id'] !== '') {
+                                $ensCtrl->fiche((string) $_GET['id']);
+                            } else {
+                                $ensCtrl->index();
+                            }
+                            break;
+                        case 'annuaire_enseignants':
+                            require_once __DIR__ . '/../ressources/routes/annuaireEnseignantsRoutes.php';
+                            break;
+                        case 'planning_jurys_enseignant':
+                        case 'stats_encadrement_enseignant':
+                        case 'portfolio_enseignant':
+                            break;
+                    }
+                    $contentFile = $partialsBasePath . 'enseignant_gestion_content.php';
+                    $currentPageLabel = 'Gestion des Enseignants';
+                    break 2;
+
+                case 'outils_direction':
+                    $hubTab = (string) ($_GET['tab'] ?? 'documents');
+                    switch ($hubTab) {
+                        case 'documents':
+                            require_once __DIR__ . '/../app/controllers/DocumentsController.php';
+                            $data = (new DocumentsController())->index();
+                            break;
+                        case 'dashboard_direction':
+                            require_once __DIR__ . '/../app/controllers/DashboardDirectionController.php';
+                            (new DashboardDirectionController())->index();
+                            break;
+                        case 'fiche_personnel_admin':
+                            require_once __DIR__ . '/../app/controllers/FichePersAdminController.php';
+                            $fpData = (new FichePersAdminController())->index();
+                            $identite = $fpData['identite'] ?? null;
+                            $compte = $fpData['compte'] ?? null;
+                            $candidatures = $fpData['candidatures'] ?? [];
+                            $historique = $fpData['historique'] ?? [];
+                            $stats = $fpData['stats'] ?? [];
+                            break;
+                        case 'historique_modifications':
+                        case 'export_masse_documents':
+                        case 'dashboard_securite':
+                        case 'comparaison_versions_document':
+                            break;
+                    }
+                    $contentFile = $partialsBasePath . 'outils_direction_content.php';
+                    $currentPageLabel = 'Outils & Direction';
+                    break 2;
+
+                case 'documents':
+                    require_once __DIR__ . '/../app/controllers/DocumentsController.php';
+                    $data = (new DocumentsController())->index();
+                    $contentFile = $partialsBasePath . 'documents_content.php';
+                    $currentPageLabel = 'Documents';
+                    break 2;
+
+                case 'recherche_globale':
+                    $contentFile = $partialsBasePath . 'recherche_globale_content.php';
+                    $currentPageLabel = 'Recherche globale';
+                    break 2;
+            }
+
             // Mapping manuel des actions vers les méthodes du contrôleur
             // Cela remplace le routeur s'il fait défaut
             $actionsPédagogiques = [
@@ -613,7 +745,8 @@ switch ($currentMenuSlug) {
                 'programmation_sessions_soutenance' => 'gestionProgrammationSessionsSoutenance',
                 'schema_tables' => 'gestionSchemaTables',
                 'gestion_attribution' => 'gestionAttribution',
-                'gestion_menus' => 'gestionMenus'
+                'gestion_menus' => 'gestionMenus',
+                'purge_cycle_etudiant' => 'gestionPurgeCycle'
             ];
 
             if (array_key_exists($currentAction, $actionsPédagogiques)) {
@@ -771,10 +904,6 @@ switch ($currentMenuSlug) {
         }
         break;
     case 'liste_etudiants_resp':
-        include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
-        $contentFile = $partialsBasePath . 'liste_etudiants_content.php';
-        $currentPageLabel = 'Liste des Étudiants';
-        break;
     case 'liste_etudiants_ens':
         include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
         $contentFile = $partialsBasePath . 'liste_etudiants_content.php';
@@ -805,9 +934,6 @@ switch ($currentMenuSlug) {
         $currentPageLabel = 'Évaluation des Dossiers';
         break;
     case 'programmation_soutenance':
-        $contentFile = $partialsBasePath . 'Programation_soutenance_content.php';
-        $currentPageLabel = 'Programmation Soutenance';
-        break;
     case 'programation_soutenance':
         $contentFile = $partialsBasePath . 'Programation_soutenance_content.php';
         $currentPageLabel = 'Programmation Soutenance';
@@ -1171,6 +1297,12 @@ switch ($currentMenuSlug) {
                 $utilisateurModel = new Utilisateur(Database::getConnection());
                 $etudiantsSansCompteList = $utilisateurModel->getEtudiantsNonUtilisateurs();
                 break;
+            // Les tabs suivants sont auto-contenus (service/SQL dans la vue)
+            case 'etudiants_sans_rapport':
+            case 'etudiants_non_inscrits':
+            case 'echeancier_etudiant':
+            case 'visualisation_fiche_inscription':
+                break;
         }
         $contentFile = $partialsBasePath . 'suivi_scolarite_content.php';
         $currentPageLabel = 'Suivi & Scolarité';
@@ -1218,6 +1350,12 @@ switch ($currentMenuSlug) {
                     $rapports = $workflowData['rapports'] ?? [];
                 }
                 break;
+            case 'archives_memoires':
+                require_once __DIR__ . '/../app/controllers/ArchiveDocumentController.php';
+                $memoiresData = (new ArchiveDocumentController())->getMemoires();
+                $memoires = $memoiresData['memoires'] ?? [];
+                $memoiresCount = $memoiresData['total'] ?? count($memoires);
+                break;
         }
         $contentFile = $partialsBasePath . 'commissions_archives_content.php';
         $currentPageLabel = 'Commissions & Archives';
@@ -1240,87 +1378,12 @@ switch ($currentMenuSlug) {
                 }
                 break;
             case 'annuaire_enseignants':
-                try {
-                    $dbAnn = Database::getConnection();
-                    $filtreGrade = isset($_GET['grade']) ? (int) $_GET['grade'] : null;
-                    $filtreSpecialite = isset($_GET['specialite']) ? (int) $_GET['specialite'] : null;
-                    $filtreType = isset($_GET['type_enseignant']) ? (int) $_GET['type_enseignant'] : null;
-                    $searchAnn = trim((string) ($_GET['search'] ?? ''));
-                    $page = max(1, (int) ($_GET['p'] ?? 1));
-                    $perPage = 20;
-                    $offset = ($page - 1) * $perPage;
-
-                    $where = [];
-                    $params = [];
-                    if ($filtreGrade !== null && $filtreGrade > 0) {
-                        $where[] = 'a.id_grade = :grade';
-                        $params[':grade'] = $filtreGrade;
-                    }
-                    if ($filtreSpecialite !== null && $filtreSpecialite > 0) {
-                        $where[] = 'ens.id_specialite = :specialite';
-                        $params[':specialite'] = $filtreSpecialite;
-                    }
-                    if ($filtreType !== null && $filtreType > 0) {
-                        $where[] = 'ens.type_enseignant = :type_ens';
-                        $params[':type_ens'] = $filtreType;
-                    }
-                    if ($searchAnn !== '') {
-                        $where[] = '(ens.nom_enseignant LIKE :search OR ens.prenom_enseignant LIKE :search2 OR ens.mail_enseignant LIKE :search3)';
-                        $params[':search'] = '%' . $searchAnn . '%';
-                        $params[':search2'] = '%' . $searchAnn . '%';
-                        $params[':search3'] = '%' . $searchAnn . '%';
-                    }
-                    $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
-
-                    $countStmt = $dbAnn->prepare("SELECT COUNT(*) FROM enseignants ens LEFT JOIN avoir a ON ens.id_enseignant = a.id_enseignant {$whereClause}");
-                    $countStmt->execute($params);
-                    $total = (int) ($countStmt->fetchColumn() ?: 0);
-
-                    $sql = "SELECT ens.*, g.lib_grade, s.lib_specialite, te.libelle AS lib_type_enseignant FROM enseignants ens LEFT JOIN avoir a ON ens.id_enseignant = a.id_enseignant LEFT JOIN grade g ON a.id_grade = g.id_grade LEFT JOIN specialite s ON ens.id_specialite = s.id_specialite LEFT JOIN type_enseignant te ON ens.type_enseignant = te.id_type_enseignant {$whereClause} ORDER BY ens.nom_enseignant ASC LIMIT :limit OFFSET :offset";
-                    $params[':limit'] = $perPage;
-                    $params[':offset'] = $offset;
-                    $stmt = $dbAnn->prepare($sql);
-                    foreach ($params as $key => $value) {
-                        $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
-                    }
-                    $stmt->execute();
-                    $enseignantsAnn = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-                    $annuaireGrades = $dbAnn->query("SELECT id_grade, lib_grade FROM grade ORDER BY lib_grade")->fetchAll(PDO::FETCH_ASSOC);
-                    $annuaireSpecialites = $dbAnn->query("SELECT id_specialite, lib_specialite FROM specialite ORDER BY lib_specialite")->fetchAll(PDO::FETCH_ASSOC);
-                    $annuaireTypes = $dbAnn->query("SELECT id_type_enseignant, libelle AS lib_type_enseignant FROM type_enseignant ORDER BY libelle")->fetchAll(PDO::FETCH_ASSOC);
-
-                    if (isset($_GET['export']) && $_GET['export'] === 'csv') {
-                        header('Content-Type: text/csv; charset=utf-8');
-                        header('Content-Disposition: attachment; filename="annuaire_enseignants_' . date('Y-m-d') . '.csv"');
-                        $output = fopen('php://output', 'w');
-                        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-                        fputcsv($output, ['N', 'Nom', 'Prenom', 'Grade', 'Specialite', 'Type', 'Email', 'Telephone']);
-                        foreach ($enseignantsAnn as $i => $ens) {
-                            fputcsv($output, [$i + 1, $ens['nom_enseignant'] ?? '', $ens['prenom_enseignant'] ?? '', $ens['lib_grade'] ?? '', $ens['lib_specialite'] ?? '', $ens['lib_type_enseignant'] ?? '', $ens['mail_enseignant'] ?? '', $ens['tel_enseignant'] ?? '']);
-                        }
-                        fclose($output);
-                        exit;
-                    }
-
-                    $totalPages = max(1, (int) ceil($total / $perPage));
-                    $GLOBALS['annuaire_enseignants'] = $enseignantsAnn;
-                    $GLOBALS['annuaire_grades'] = $annuaireGrades;
-                    $GLOBALS['annuaire_specialites'] = $annuaireSpecialites;
-                    $GLOBALS['annuaire_types'] = $annuaireTypes;
-                    $GLOBALS['annuaire_pagination'] = ['total' => $total, 'current' => $page, 'last' => $totalPages, 'per_page' => $perPage, 'offset' => $offset, 'has_prev' => $page > 1, 'has_next' => $page < $totalPages, 'pages' => range(1, $totalPages)];
-                    $GLOBALS['annuaire_filtre_grade'] = $filtreGrade;
-                    $GLOBALS['annuaire_filtre_specialite'] = $filtreSpecialite;
-                    $GLOBALS['annuaire_filtre_type'] = $filtreType;
-                    $GLOBALS['annuaire_search'] = $searchAnn;
-                } catch (Exception $e) {
-                    error_log('Erreur annuaire hub: ' . $e->getMessage());
-                    $GLOBALS['annuaire_enseignants'] = [];
-                    $GLOBALS['annuaire_grades'] = [];
-                    $GLOBALS['annuaire_specialites'] = [];
-                    $GLOBALS['annuaire_types'] = [];
-                    $GLOBALS['annuaire_pagination'] = ['total' => 0, 'current' => 1, 'last' => 1, 'per_page' => 20, 'offset' => 0, 'has_prev' => false, 'has_next' => false, 'pages' => [1]];
-                }
+                require_once __DIR__ . '/../ressources/routes/annuaireEnseignantsRoutes.php';
+                break;
+            // Les tabs suivants (planning, stats, portfolio) sont auto-contenus dans leurs vues
+            case 'planning_jurys_enseignant':
+            case 'stats_encadrement_enseignant':
+            case 'portfolio_enseignant':
                 break;
         }
         $contentFile = $partialsBasePath . 'enseignant_gestion_content.php';
@@ -1347,6 +1410,12 @@ switch ($currentMenuSlug) {
                 $historique = $fpData['historique'] ?? [];
                 $stats = $fpData['stats'] ?? [];
                 break;
+            // Les tabs suivants sont auto-contenus (service/sql dans la vue)
+            case 'historique_modifications':
+            case 'export_masse_documents':
+            case 'dashboard_securite':
+            case 'comparaison_versions_document':
+                break;
         }
         $contentFile = $partialsBasePath . 'outils_direction_content.php';
         $currentPageLabel = 'Outils & Direction';
@@ -1367,6 +1436,11 @@ $canonicalActionLabels = [
     'gestion_etudiants:ajouter_des_etudiants' => 'Mise à jour étudiant',
     'parametres_generaux:annees_academiques' => 'Gestion des années académiques',
     'parametres_generaux:frais_inscription' => "Gestion des frais d'inscription",
+    'parametres_generaux:suivi_scolarite' => 'Suivi & Scolarité',
+    'parametres_generaux:enseignant_gestion' => 'Gestion des Enseignants',
+    'parametres_generaux:outils_direction' => 'Outils & Direction',
+    'parametres_generaux:documents' => 'Documents',
+    'parametres_generaux:recherche_globale' => 'Recherche globale',
 ];
 $canonicalPageLabels = [
     'admin_historique' => 'Historique et archivage',
@@ -1574,6 +1648,43 @@ $cardPGeneraux = [
         'description' => 'Rôles et qualité du jury.',
         'link' => '?page=parametres_generaux&action=qualite_jury',
         'icon' => 'fa-user-shield'
+    ],
+    [
+        'title' => 'Cycle Étudiant Ciblé',
+        'description' => 'Purger ou reconstituer le cycle complet d\'un étudiant.',
+        'link' => '?page=parametres_generaux&action=purge_cycle_etudiant',
+        'icon' => 'fa-user-graduate',
+        'permission_slug' => 'purge_cycle_etudiant'
+    ],
+    [
+        'title' => 'Suivi & Scolarité',
+        'description' => 'Finances, inscriptions, échéanciers et fiches étudiantes.',
+        'link' => '?page=parametres_generaux&action=suivi_scolarite',
+        'icon' => 'fa-user-graduate'
+    ],
+    [
+        'title' => 'Gestion des Enseignants',
+        'description' => 'Répertoire, fiches, planning jurys et portfolio.',
+        'link' => '?page=parametres_generaux&action=enseignant_gestion',
+        'icon' => 'fa-chalkboard-teacher'
+    ],
+    [
+        'title' => 'Outils & Direction',
+        'description' => 'Documents, sécurité, export et KPI direction.',
+        'link' => '?page=parametres_generaux&action=outils_direction',
+        'icon' => 'fa-toolbox'
+    ],
+    [
+        'title' => 'Documents',
+        'description' => 'Gestion documentaire.',
+        'link' => '?page=parametres_generaux&action=documents',
+        'icon' => 'fa-file-alt'
+    ],
+    [
+        'title' => 'Recherche Globale',
+        'description' => 'Recherche transversale dans toutes les données.',
+        'link' => '?page=parametres_generaux&action=recherche_globale',
+        'icon' => 'fa-search'
     ]
 ];
 
@@ -1733,6 +1844,13 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     <link href="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/flatpickr/flatpickr.min.css', ENT_QUOTES, 'UTF-8'); ?>" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="<?php echo htmlspecialchars($publicPrefix . 'assets/vendor/flatpickr/flatpickr.min.css', ENT_QUOTES, 'UTF-8'); ?>"></noscript>
     <style>
+        :root {
+            --cm-color-bg-secondary: #f9fafb;
+            --cm-color-border: transparent;
+            --cm-color-text-muted: #6b7280;
+            --cm-color-text: #111827;
+            --cm-color-danger: #ef4444;
+        }
         .cm-content-area .cm-form-group {
             min-width: 0;
         }
@@ -1869,7 +1987,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         .cm-content-area .cm-archive-etudiants form input[name*="niveau"],
         .cm-content-area .cm-archive-soutenances form select[name*="niveau"],
         .cm-content-area .cm-archive-soutenances form input[name*="niveau"] {
-            min-width: 7ch;
+            min-width: 19ch;
             max-width: 9ch;
         }
 
@@ -2604,9 +2722,9 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var toggle = document.getElementById('sidebarToggle');
-            var sidebar = document.getElementById('cmSidebar');
-            var wrapper = document.getElementById('mainWrapper');
+            const toggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('cmSidebar');
+            const wrapper = document.getElementById('mainWrapper');
 
             if (!toggle) return;
 
@@ -2632,19 +2750,19 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     </script>
     <script>
         document.addEventListener('submit', function (event) {
-            var form = event.target;
+            const form = event.target;
             if (!form || typeof form.getAttribute !== 'function') {
                 return;
             }
 
-            var confirmMessage = form.getAttribute('data-cm-confirm-message');
+            const confirmMessage = form.getAttribute('data-cm-confirm-message');
             if (!confirmMessage) {
                 return;
             }
 
             event.preventDefault();
-            var confirmType = form.getAttribute('data-cm-confirm-type') || 'warning';
-            var confirmText = form.getAttribute('data-cm-confirm-text') || 'Confirmer';
+            const confirmType = form.getAttribute('data-cm-confirm-type') || 'warning';
+            const confirmText = form.getAttribute('data-cm-confirm-text') || 'Confirmer';
 
             if (window.CM && typeof window.CM.confirm === 'function') {
                 window.CM.confirm({
@@ -2665,7 +2783,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var gridMap = {
+            const gridMap = {
                 'cm-grid-2': 2,
                 'cm-grid-3': 3,
                 'cm-grid-4': 4,
@@ -2709,14 +2827,14 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.cm-clickable-row[data-href]').forEach(function (row) {
                 row.addEventListener('click', function (e) {
-                    var tag = e.target.tagName.toLowerCase();
+                    const tag = e.target.tagName.toLowerCase();
                     if (tag === 'a' || tag === 'button' || tag === 'input' || tag === 'select' || tag === 'textarea') {
                         return;
                     }
-                    var href = row.getAttribute('data-href');
-                    var type = row.getAttribute('data-link-type') || 'href';
+                    const href = row.getAttribute('data-href');
+                    const type = row.getAttribute('data-link-type') || 'href';
                     if (type === 'dialog') {
-                        var evt = new CustomEvent('cm:row-click', { detail: { row: row, href: href } });
+                        const evt = new CustomEvent('cm:row-click', { detail: { row: row, href: href } });
                         document.dispatchEvent(evt);
                     } else {
                         window.location.href = href;

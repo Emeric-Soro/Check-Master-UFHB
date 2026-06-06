@@ -20,7 +20,7 @@ $hubTabs = [
 $requestedTab = (string) ($_GET['tab'] ?? 'fiche_financiere_annee');
 $allowedIds = array_column($hubTabs, 'id');
 $currentTab = in_array($requestedTab, $allowedIds, true) ? $requestedTab : 'fiche_financiere_annee';
-$baseUrl = '?page=suivi_scolarite';
+$baseUrl = '?page=parametres_generaux&action=suivi_scolarite';
 $partialsPath = __DIR__ . DIRECTORY_SEPARATOR;
 ?>
 <section class="cm-prd3-screen">

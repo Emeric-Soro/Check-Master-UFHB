@@ -3,6 +3,8 @@
  * P2.5 — Étudiants sans rapport
  * Slug: etudiants_sans_rapport | Permission: gestion_rapports
  */
+// @todo REFACTOR: Vue auto-contenue avec service (couplage vue ↔ métier).
+// Déplacer la logique dans layout.php (case 'etudiants_sans_rapport').
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/models/RapportEtudiant.php';
 require_once __DIR__ . '/../../app/Services/GestionRapportService.php';
@@ -11,9 +13,10 @@ use CheckMaster\Services\GestionRapportService;
 
 $service = new GestionRapportService(Database::getConnection());
 $id_annee = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $ficheBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=fiche_etudiant_complete'
     : '?page=fiche_etudiant_complete';
 
 $etudiants = $service->getEtudiantsSansRapport($id_annee);

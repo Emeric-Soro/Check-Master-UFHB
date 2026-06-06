@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../app/utils/permissions_helper.php';
 
-if (!canView('documents')) {
+// @todo REFACTOR: Vue auto-contenue avec requêtes SQL directes (couplage vue ↔ données).
+// Permission : accès via le hub outils_direction OU feature documents seule.
+if (!canView('outils_direction') && !canView('documents')) {
     $_SESSION['error'] = "Acces refuse.";
     header('Location: ?page=dashboard');
     exit;

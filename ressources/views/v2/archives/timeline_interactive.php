@@ -21,12 +21,13 @@ $data = $GLOBALS['timeline_data'] ?? ['matricule' => '', 'evenements' => []];
 $error = $GLOBALS['timeline_error'] ?? '';
 $matricule = (string) ($data['matricule'] ?? '');
 $evenements = $data['evenements'] ?? [];
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $timelineBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=timeline_parcours_etudiant'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=timeline_parcours_etudiant'
     : '?page=timeline_parcours_etudiant';
 $returnUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=historique_inscriptions' . ($matricule !== '' ? '&num_etu=' . urlencode($matricule) : '')
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=historique_inscriptions' . ($matricule !== '' ? '&num_etu=' . urlencode($matricule) : '')
     : '?page=archives_etudiants';
 
 // Definir les etapes du parcours avec leurs icones et couleurs

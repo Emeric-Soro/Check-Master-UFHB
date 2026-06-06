@@ -7,6 +7,8 @@
  * filtrée par année académique, filière et type de document.
  */
 
+// @todo REFACTOR: Vue auto-contenue avec service + logique POST (couplage vue ↔ métier).
+// Déplacer la logique dans layout.php (case 'export_masse_documents') et/ou un contrôleur dédié.
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/Services/ExportMasseDocumentsService.php';
 
@@ -25,7 +27,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['action']) 
         exit;
     }
 
-    if (!\canView('documents')) {
+    if (!\canView('outils_direction') && !\canView('documents')) {
         $_SESSION['error'] = 'Accès non autorisé.';
         header('Location: ?page=export_masse_documents');
         exit;

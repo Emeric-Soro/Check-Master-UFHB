@@ -21,7 +21,8 @@ class DocumentsController
 
     public function index(): array
     {
-        if (!canView('documents')) {
+        // Permission : hub outils_direction OU feature documents seule
+        if (!canView('outils_direction') && !canView('documents')) {
             $_SESSION['error'] = "Vous n'avez pas l'autorisation d'acceder a cette page.";
             header('Location: layout.php?page=access_denied');
             exit;
@@ -561,8 +562,11 @@ class DocumentsController
     private function filterDisplayableDocuments(array $documents): array
     {
         $generatorBackedTypes = ['rapport', 'recu', 'pv_commission', 'pv_final'];
-        $filtered = [];
 
+        // Batch-check documents table for non-generated types (N+1 fix)
+        $existingKeys = $this->batchFetchExistingDocumentKeys($documents);
+
+        $filtered = [];
         foreach ($documents as $document) {
             $type = trim((string) ($document['type_doc'] ?? ''));
             $id = trim((string) ($document['id_doc'] ?? ''));
@@ -570,12 +574,66 @@ class DocumentsController
                 continue;
             }
 
-            if ($this->registry->hasDocument($type, $id) || in_array($type, $generatorBackedTypes, true)) {
+            if (in_array($type, $generatorBackedTypes, true)
+                || isset($existingKeys[$type . '::' . $id])
+                || $this->registry->resolve($type, $id) !== null
+            ) {
                 $filtered[] = $document;
             }
         }
 
         return $filtered;
+    }
+
+    /**
+     * Batch-query the documents table for compte_rendu / bulletin existence.
+     *
+     * @param array<int, array<string, mixed>> $documents
+     * @return array<string, bool> Keys like "compte_rendu::42"
+     */
+    private function batchFetchExistingDocumentKeys(array $documents): array
+    {
+        $generatorBackedTypes = ['rapport', 'recu', 'pv_commission', 'pv_final'];
+        $crIds = [];
+
+        foreach ($documents as $d) {
+            $type = trim((string) ($d['type_doc'] ?? ''));
+            $id = trim((string) ($d['id_doc'] ?? ''));
+            if ($type === '' || $id === '' || in_array($type, $generatorBackedTypes, true)) {
+                continue;
+            }
+            if ($type === 'compte_rendu' || $type === 'bulletin') {
+                $crIds[$id] = true;
+            }
+        }
+
+        $found = [];
+        if ($crIds === []) {
+            return $found;
+        }
+
+        foreach (array_chunk(array_keys($crIds), 500) as $chunk) {
+            $placeholders = implode(', ', array_fill(0, count($chunk), '?'));
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT entite_id
+                     FROM documents
+                     WHERE entite_type = 'compte_rendu'
+                       AND entite_id IN ($placeholders)
+                       AND type_document IN ('compte_rendu', 'bulletin')
+                       AND statut = 'actif'"
+                );
+                $stmt->execute($chunk);
+                while ($eid = $stmt->fetchColumn()) {
+                    $found['compte_rendu::' . $eid] = true;
+                    $found['bulletin::' . $eid] = true;
+                }
+            } catch (\Throwable $e) {
+                error_log('[DocumentsController] batchFetchExistingDocumentKeys failed: ' . $e->getMessage());
+            }
+        }
+
+        return $found;
     }
 
     /**

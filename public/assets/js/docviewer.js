@@ -16,7 +16,7 @@
     var currentOverlay = null;
 
     /**
-     * Ouvre un apercu PDF dans un overlay plein ecran.
+     * Ouvre un apercu PDF dans un overlay Plein écran.
      *
      * @param {string} type   — Type de document (rapport, recu, pv_commission, pv_final, planning, bulletin, compte_rendu)
      * @param {string} id     — Identifiant du document (PK, reference, ou nom de fichier)
@@ -56,11 +56,11 @@
         var actions = document.createElement('div');
         actions.className = 'cm-docviewer-overlay__actions';
 
-        // Bouton plein ecran
+        // Bouton Plein écran
         var btnFullscreen = document.createElement('button');
         btnFullscreen.className = 'cm-btn is-ghost is-sm';
         btnFullscreen.innerHTML = '<i class="fas fa-expand"></i>';
-        btnFullscreen.title = 'Plein ecran';
+        btnFullscreen.title = 'Plein écran';
         btnFullscreen.setAttribute('type', 'button');
         btnFullscreen.addEventListener('click', function () {
             overlay.classList.toggle('is-fullscreen');
@@ -72,11 +72,11 @@
             }
         });
 
-        // Bouton telecharger
+        // Bouton Télécharger
         var btnDownload = document.createElement('a');
         btnDownload.className = 'cm-btn is-info is-sm';
         btnDownload.href = downloadUrl;
-        btnDownload.innerHTML = '<i class="fas fa-download"></i> Telecharger';
+        btnDownload.innerHTML = '<i class="fas fa-download"></i> Télécharger';
         btnDownload.setAttribute('target', '_blank');
         btnDownload.setAttribute('rel', 'noopener');
 

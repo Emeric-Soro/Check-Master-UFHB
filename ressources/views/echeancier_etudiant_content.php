@@ -7,6 +7,8 @@
  * widgets de statistiques et filtre par statut.
  */
 
+// @todo REFACTOR: Vue auto-contenue avec service (couplage vue ↔ métier).
+// Déplacer la logique dans layout.php (case 'echeancier_etudiant').
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/Services/EcheancierEtudiantService.php';
 
@@ -16,12 +18,13 @@ $service = new EcheancierEtudiantService(Database::getConnection());
 $id_annee = !empty($_SESSION['selected_academic_year_id']) ? (int) $_SESSION['selected_academic_year_id'] : null;
 $search = trim((string) ($_GET['search'] ?? ''));
 $statut = trim((string) ($_GET['statut'] ?? ''));
-$isHubContext = (string) ($_GET['page'] ?? '') === 'suivi_scolarite';
+$isHubContext = ((string) ($_GET['page'] ?? '') === 'suivi_scolarite')
+    || (((string) ($_GET['page'] ?? '') === 'parametres_generaux') && ((string) ($_GET['action'] ?? '') === 'suivi_scolarite'));
 $echeancierBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=echeancier_etudiant'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=echeancier_etudiant'
     : '?page=echeancier_etudiant';
 $ficheBaseUrl = $isHubContext
-    ? '?page=suivi_scolarite&tab=fiche_etudiant_complete'
+    ? '?page=parametres_generaux&action=suivi_scolarite&tab=fiche_etudiant_complete'
     : '?page=fiche_etudiant_complete';
 
 // Données

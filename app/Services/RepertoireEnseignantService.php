@@ -443,13 +443,13 @@ class RepertoireEnseignantService
                         s.lib_session,
                         CONCAT(YEAR(aa.date_deb), '-', YEAR(aa.date_fin)) AS annee_academique,
                         {$documentsSelect}
-                        SUM(COALESCE(ev.note, 0)) AS note_memoire
+                        SUM(ev.note) AS note_memoire
                     FROM {$progTable} ps
                     JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
                     LEFT JOIN session s ON s.id_session = ps.id_session
                     LEFT JOIN annee_academique aa ON aa.id_annee_acad = ps.id_annee_acad
                     {$documentsJoin}
-                    LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND ev.num_jury = ps.num_soutenance
+                    LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND CAST(ev.num_jury AS CHAR) = ps.num_soutenance
                     WHERE {$whereClause}
                     GROUP BY ps.num_soutenance, ps.theme_soutenance, ps.date_soutenance, ps.heure_soutenance,
                              e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, s.lib_session, aa.date_deb, aa.date_fin

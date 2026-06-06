@@ -506,6 +506,28 @@ class ParametreController
         // On laisse juste la vue se charger
     }
     //==============================FIN GESTION SALLES==============================
+
+
+    //==============================GESTION PURGE CYCLE ETUDIANT==============================
+    public function gestionPurgeCycle()
+    {
+        if (!canView('purge_cycle_etudiant')) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'accéder à cet écran."]);
+                exit;
+            }
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'accéder à cet écran.";
+            $_SESSION['error_type'] = 'permission_denied';
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
+
+        require_once __DIR__ . '/PurgeCycleController.php';
+        $controller = new PurgeCycleController();
+        $controller->index();
+    }
+    //==============================FIN GESTION PURGE CYCLE ETUDIANT==============================
 }
 
 

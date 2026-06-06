@@ -5,7 +5,9 @@
  */
 
 declare(strict_types=1);
-if ((string) ($_GET['page'] ?? '') !== 'annuaire_enseignants') {
+$currentPage = (string) ($_GET['page'] ?? '');
+$currentTab = (string) ($_GET['tab'] ?? '');
+if ($currentPage !== 'annuaire_enseignants' && ($currentPage !== 'enseignant_gestion' || $currentTab !== 'annuaire_enseignants')) {
     return;
 }
 

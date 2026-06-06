@@ -235,7 +235,7 @@ $ficheData = $GLOBALS['fiche_data'] ?? null;
                         'num_etud' => (string) ($j['num_etud'] ?? ''),
                         'theme_soutenance' => (string) ($j['theme_soutenance'] ?? ''),
                         'lib_role' => (string) ($j['lib_role'] ?? ''),
-                        'note_attribuee' => (string) ($j['note_attribuee'] ?? '0'),
+                        'note_attribuee' => $j['note_attribuee'] !== null && $j['note_attribuee'] !== '' ? (string) $j['note_attribuee'] : '—',
                     ];
                 }
                 cm_component('crud/data-table', [

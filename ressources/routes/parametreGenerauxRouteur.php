@@ -1,10 +1,67 @@
 <?php
 if ($_GET['page'] === 'parametres_generaux') {
     require_once __DIR__ . '/../../app/controllers/ParametreController.php';
+    require_once __DIR__ . '/../../app/controllers/PurgeCycleController.php';
     $controller = new ParametreController();
+    $purgeCycleController = new PurgeCycleController();
 
     if (isset($_GET['action'])) {
         switch ($_GET['action']) {
+            case 'purge_cycle_etudiant':
+                $ajax = (string) ($_GET['ajax'] ?? '');
+                $op = (string) ($_GET['op'] ?? '');
+
+                if ($ajax === 'search') {
+                    $purgeCycleController->searchStudents();
+                    break;
+                }
+
+                if ($ajax === 'inventory') {
+                    $purgeCycleController->getCycleInventory();
+                    break;
+                }
+
+                if ($ajax === 'rebuild_draft') {
+                    $purgeCycleController->getReconstructionDraft();
+                    break;
+                }
+
+                if ($op === 'dry_run') {
+                    $purgeCycleController->dryRunPurge();
+                    break;
+                }
+
+                if ($op === 'purge') {
+                    $purgeCycleController->purge();
+                    break;
+                }
+
+                if ($op === 'rebuild') {
+                    $purgeCycleController->rebuildCycle();
+                    break;
+                }
+
+                $purgeCycleController->index();
+                break;
+            // Compatibilité transitoire avec les anciennes URLs internes.
+            case 'purge_cycle_etudiant_search':
+                $purgeCycleController->searchStudents();
+                break;
+            case 'purge_cycle_etudiant_inventory':
+                $purgeCycleController->getCycleInventory();
+                break;
+            case 'purge_cycle_etudiant_dry_run':
+                $purgeCycleController->dryRunPurge();
+                break;
+            case 'purge_cycle_etudiant_purge':
+                $purgeCycleController->purge();
+                break;
+            case 'purge_cycle_etudiant_draft':
+                $purgeCycleController->getReconstructionDraft();
+                break;
+            case 'purge_cycle_etudiant_rebuild':
+                $purgeCycleController->rebuildCycle();
+                break;
             case 'annees_academiques':
                 $controller->gestionAnnees();
                 break;
@@ -76,6 +133,14 @@ if ($_GET['page'] === 'parametres_generaux') {
                 break;
             case 'bareme_critere':
                 $controller->gestionBaremeCritere();
+                break;
+            // Pages migrées vers Paramètres Généraux (2026-06-05)
+            case 'suivi_scolarite':
+            case 'enseignant_gestion':
+            case 'outils_direction':
+            case 'documents':
+            case 'recherche_globale':
+                // Routage géré directement dans layout.php
                 break;
             default:
                 '';

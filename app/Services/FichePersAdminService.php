@@ -118,13 +118,15 @@ class FichePersAdminService
 
     /**
      * Actions auditees (pister) pour ce personnel admin
+     *
+     * @param array<string,mixed>|null $comtePrefetched Resultat de getCompteUtilisateur() pour eviter un double appel
      */
-    public function getHistoriqueActions(int $idPersAdmin, int $limite = 30): array
+    public function getHistoriqueActions(int $idPersAdmin, int $limite = 30, ?array $comtePrefetched = null): array
     {
         try {
             $limite = max(1, $limite);
             // Resoudre l'utilisateur d'abord
-            $compte = $this->getCompteUtilisateur($idPersAdmin);
+            $compte = $comtePrefetched ?? $this->getCompteUtilisateur($idPersAdmin);
             $idUtilisateur = $compte['id_utilisateur'] ?? null;
             if (!$idUtilisateur) {
                 return [];
@@ -154,11 +156,13 @@ class FichePersAdminService
 
     /**
      * Resume des actions par type
+     *
+     * @param array<string,mixed>|null $comtePrefetched Resultat de getCompteUtilisateur() pour eviter un double appel
      */
-    public function getStatsActions(int $idPersAdmin): array
+    public function getStatsActions(int $idPersAdmin, ?array $comtePrefetched = null): array
     {
         try {
-            $compte = $this->getCompteUtilisateur($idPersAdmin);
+            $compte = $comtePrefetched ?? $this->getCompteUtilisateur($idPersAdmin);
             $idUtilisateur = $compte['id_utilisateur'] ?? null;
             if (!$idUtilisateur) {
                 return ['total_actions' => 0, 'candidatures_traitees' => 0, 'succes' => 0, 'erreurs' => 0];
@@ -202,12 +206,14 @@ class FichePersAdminService
             return [];
         }
 
+        $compte = $this->getCompteUtilisateur($id);
+
         return [
             'identite' => $identite,
-            'compte' => $this->getCompteUtilisateur($id),
+            'compte' => $compte,
             'candidatures' => $this->getCandidaturesTraitees($id),
-            'historique' => $this->getHistoriqueActions($id),
-            'stats' => $this->getStatsActions($id),
+            'historique' => $this->getHistoriqueActions($id, 30, $compte),
+            'stats' => $this->getStatsActions($id, $compte),
         ];
     }
 }

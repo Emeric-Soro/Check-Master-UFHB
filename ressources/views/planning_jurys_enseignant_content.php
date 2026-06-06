@@ -7,6 +7,8 @@
  * (ou pour un enseignant sélectionné, pour les admins).
  */
 
+// @todo REFACTOR: Cette vue instancie son propre service (couplage vue ↔ métier).
+// Déplacer dans le hub (layout.php, case 'planning_jurys_enseignant') et passer les données via \$GLOBALS.
 require_once __DIR__ . '/../../app/config/database.php';
 require_once __DIR__ . '/../../app/Services/PlanningJurysEnseignantService.php';
 

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/FichePersAdminService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\FichePersAdminService;
 
@@ -22,6 +23,16 @@ class FichePersAdminController
      */
     public function index(?int $id = null): array
     {
+        if (!canView('outils_direction')) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                exit;
+            }
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $id = $id ?? (int) ($_GET['id'] ?? 0);
         if ($id <= 0) {
             return [];

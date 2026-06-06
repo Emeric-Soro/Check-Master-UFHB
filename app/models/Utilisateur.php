@@ -216,6 +216,20 @@ class Utilisateur
         return $stmt->execute();
     }
 
+    /**
+     * Supprime un utilisateur
+     *
+     * @param int $id ID de l'utilisateur
+     * @return bool True si la suppression a réussi
+     */
+    public function supprimerUtilisateur($id)
+    {
+        $sql = "DELETE FROM utilisateur WHERE id_utilisateur = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':id', $id);
+        return $stmt->execute();
+    }
+
     public function updatePassword($id, $newPassword)
     {
         $query = "UPDATE utilisateur SET mdp_utilisateur = :mdp WHERE id_utilisateur = :id";

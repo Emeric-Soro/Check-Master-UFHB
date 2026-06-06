@@ -1565,11 +1565,13 @@ if (!function_exists('cm_toolbar')) {
                             <div class="cm-toolbar__actions-group" role="group" aria-label="Actions de sélection">
                                 <button type="button" id="<?= htmlspecialchars($selectAllId, ENT_QUOTES, 'UTF-8') ?>"
                                     class="cm-btn is-secondary is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
-                                    <span>Tout sélectionner</span>
+                                    <i class="far fa-check-square" aria-hidden="true"></i>
+                                    <span>☑ Tout sél.</span>
                                 </button>
                                 <button type="button" id="<?= htmlspecialchars($deselectAllId, ENT_QUOTES, 'UTF-8') ?>"
                                     class="cm-btn is-secondary is-sm" title="Tout désélectionner" data-cm-toolbar-action="deselect-all">
-                                    <span>Tout désélectionner</span>
+                                    <i class="far fa-square" aria-hidden="true"></i>
+                                    <span>☐ Tout désél.</span>
                                 </button>
                             </div>
 

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/FicheCommissionService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\FicheCommissionService;
 
@@ -22,6 +23,16 @@ class FicheCommissionController
      */
     public function index(): array
     {
+        if (!canView('commissions_archives') && !canView('fiche_commission')) {
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation."]);
+                exit;
+            }
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         return $this->service->getDonneesPage();
     }
 

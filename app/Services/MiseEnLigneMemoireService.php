@@ -248,23 +248,38 @@ final class MiseEnLigneMemoireService
 
         $seen = [];
         $items = [];
+
+        // Batch-check which students already have an active memoire (N+1 fix)
+        $allRapportIds = array_values(array_unique(array_filter(
+            array_map(fn(array $row): int => (int) ($row['id_rapport'] ?? 0), $rows),
+            fn(int $id): bool => $id > 0
+        )));
+        $activeMemoireByRapportId = $this->batchGetRapportIdsWithActiveMemoire($allRapportIds);
+        $studentsWithMemoire = [];
         foreach ($rows as $row) {
             $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['rapport_num_etu'] ?? ''));
-            if ($numEtu === '' || isset($seen[$numEtu])) {
+            $rapportId = (int) ($row['id_rapport'] ?? 0);
+            if ($numEtu !== '' && $rapportId > 0 && isset($activeMemoireByRapportId[(string) $rapportId])) {
+                $studentsWithMemoire[$numEtu] = true;
+            }
+        }
+
+        // Pre-resolve default academic year and cache sessions per year (N+1 fix)
+        $defaultAnneeId = $this->getSelectedAcademicYearId();
+        $sessionsCache = [];
+
+        foreach ($rows as $row) {
+            $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['rapport_num_etu'] ?? ''));
+            $rapportId = (int) ($row['id_rapport'] ?? 0);
+            if ($numEtu === '' || isset($seen[$numEtu]) || isset($studentsWithMemoire[$numEtu])) {
                 continue;
             }
 
-            $latestRapport = $this->findLatestRapportAvecCompteRenduByStudent($numEtu);
-            if (
-                !is_array($latestRapport)
-                || (int) ($latestRapport['id_rapport'] ?? 0) !== (int) ($row['id_rapport'] ?? 0)
-                || $this->findActiveMemoireByStudent($numEtu) !== null
-            ) {
-                continue;
+            $anneeId = $defaultAnneeId ?? $this->resolveAcademicYearForMemoire($row);
+            if (!isset($sessionsCache[$anneeId])) {
+                $sessionsCache[$anneeId] = $anneeId !== null ? $this->getPrevisionSessionsByYear($anneeId) : [];
             }
-
-            $anneeId = $this->resolveAcademicYearForMemoire($latestRapport);
-            $sessions = $anneeId !== null ? $this->getPrevisionSessionsByYear($anneeId) : [];
+            $sessions = $sessionsCache[$anneeId];
             $session = $sessions[0] ?? null;
             $dateLimite = '';
             if (is_array($session) && !empty($session['date_debut'])) {
@@ -281,7 +296,7 @@ final class MiseEnLigneMemoireService
 
             $items[] = [
                 'num_etu' => $numEtu,
-                'id_rapport' => (int) ($row['id_rapport'] ?? 0),
+                'id_rapport' => $rapportId,
                 'num_carte_etud' => (string) ($row['num_carte_etud'] ?? ''),
                 'num_ident_etud' => (string) ($row['num_ident_etud'] ?? ''),
                 'num_soutenance' => '',
@@ -302,6 +317,44 @@ final class MiseEnLigneMemoireService
         }
 
         return $items;
+    }
+
+    /**
+     * Given an array of rapport IDs, return a set (associative array keyed by rapport ID string)
+     * of those that already have an active memoire document — replaces N per-student queries.
+     *
+     * @param array<int,int> $rapportIds
+     * @return array<string,bool>
+     */
+    private function batchGetRapportIdsWithActiveMemoire(array $rapportIds): array
+    {
+        if ($rapportIds === [] || !$this->tableExists('documents')) {
+            return [];
+        }
+
+        // Split into chunks to avoid overflowing query length
+        $result = [];
+        foreach (array_chunk($rapportIds, 500) as $chunk) {
+            $placeholders = implode(', ', array_fill(0, count($chunk), '?'));
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT entite_id
+                     FROM documents
+                     WHERE entite_type = 'rapport_etudiants'
+                       AND type_document = 'memoire'
+                       AND statut = 'actif'
+                       AND entite_id IN ($placeholders)"
+                );
+                $stmt->execute(array_map('strval', $chunk));
+                while ($row = $stmt->fetchColumn()) {
+                    $result[(string) $row] = true;
+                }
+            } catch (\Throwable) {
+                // silently skip
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -1158,7 +1211,6 @@ final class MiseEnLigneMemoireService
     private function mapMemoireRow(array $row, bool $legacySoutenance): array
     {
         $numEtu = trim((string) ($row['num_ident_etud'] ?? $row['num_carte_etud'] ?? $row['num_etud'] ?? $row['rapport_num_etu'] ?? ''));
-        $soutenance = (!$legacySoutenance && $numEtu !== '') ? $this->findLatestSoutenanceByStudent($numEtu, true) : null;
         $themeMemoire = (string) ($row['theme_memoire'] ?? ($legacySoutenance ? ($row['theme_soutenance'] ?? '') : ($row['theme_rapport'] ?? '')));
 
         return [
@@ -1167,7 +1219,7 @@ final class MiseEnLigneMemoireService
             'num_etu' => $numEtu,
             'num_carte_etud' => (string) ($row['num_carte_etud'] ?? ''),
             'num_ident_etud' => (string) ($row['num_ident_etud'] ?? ''),
-            'num_soutenance' => $legacySoutenance ? (string) ($row['num_soutenance'] ?? '') : (string) ($soutenance['num_soutenance'] ?? ''),
+            'num_soutenance' => $legacySoutenance ? (string) ($row['num_soutenance'] ?? '') : '',
             'nom_etu' => (string) ($row['nom_etu'] ?? ''),
             'prenom_etu' => (string) ($row['prenom_etu'] ?? ''),
             'nom_etudiant' => trim((string) ($row['nom_etu'] ?? '') . ' ' . (string) ($row['prenom_etu'] ?? '')),
@@ -1176,7 +1228,7 @@ final class MiseEnLigneMemoireService
             'promotion_etu' => (string) ($row['promotion_etu'] ?? ''),
             'theme' => $themeMemoire,
             'theme_memoire' => $themeMemoire,
-            'theme_soutenance' => $legacySoutenance ? (string) ($row['theme_soutenance'] ?? '') : (string) ($soutenance['theme'] ?? ''),
+            'theme_soutenance' => $legacySoutenance ? (string) ($row['theme_soutenance'] ?? '') : '',
             'theme_rapport' => $legacySoutenance ? '' : (string) ($row['theme_rapport'] ?? ''),
             'num_session_previsionnelle' => (int) ($row['num_session_previsionnelle'] ?? 0),
             'date_debut_session' => (string) ($row['date_debut_session'] ?? ''),

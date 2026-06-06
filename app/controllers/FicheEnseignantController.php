@@ -28,8 +28,8 @@ class FicheEnseignantController
      */
     public function index(): void
     {
-        // Vérification des permissions (utilise gestion_rh existant)
-        if (!canView('gestion_rh')) {
+        // Vérification des permissions (basée sur le hub enseignant_gestion)
+        if (!canView('enseignant_gestion')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
@@ -93,8 +93,8 @@ class FicheEnseignantController
      */
     public function fiche(string $id): void
     {
-        // Vérification des permissions
-        if (!canView('gestion_rh')) {
+        // Vérification des permissions (basée sur le hub enseignant_gestion)
+        if (!canView('enseignant_gestion')) {
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);

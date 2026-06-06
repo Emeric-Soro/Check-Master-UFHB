@@ -58,7 +58,12 @@ $resolveIcon = static function (array $card) use ($iconByTitle): string {
 ob_start();
 foreach ($cards as $card) {
     // Check if user can view this section
-    if (!canView()) {
+    $permissionSlug = trim((string) ($card['permission_slug'] ?? ''));
+    if ($permissionSlug !== '' && !canView($permissionSlug)) {
+        continue;
+    }
+
+    if ($permissionSlug === '' && !canView()) {
         continue;  // Skip this card if user cannot view
     }
 

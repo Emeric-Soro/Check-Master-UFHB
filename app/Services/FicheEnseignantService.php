@@ -234,11 +234,11 @@ class FicheEnseignantService
                         ps.date_soutenance,
                         ps.num_etud,
                         ps.theme_soutenance,
-                        COALESCE(ev.note, 0) AS note_attribuee
+                        ev.note AS note_attribuee
                     FROM enseignant_jury ej
                     JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
                     JOIN programmer_soutenance ps ON ps.num_soutenance = ej.num_soutenance
-                    LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND ev.num_jury = ps.num_soutenance
+                    LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND CAST(ev.num_jury AS CHAR) = ps.num_soutenance
                     WHERE ej.id_enseignant = :id
                     ORDER BY ps.date_soutenance DESC, ps.num_soutenance ASC";
             $stmt = $this->pdo->prepare($sql);
@@ -295,6 +295,7 @@ class FicheEnseignantService
             'nb_examinateurs' => 0,
             'nb_directions' => 0,
             'nb_encadrements' => 0,
+            'nb_maitres_stage' => 0,
             'note_moyenne' => 0,
         ];
 
@@ -324,15 +325,17 @@ class FicheEnseignantService
                     $stats['nb_directions'] = $total;
                 } elseif ($role === 'EN') {
                     $stats['nb_encadrements'] = $total;
+                } elseif ($role === 'MS') {
+                    $stats['nb_maitres_stage'] = $total;
                 }
             }
             $stats['nb_soutenances'] = $totalSoutenances;
 
             // Note moyenne attribuée
-            $sqlNote = "SELECT ROUND(AVG(COALESCE(ev.note, 0)), 2) AS moyenne
+            $sqlNote = "SELECT ROUND(AVG(ev.note), 2) AS moyenne
                         FROM enseignant_jury ej
                         JOIN programmer_soutenance ps ON ps.num_soutenance = ej.num_soutenance
-                        LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND ev.num_jury = ps.num_soutenance
+                        LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND CAST(ev.num_jury AS CHAR) = ps.num_soutenance
                         WHERE ej.id_enseignant = :id";
             $stmtNote = $this->pdo->prepare($sqlNote);
             $stmtNote->execute([':id' => $idEnseignant]);

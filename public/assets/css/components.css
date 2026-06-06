@@ -73,6 +73,28 @@
   color: var(--cm-primary-dark);
 }
 
+.cm-btn.is-secondary {
+  background: var(--cm-btn-light);
+  border-color: var(--cm-border-color);
+  color: var(--cm-primary-dark);
+}
+
+.cm-btn.is-secondary:hover {
+  background: var(--cm-btn-light-hover);
+  color: var(--cm-primary-dark);
+}
+
+.cm-btn.is-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cm-primary);
+}
+
+.cm-btn.is-ghost:hover {
+  background: var(--cm-btn-light-hover);
+  color: var(--cm-primary-dark);
+}
+
 .cm-btn.is-warning {
   background: var(--cm-btn-warning);
   color: var(--cm-text-on-primary);

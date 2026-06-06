@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/ProcessusValidationService.php';
+require_once __DIR__ . '/../utils/permissions_helper.php';
 
 use CheckMaster\Services\ProcessusValidationService;
 
@@ -94,6 +95,11 @@ class ProcessusValidationController
      */
     public function workflowVisuel(): array
     {
+        if (!canView('commissions_archives') && !canView('processus_validation')) {
+            $_SESSION['error'] = "Vous n'avez pas l'autorisation.";
+            header('Location: layout.php?page=access_denied');
+            exit;
+        }
         $idRapport = (int) ($_GET['id_rapport'] ?? $_GET['id'] ?? 0);
         if ($idRapport <= 0) {
             return $this->service->getDonneesPage();

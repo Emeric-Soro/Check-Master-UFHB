@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../app/utils/permissions_helper.php';
 
-if (!canView('dashboard_securite')) {
+// @todo REFACTOR: Vue auto-contenue avec requêtes SQL directes (couplage vue ↔ données).
+// Permission : accès via le hub outils_direction OU feature dashboard_securite seule.
+if (!canView('outils_direction') && !canView('dashboard_securite')) {
     $_SESSION['error'] = "Acces refuse au dashboard securite.";
     header('Location: ?page=dashboard');
     exit;

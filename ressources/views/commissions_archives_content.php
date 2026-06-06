@@ -9,6 +9,7 @@ $hubTabs = [
     ['id' => 'archives_documents',      'label' => 'Archives documents'],
     ['id' => 'archives_etudiants',      'label' => 'Archives étudiants'],
     ['id' => 'archive_comptes_rendus',  'label' => 'Archives comptes rendus'],
+    ['id' => 'archives_memoires',       'label' => 'Mémoires'],
     ['id' => 'fiche_commission',        'label' => 'Fiche commission'],
     ['id' => 'workflow_validation',     'label' => 'Workflow'],
 ];
@@ -38,6 +39,10 @@ $hubMeta = [
     'workflow_validation' => [
         'title' => 'Workflow de validation',
         'description' => 'Visualisation du cycle de validation et de ses jalons, sans navigation latérale parasite.',
+    ],
+    'archives_memoires' => [
+        'title' => 'Archives des mémoires',
+        'description' => 'Consultation des mémoires déposés par les étudiants, avec leurs évaluations et statuts de validation.',
     ],
 ];
 $currentMeta = $hubMeta[$currentTab] ?? $hubMeta['archives_documents'];
@@ -114,6 +119,9 @@ $currentMeta = $hubMeta[$currentTab] ?? $hubMeta['archives_documents'];
             break;
         case 'workflow_validation':
             include $partialsPath . 'workflow_validation_content.php';
+            break;
+        case 'archives_memoires':
+            include $partialsPath . 'v2/archives/archives_memoires.php';
             break;
     }
     ?>

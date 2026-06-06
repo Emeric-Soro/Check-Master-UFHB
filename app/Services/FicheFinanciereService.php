@@ -47,32 +47,28 @@ class FicheFinanciereService
      */
     public function getRecapAnnee(int $idAnnee): array
     {
-        // Total attendu par niveau
+        // Total attendu par niveau — une seule requête CTE au lieu de 2 sous-requêtes corrélées par ligne
         $stmt = $this->db->prepare("
+            WITH comptes_inscrits AS (
+                SELECT id_niv_etude, COUNT(DISTINCT num_carte_etud) AS nb_inscrits
+                FROM inscriptions
+                WHERE id_annee_acad = :annee_id
+                GROUP BY id_niv_etude
+            )
             SELECT 
                 n.id_niv_etude,
                 n.lib_niv_etude AS niveau_label,
                 f.montant AS frais_inscription,
-                (
-                    SELECT COUNT(DISTINCT i_sub.num_carte_etud)
-                    FROM inscriptions i_sub
-                    WHERE i_sub.id_niv_etude = n.id_niv_etude
-                      AND i_sub.id_annee_acad = :annee_id
-                ) AS nb_inscrits,
-                (f.montant * (
-                    SELECT COUNT(DISTINCT i_sub.num_carte_etud)
-                    FROM inscriptions i_sub
-                    WHERE i_sub.id_niv_etude = n.id_niv_etude
-                      AND i_sub.id_annee_acad = :annee_id2
-                )) AS total_attendu
+                COALESCE(ci.nb_inscrits, 0) AS nb_inscrits,
+                COALESCE(f.montant * ci.nb_inscrits, 0) AS total_attendu
             FROM niveau_etude n
-            INNER JOIN frais_inscription f ON f.id_niv_etude = n.id_niv_etude AND f.id_annee_acad = :annee_id3
+            INNER JOIN frais_inscription f ON f.id_niv_etude = n.id_niv_etude AND f.id_annee_acad = :annee_id2
+            LEFT JOIN comptes_inscrits ci ON ci.id_niv_etude = n.id_niv_etude
             ORDER BY n.id_niv_etude
         ");
         $stmt->execute([
             ':annee_id' => $idAnnee,
             ':annee_id2' => $idAnnee,
-            ':annee_id3' => $idAnnee,
         ]);
         $niveaux = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 

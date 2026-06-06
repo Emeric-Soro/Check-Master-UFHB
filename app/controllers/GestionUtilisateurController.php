@@ -233,6 +233,25 @@ class GestionUtilisateurController
                             } else {
                                 $messageErreur = $result['message'];
                             }
+                        } elseif (isset($_POST['submit_delete_multiple']) && $_POST['submit_delete_multiple'] == 5) {
+                            if (!canDelete('gestion_utilisateurs')) {
+                                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+                                    http_response_code(403);
+                                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                                    exit;
+                                }
+                                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                                $_SESSION['error_type'] = 'permission_denied';
+                                header('Location: layout.php?page=access_denied');
+                                exit;
+                            }
+                            $result = $this->service->deleteMultipleUtilisateurs($_POST['selected_ids'], $_SESSION['id_utilisateur']);
+                            if ($result['success']) {
+                                $messageSuccess = $result['message'];
+                                $messageSuccessType = (string)($result['feedback_type'] ?? 'success');
+                            } else {
+                                $messageErreur = $result['message'];
+                            }
                         }
                     }
                 }

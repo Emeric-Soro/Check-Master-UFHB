@@ -18,7 +18,7 @@ $hubTabs = [
 $requestedTab = (string) ($_GET['tab'] ?? 'documents');
 $allowedIds = array_column($hubTabs, 'id');
 $currentTab = in_array($requestedTab, $allowedIds, true) ? $requestedTab : 'documents';
-$baseUrl = '?page=outils_direction';
+$baseUrl = '?page=parametres_generaux&action=outils_direction';
 $partialsPath = __DIR__ . DIRECTORY_SEPARATOR;
 ?>
 <section class="cm-prd3-screen">
