@@ -237,7 +237,7 @@ final class MiseEnLigneMemoireService
 
         $yearFilter = $this->buildStudentYearFilter('e');
         $sql .= $yearFilter['sql'];
-        $sql .= ' ORDER BY cr.date_CR DESC, r.id_rapport DESC';
+        $sql .= ' ORDER BY e.nom_etu, e.prenom_etu, cr.date_CR DESC, r.id_rapport DESC';
 
         $stmt = $this->db->prepare($sql);
         foreach ($yearFilter['params'] as $key => $value) {

@@ -252,14 +252,21 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
 
             <div class="cm-grid-4">
                 <?php
-                cm_component('form/select', [
+                ?>
+                <?php
+                cm_component('form/select-search', [
                     'name' => 'cm_prog_etudiant',
                     'id' => 'cmProgEtudiant',
                     'label' => 'Étudiant',
                     'required' => true,
                     'options' => $studentOptions,
                     'control_class' => 'cm-field-lg cm-size-personne',
+                    'dense' => true,
+                    'size' => 'sm',
+                    'show_selected_label' => false,
                 ]);
+                ?>
+                <?php
                 cm_component('form/select', [
                     'name' => 'cm_prog_salle',
                     'id' => 'cmProgSalle',
@@ -302,21 +309,27 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             ?>
             <div class="cm-grid-3">
                 <?php
-                cm_component('form/select', [
+                cm_component('form/select-search', [
                     'name' => 'cm_prog_president',
                     'id' => 'cmProgPresident',
                     'label' => 'Président',
                     'required' => true,
                     'options' => $presidentOptions,
                     'control_class' => 'cm-field-lg cm-size-personne',
+                    'dense' => true,
+                    'size' => 'sm',
+                    'show_selected_label' => false,
                 ]);
-                cm_component('form/select', [
+                cm_component('form/select-search', [
                     'name' => 'cm_prog_examinateur',
                     'id' => 'cmProgExaminateur',
                     'label' => 'Examinateur',
                     'required' => true,
                     'options' => $enseignantOptions,
                     'control_class' => 'cm-field-lg cm-size-personne',
+                    'dense' => true,
+                    'size' => 'sm',
+                    'show_selected_label' => false,
                 ]);
                 cm_component('form/input-text', [
                     'name' => 'cm_prog_directeur',
@@ -556,13 +569,13 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         const submitBtn = document.getElementById('cmProgSubmitBtn');
         const resetBtn = document.getElementById('cmProgResetBtn');
         const alertBox = document.getElementById('cmProgAlert');
-        const etudiantSelect = document.getElementById('cmProgEtudiant');
+        const etudiantSelect = document.getElementById('cmProgEtudiant_hidden');
         const dateInput = document.getElementById('cmProgDate');
         const heureInput = document.getElementById('cmProgHeure');
         const salleSelect = document.getElementById('cmProgSalle');
         const themeInput = document.getElementById('cmProgTheme');
-        const presidentSelect = document.getElementById('cmProgPresident');
-        const examinateurSelect = document.getElementById('cmProgExaminateur');
+        const presidentSelect = document.getElementById('cmProgPresident_hidden');
+        const examinateurSelect = document.getElementById('cmProgExaminateur_hidden');
         const directeurInput = document.getElementById('cmProgDirecteur');
         const encadreurInput = document.getElementById('cmProgEncadreur');
         const maitreInput = document.getElementById('cmProgMaitreStage');
@@ -579,6 +592,7 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         const printBtn = document.getElementById('cmProgSout_printBtn');
         const sortModeSelect = document.getElementById('cmProgOrganisation');
         const selectedCountEl = document.getElementById('cmProgSelectedCount');
+
         function setAlert(type, message) {
             if (!alertBox) {
                 return;
@@ -706,6 +720,10 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
             if (!select || !value) {
                 return;
             }
+            // For select-search components (hidden inputs), options are pre-loaded from PHP
+            if (!select.options) {
+                return;
+            }
             const normalizedValue = String(value);
             const exists = Array.from(select.options).some(function (option) {
                 return option.value === normalizedValue;
@@ -766,6 +784,8 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
         function resetForm() {
             if (editIdInput) editIdInput.value = '';
             if (etudiantSelect) etudiantSelect.value = '';
+            var resetSearchEl = document.getElementById('cmProgEtudiant_search');
+            if (resetSearchEl) resetSearchEl.value = '';
             if (themeInput) themeInput.value = '';
             if (presidentSelect) presidentSelect.value = '';
             if (examinateurSelect) examinateurSelect.value = '';
@@ -1204,6 +1224,8 @@ $writeAllowed = \AcademicYear::isWriteAllowedFromSession();
 
             if (editIdInput) editIdInput.value = row.getAttribute('data-id') || '';
             if (etudiantSelect) etudiantSelect.value = etudiantId;
+            var editSearchEl = document.getElementById('cmProgEtudiant_search');
+            if (editSearchEl) editSearchEl.value = etudiantName;
             if (themeInput) themeInput.value = row.getAttribute('data-theme') || '';
             if (dateInput) dateInput.value = normalizeDateValue(row.getAttribute('data-date') || '');
             if (heureInput) heureInput.value = (row.getAttribute('data-heure') || '').slice(0, 5);

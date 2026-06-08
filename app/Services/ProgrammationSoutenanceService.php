@@ -917,6 +917,106 @@ class ProgrammationSoutenanceService
     }
 
     /**
+     * Rechercher des étudiants par nom/prénom/matricule (pour autocomplete)
+     */
+    public function searchEtudiants(string $query): array
+    {
+        try {
+            $progTable = $this->getProgrammationTable();
+            if ($progTable === null) {
+                return [];
+            }
+            $selectedYearId = $this->getSelectedAcademicYearId();
+            $memoireValidationWhere = $this->validatedMemoireWhere('r');
+            $memoireDocumentExpr = $this->validatedMemoireDocumentExpr('r');
+            $memoireThemeExpr = $this->memoireThemeExpr('r');
+
+            $like = '%' . $query . '%';
+
+            $sql = "
+                SELECT DISTINCT
+                    " . $this->studentCarteExpr('e') . " as id_etudiant,
+                    e.nom_etu as nom_etudiant,
+                    e.prenom_etu as prenom_etudiant,
+                    CONCAT(e.prenom_etu, ' ', e.nom_etu) as nom_complet,
+                    " . $this->studentCarteExpr('e') . " as matricule_etudiant,
+                    e.email_etu as email_etudiant,
+                    e.promotion_etu,
+                    e.promotion_etu as lib_specialite,
+                    {$memoireThemeExpr} AS theme_rapport,
+                    {$memoireDocumentExpr} AS id_memoire_document,
+                    " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
+                    ist.id_maitre_stage,
+                    CONCAT(ms.prenom, ' ', ms.Nom) as maitre_stage_nom,
+                    ms.email as maitre_stage_email,
+                    (SELECT CONCAT(ens_dir.prenom_enseignant, ' ', ens_dir.nom_enseignant)
+                     FROM affecter af_dir
+                     JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
+                     WHERE af_dir.id_rapport = r.id_rapport
+                     AND LOWER(af_dir.role) LIKE 'directeur%'
+                     LIMIT 1) as directeur_nom,
+                    (SELECT ens_dir.id_enseignant
+                     FROM affecter af_dir
+                     JOIN enseignants ens_dir ON af_dir.id_enseignant = ens_dir.id_enseignant
+                     WHERE af_dir.id_rapport = r.id_rapport
+                     AND LOWER(af_dir.role) LIKE 'directeur%'
+                     LIMIT 1) as directeur_id,
+                    (SELECT CONCAT(ens_enc.prenom_enseignant, ' ', ens_enc.nom_enseignant)
+                     FROM affecter af_enc
+                     JOIN enseignants ens_enc ON af_enc.id_enseignant = ens_enc.id_enseignant
+                     WHERE af_enc.id_rapport = r.id_rapport
+                     AND LOWER(af_enc.role) LIKE 'encadr%'
+                     LIMIT 1) as encadreur_nom,
+                    (SELECT ens_enc.id_enseignant
+                     FROM affecter af_enc
+                     JOIN enseignants ens_enc ON af_enc.id_enseignant = ens_enc.id_enseignant
+                     WHERE af_enc.id_rapport = r.id_rapport
+                     AND LOWER(af_enc.role) LIKE 'encadr%'
+                     LIMIT 1) as encadreur_id,
+                    CASE
+                        WHEN p.num_etud IS NOT NULL THEN 'programmed'
+                        ELSE 'available'
+                    END as statut_programmation
+                FROM etudiants e
+                INNER JOIN rapport_etudiants r ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+                LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
+                LEFT JOIN valider v ON r.id_rapport = v.id_rapport
+                LEFT JOIN informations_stage ist ON (e.num_carte_etud = ist.num_etu OR e.num_ident_etud = ist.num_etu)
+                LEFT JOIN maitre_de_stage ms ON ms.id_maitre_stage = ist.id_maitre_stage
+                LEFT JOIN {$progTable} p ON (e.num_carte_etud = p.num_etud OR e.num_ident_etud = p.num_etud)
+                WHERE v.decision_validation = 'valider'
+                {$memoireValidationWhere}
+                AND (e.nom_etu LIKE :q1 OR e.prenom_etu LIKE :q2 OR e.num_carte_etud LIKE :q3)
+            ";
+
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $sql .= " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = :id_annee_acad";
+            }
+
+            $sql .= " ORDER BY e.nom_etu, e.prenom_etu LIMIT 20";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':q1', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q2', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q3', $like, PDO::PARAM_STR);
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as &$row) {
+                $row['maitre_stage_nom'] = $this->normalizeMaitreStageName($row['maitre_stage_nom'] ?? '');
+            }
+            unset($row);
+
+            return $rows;
+        } catch (Exception $e) {
+            error_log('Erreur searchEtudiants: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Créer une nouvelle attribution de jury
      */
     public function createAttribution(array $data): array

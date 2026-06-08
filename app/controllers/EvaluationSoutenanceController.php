@@ -126,6 +126,32 @@ class EvaluationSoutenanceController
     }
 
     /**
+     * Rechercher des soutenances programmées par nom/matricule étudiant (AJAX autocomplete)
+     */
+    public function searchSoutenances(): void
+    {
+        try {
+            $query = trim($_GET['q'] ?? '');
+
+            if (mb_strlen($query) < 2) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => true, 'data' => []]);
+                return;
+            }
+
+            $results = $this->service->searchSoutenances($query);
+
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => true, 'data' => $results]);
+        } catch (\Throwable $e) {
+            error_log('Erreur searchSoutenances: ' . $e->getMessage());
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Erreur lors de la recherche des soutenances']);
+        }
+    }
+
+    /**
      * Imprimer les procès-verbaux (PV) de soutenance en PDF - Les 3 annexes dans un seul document
      */
     /**

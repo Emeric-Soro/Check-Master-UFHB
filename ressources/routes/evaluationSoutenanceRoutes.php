@@ -48,6 +48,10 @@ switch ($action) {
         $controller->imprimerPV();
         exit;
 
+    case 'searchSoutenances':
+        $controller->searchSoutenances();
+        exit;
+
     default:
         // Pas d'action spécifique - le layout va inclure la vue
         break;

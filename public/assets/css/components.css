@@ -307,8 +307,36 @@
   margin-bottom: var(--cm-spacing-xs);
 }
 
-.cm-select-search__list {
+.cm-select-search__trigger {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
 
+.cm-select-search__trigger:focus {
+  outline: none;
+  border-color: var(--cm-input-focus-border);
+  box-shadow: var(--cm-input-focus-shadow);
+}
+
+.cm-select-search__selected-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  width: 100%;
+}
+
+.cm-select-search__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  border: 1px solid var(--cm-border-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
   border-radius: var(--cm-border-radius);
   background: var(--cm-content-bg);
   max-height: 240px;

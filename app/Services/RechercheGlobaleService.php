@@ -56,6 +56,7 @@ class RechercheGlobaleService
                    OR num_carte_etud LIKE :q3
                    OR num_ident_etud LIKE :q4
                    OR email_etu LIKE :q5
+                ORDER BY nom_etu, prenom_etu
                 LIMIT " . intval($limit)
             );
             $stmt->execute([':q1' => $like, ':q2' => $like, ':q3' => $like, ':q4' => $like, ':q5' => $like]);
@@ -73,6 +74,7 @@ class RechercheGlobaleService
                    OR prenom_enseignant LIKE :q2
                    OR id_enseignant LIKE :q3
                    OR mail_enseignant LIKE :q4
+                ORDER BY nom_enseignant, prenom_enseignant
                 LIMIT " . intval($limit)
             );
             $stmt->execute([':q1' => $like, ':q2' => $like, ':q3' => $like, ':q4' => $like]);
@@ -89,6 +91,7 @@ class RechercheGlobaleService
                 WHERE nom_pers_admin LIKE :q1
                    OR prenom_pers_admin LIKE :q2
                    OR email_pers_admin LIKE :q3
+                ORDER BY nom_pers_admin, prenom_pers_admin
                 LIMIT " . intval($limit)
             );
             $stmt->execute([':q1' => $like, ':q2' => $like, ':q3' => $like]);
@@ -104,6 +107,7 @@ class RechercheGlobaleService
                 FROM utilisateur
                 WHERE login_utilisateur LIKE :q1
                    OR nom_utilisateur LIKE :q2
+                ORDER BY nom_utilisateur
                 LIMIT " . intval($limit)
             );
             $stmt->execute([':q1' => $like, ':q2' => $like]);

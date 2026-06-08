@@ -691,7 +691,7 @@ class RedactionCompteRenduService
             return '';
         }
 
-        $stmt = $this->pdo->query("SELECT id_enseignant, nom_enseignant, prenom_enseignant FROM enseignants");
+        $stmt = $this->pdo->query("SELECT id_enseignant, nom_enseignant, prenom_enseignant FROM enseignants ORDER BY nom_enseignant, prenom_enseignant");
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [] as $teacher) {
             $id = trim((string) ($teacher['id_enseignant'] ?? ''));
             if ($id === '') {

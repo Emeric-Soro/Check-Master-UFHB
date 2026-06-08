@@ -702,10 +702,16 @@ $initialEditorHtml = $isEditingExistingCr
             const block = document.createElement('div');
             block.className = 'cm-card cm-p-sm';
             const assignmentState = (draftState.assignments && draftState.assignments[id]) || {};
+            const encValue = assignmentState.encadrant || report.current_encadrant_id || '';
+            const dirValue = assignmentState.directeur || report.current_directeur_id || '';
             block.innerHTML = '<div class=\"cm-text-sm cm-text-semibold cm-mb-sm\">Rapport #' + id + '</div>' +
                 '<div class=\"cm-grid-2\">' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(assignmentState.encadrant || report.current_encadrant_id || '') + '</select></div>' +
-                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label><select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(assignmentState.directeur || report.current_directeur_id || '') + '</select></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrEnc_' + id + '\">Encadrant pédagogique</label>' +
+                        '<div class=\"cm-select-search-wrap\"><input type=\"text\" class=\"cm-form-control cm-form-control--sm cm-select-search-filter\" data-target=\"cmCrEnc_' + id + '\" placeholder=\"Rechercher...\" autocomplete=\"off\">' +
+                        '<select class=\"cm-form-control cm-form-select\" id=\"cmCrEnc_' + id + '\" name=\"encadrant_pedagogique[' + id + ']\">' + formatOptionHtml(encValue) + '</select></div></div>' +
+                    '<div class=\"cm-form-group\"><label class=\"cm-form-label\" for=\"cmCrDir_' + id + '\">Directeur mémoire</label>' +
+                        '<div class=\"cm-select-search-wrap\"><input type=\"text\" class=\"cm-form-control cm-form-control--sm cm-select-search-filter\" data-target=\"cmCrDir_' + id + '\" placeholder=\"Rechercher...\" autocomplete=\"off\">' +
+                        '<select class=\"cm-form-control cm-form-select\" id=\"cmCrDir_' + id + '\" name=\"directeur_memoire[' + id + ']\">' + formatOptionHtml(dirValue) + '</select></div></div>' +
                 '</div>';
             assignmentsContainer.appendChild(block);
         });
@@ -723,6 +729,21 @@ $initialEditorHtml = $isEditingExistingCr
             select.addEventListener('change', function () {
                 syncHiddenData();
                 refreshTemplateCases();
+            });
+        });
+
+        // Filtre de recherche pour les selects dynamiques
+        assignmentsContainer.querySelectorAll('.cm-select-search-filter').forEach(function (input) {
+            input.addEventListener('input', function () {
+                var targetId = input.getAttribute('data-target');
+                var select = document.getElementById(targetId);
+                if (!select) return;
+                var query = input.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                Array.from(select.options).forEach(function (opt) {
+                    if (!opt.value) { opt.style.display = ''; return; }
+                    var text = opt.textContent.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                    opt.style.display = (query === '' || text.indexOf(query) !== -1) ? '' : 'none';
+                });
             });
         });
 

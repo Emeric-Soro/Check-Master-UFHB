@@ -399,6 +399,7 @@ class PlanningDataUtils
                     e.email_etu AS email_etudiant,
                     i.id_niv_etude,
                     i.id_annee_acad AS inscription_annee_acad,
+                    CONCAT(YEAR(aa.date_deb), \'-\', YEAR(aa.date_fin)) AS libelle_annee,
                     s.lib_session,
                     sa.lib_salle,
                     niv.lib_niv_etude AS libelle_niveau
@@ -406,6 +407,7 @@ class PlanningDataUtils
              LEFT JOIN etudiants e ON (e.num_carte_etud = ps.num_etud OR e.num_ident_etud = ps.num_etud)
              LEFT JOIN ' . $latestInscriptionSql . ' i
                     ON i.num_carte_etud = COALESCE(NULLIF(e.num_ident_etud, \'\'), NULLIF(e.num_carte_etud, \'\'), ps.num_etud)
+             LEFT JOIN annee_academique aa ON aa.id_annee_acad = i.id_annee_acad
              LEFT JOIN session s ON s.id_session = ps.id_session
              LEFT JOIN salles sa ON sa.id_salle = ps.id_salle
              LEFT JOIN niveau_etude niv ON niv.id_niv_etude = i.id_niv_etude

@@ -103,13 +103,16 @@ foreach ($soutenances as $soutenance) {
                 <div class="cm-grid-4">
                     <div style="grid-column: span 3;">
                         <?php
-                        cm_component('form/select', [
+                        cm_component('form/select-search', [
                             'name' => 'cm_eval_soutenance',
                             'id' => 'cmEvalSoutenanceSelect',
                             'label' => 'Étudiant',
                             'required' => true,
                             'options' => $soutenanceOptions,
                             'control_class' => 'cm-field-lg cm-size-personne',
+                            'dense' => true,
+                            'size' => 'sm',
+                            'show_selected_label' => false,
                         ]);
                         ?>
                     </div>
@@ -403,7 +406,7 @@ foreach ($soutenances as $soutenance) {
 ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const form = document.getElementById('cmEvalSoutForm');
         const anneeSelect = document.getElementById('cmEvalAnnee');
-        const soutenanceSelect = document.getElementById('cmEvalSoutenanceSelect');
+        const soutenanceSelect = document.getElementById('cmEvalSoutenanceSelect_hidden');
         const numEtuInput = document.getElementById('cmEvalNumEtu');
         const moyenneInput = document.getElementById('cmEvalMoyenne');
         const decisionSelect = document.getElementById('cmEvalDecision');
@@ -751,6 +754,10 @@ foreach ($soutenances as $soutenance) {
                     return;
                 }
                 if (soutenanceSelect) soutenanceSelect.value = numEtu;
+                var searchEl = document.getElementById('cmEvalSoutenanceSelect_search');
+                if (searchEl && _soutenanceMap[numEtu]) {
+                    searchEl.value = (_soutenanceMap[numEtu].nom_etudiant || '');
+                }
                 if (numEtuInput) numEtuInput.value = numEtu;
                 fillSoutenanceInfo(numEtu);
             });
@@ -761,6 +768,8 @@ foreach ($soutenances as $soutenance) {
                 if (soutenanceSelect) {
                     soutenanceSelect.value = '';
                 }
+                var searchEl = document.getElementById('cmEvalSoutenanceSelect_search');
+                if (searchEl) searchEl.value = '';
                 if (numEtuInput) {
                     numEtuInput.value = '';
                 }

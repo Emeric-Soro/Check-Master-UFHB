@@ -58,7 +58,7 @@ cm_render_param_crud_view([
         [
             'name' => 'id_enseignant',
             'label' => 'Responsable niveau',
-            'type' => 'select',
+            'type' => 'select-search',
             'required' => true,
             'options' => $enseignantOptions,
             'value_key' => 'id_enseignant',

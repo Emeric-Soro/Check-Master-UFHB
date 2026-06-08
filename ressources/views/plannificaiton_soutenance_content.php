@@ -51,6 +51,19 @@ $etudiantsDisponibles = array_values(array_map($normalizePlanificationRow, is_ar
 $salles = array_values(array_map($normalizePlanificationRow, is_array($salles) ? $salles : []));
 $planifications = array_values(array_map($normalizePlanificationRow, is_array($planifications) ? $planifications : []));
 
+// Options pour select-search
+$etudiantOptions = [];
+$etudiantMeta = [];
+foreach ($etudiantsAvecJury as $etu) {
+    $id = (string) ($etu['id_programmation'] ?? $etu['id_etudiant'] ?? '');
+    if ($id === '') { continue; }
+    $etudiantOptions[$id] = trim(($etu['nom_etu'] ?? '') . ' ' . ($etu['prenom_etu'] ?? ''));
+    $etudiantMeta[$id] = [
+        'theme' => $etu['theme_soutenance'] ?? '',
+        'statut' => $etu['statut_planification'] ?? 'none',
+    ];
+}
+
 
 ?>
 
@@ -132,33 +145,18 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
 
         <!-- Première ligne : Étudiant + Thème -->
         <div class="cm-grid-2">
-            <div class="cm-form-group">
-                <label class="cm-label">Étudiant <span class="cm-required-star">*</span></label>
-                <select name="id_programmation" id="etudiant" required onchange="updateTheme(this)"
-                    class="cm-field-input cm-field-lg cm-size-personne">
-                    <option value="">Sélectionner un étudiant</option>
-                    <?php if (empty($etudiantsAvecJury)): ?>
-                        <option value="" disabled>Aucun étudiant avec jury attribué</option>
-                    <?php else: ?>
-                        <?php foreach ($etudiantsAvecJury as $etudiant): ?>
-                            <option value="<?= htmlspecialchars($etudiant['id_programmation']) ?>"
-                                data-theme="<?= htmlspecialchars($etudiant['theme_soutenance'] ?? '') ?>"
-                                data-statut="<?= htmlspecialchars($etudiant['statut_planification'] ?? 'none') ?>">
-                                <?= htmlspecialchars($etudiant['nom_complet']) ?>
-                                (<?= htmlspecialchars($etudiant['matricule_etudiant']) ?>)
-                                <?php if ($allYearsSelected && !empty($etudiant['promotion_etu'])): ?>
-                                    - <?= htmlspecialchars(\FormattingUtils::formatPromotion($etudiant['promotion_etu'])) ?>
-                                <?php endif; ?>
-                                <?php if (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'complete'): ?>
-                                    - ✅ Planifié
-                                <?php elseif (isset($etudiant['statut_planification']) && $etudiant['statut_planification'] === 'partial'): ?>
-                                    - ⚠️ Jury assigné
-                                <?php endif; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </select>
-            </div>
+            <?php cm_component('form/select-search', [
+                'name' => 'id_programmation',
+                'id' => 'etudiant',
+                'label' => 'Étudiant',
+                'required' => true,
+                'options' => $etudiantOptions,
+                'placeholder' => 'Sélectionner un étudiant',
+                'dense' => true,
+                'size' => 'sm',
+                'show_selected_label' => false,
+                'control_class' => 'cm-field-lg cm-size-personne',
+            ]); ?>
 
             <div class="cm-form-group">
                 <label class="cm-label">Thème Soutenance</label>
@@ -350,18 +348,18 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
     // Données des planifications pour JavaScript
     const planificationsData = <?= json_encode($planifications) ?>;
 
+    // Métadonnées étudiants (thème, statut) pour lookup JS
+    const etudiantMeta = <?= json_encode($etudiantMeta) ?>;
+
     // Fonction pour mettre à jour le thème selon l'étudiant sélectionné
     function updateTheme(selectElement) {
-        // Vérifier que les éléments existent
         if (!selectElement) return;
-
         const themeDisplay = document.getElementById('theme-display');
         if (!themeDisplay) return;
 
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-
-        if (selectedOption && selectedOption.value) {
-            const theme = selectedOption.getAttribute('data-theme');
+        const value = selectElement.value;
+        if (value && etudiantMeta[value]) {
+            const theme = etudiantMeta[value].theme;
             if (theme) {
                 themeDisplay.textContent = theme;
                 themeDisplay.classList.remove('text-gray-500', 'italic');
@@ -381,7 +379,7 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
     // Modifier une planification
     function editPlanification(id) {
         // Vérifier que le formulaire existe
-        const etudiantSelect = document.getElementById('etudiant');
+        const etudiantSelect = document.getElementById('etudiant_hidden');
         if (!etudiantSelect) {
             showNotification('Formulaire non disponible - aucun étudiant à planifier', 'error');
             return;
@@ -434,7 +432,7 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
     // Réinitialiser le formulaire
     function resetForm() {
         // Vérifier que les éléments existent avant de les manipuler
-        const etudiantSelect = document.getElementById('etudiant');
+        const etudiantSelect = document.getElementById('etudiant_hidden');
         const salleSelect = document.getElementById('salle');
         const dateInput = document.getElementById('date');
         const heureInput = document.getElementById('heure');
@@ -495,5 +493,14 @@ $planifications = array_values(array_map($normalizePlanificationRow, is_array($p
             setTimeout(() => notification.remove(), 300);
         }, 3000);
     }
+
+    // Listener pour updateTheme sur le select-search
+    (function() {
+        var etudiantHidden = document.getElementById('etudiant_hidden');
+        if (etudiantHidden) {
+            etudiantHidden.addEventListener('change', function() { updateTheme(this); });
+            updateTheme(etudiantHidden);
+        }
+    })();
 </script>
 

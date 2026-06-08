@@ -104,6 +104,36 @@ class ProgrammationSoutenanceController
     }
 
     /**
+     * Rechercher des étudiants par nom/prénom/matricule (pour autocomplete)
+     */
+    public function searchEtudiants(): void
+    {
+        try {
+            $query = trim($_GET['q'] ?? '');
+            if (mb_strlen($query) < 2) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'data' => []]);
+                return;
+            }
+
+            $results = $this->service->searchEtudiants($query);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'data' => $results
+            ]);
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Erreur lors de la recherche des étudiants : ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Récupérer tous les enseignants disponibles
      */
     public function getEnseignants()

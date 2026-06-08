@@ -44,6 +44,12 @@ if ($enseignantId) {
 
 // Liste pour filtre admin
 $enseignants = $isAdmin ? $service->getAllEnseignants() : [];
+$enseignantOptions = [];
+foreach ($enseignants as $ens) {
+    $id = (string) ($ens['id_enseignant'] ?? '');
+    if ($id === '') { continue; }
+    $enseignantOptions[$id] = trim(($ens['nom_enseignant'] ?? '') . ' ' . ($ens['prenom_enseignant'] ?? ''));
+}
 
 $moisFrancais = [
     'January' => 'Janvier',
@@ -74,17 +80,27 @@ $moisFrancais = [
         <?php if ($isAdmin && !empty($enseignants)): ?>
             <form method="GET" class="cm-mb-md cm-flex cm-flex-gap-sm cm-flex-wrap">
                 <input type="hidden" name="page" value="planning_jurys_enseignant">
-                <select name="enseignant" class="cm-form-control cm-form-select" style="width:auto; min-width:250px;"
-                    onchange="this.form.submit()">
-                    <option value="">-- Choisir un enseignant --</option>
-                    <?php foreach ($enseignants as $ens): ?>
-                        <option value="<?= htmlspecialchars($ens['id_enseignant'], ENT_QUOTES, 'UTF-8') ?>"
-                            <?= ($ens['id_enseignant'] === $enseignantId) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($ens['nom_enseignant'] . ' ' . $ens['prenom_enseignant'], ENT_QUOTES, 'UTF-8') ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <?php cm_component('form/select-search', [
+                    'name' => 'enseignant',
+                    'label' => 'Enseignant',
+                    'options' => $enseignantOptions,
+                    'selected' => $enseignantId ?? '',
+                    'placeholder' => '-- Choisir un enseignant --',
+                    'dense' => true,
+                    'size' => 'sm',
+                    'show_selected_label' => false,
+                ]); ?>
             </form>
+            <script>
+            (function() {
+                var hidden = document.getElementById('enseignant_hidden');
+                if (hidden) {
+                    hidden.addEventListener('change', function() {
+                        hidden.closest('form').submit();
+                    });
+                }
+            })();
+            </script>
         <?php endif; ?>
 
         <!-- Stats widgets -->

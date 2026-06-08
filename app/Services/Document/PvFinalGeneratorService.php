@@ -184,6 +184,18 @@ final class PvFinalGeneratorService
             $numeroPv = $reference;
         }
 
+        if (!class_exists('\AcademicYear') && file_exists(__DIR__ . '/../../utils/AcademicYear.php')) {
+            require_once __DIR__ . '/../../utils/AcademicYear.php';
+        }
+
+        $anneeLabel = '';
+        if (class_exists('\AcademicYear')) {
+            $anneeLabel = \AcademicYear::getWritableLabelFromSession();
+        }
+        if ($anneeLabel === '') {
+            $anneeLabel = date('Y') . '-' . (date('Y') + 1);
+        }
+
         $data = [
             'reference' => $reference,
             'numero_pv' => $numeroPv,
@@ -194,6 +206,7 @@ final class PvFinalGeneratorService
             'theme' => $this->truncateText((string) ($soutenance['theme_soutenance'] ?? '-'), 150),
             'nom_etudiant' => $this->truncateText(trim((string) (($soutenance['nom_etudiant'] ?? '') . ' ' . ($soutenance['prenom_etudiant'] ?? ''))), 70),
             'matricule' => (string) ($soutenance['matricule_etudiant'] ?? '-'),
+            'annee_academique' => trim((string) ($soutenance['libelle_annee'] ?? '')) !== '' ? trim((string) $soutenance['libelle_annee']) : $anneeLabel,
             'annexe1_rows' => $annexe1Rows,
             'annexe1_total' => $annexe1Total,
             'annexe2_rows' => $annexe2Rows,
@@ -270,7 +283,7 @@ final class PvFinalGeneratorService
     public function addPageAnnexe1(TCPDF $pdf, array $data): void
     {
         $pdf->AddPage();
-        $this->addEnteteInstitutionnel($pdf, 1, self::COULEUR_ANNEXE1, (string) ($data['numero_pv'] ?? ''));
+        $this->addEnteteInstitutionnel($pdf, 1, self::COULEUR_ANNEXE1, (string) ($data['numero_pv'] ?? ''), (string) ($data['annee_academique'] ?? ''));
 
         $pdf->SetFont('helvetica', '', 10);
         $pdf->Cell(35, 6, 'NIVEAU :', 0, 0);
@@ -282,11 +295,13 @@ final class PvFinalGeneratorService
 
         $pdf->Ln(1);
         $pdf->Cell(18, 6, 'THEME :', 0, 0);
-        // MultiCell permet au thème long de passer à la ligne
-        $pdf->MultiCell(0, 6, (string) $data['theme'], 0, 'L');
+        // MultiCell avec largeur dynamique pour éviter le débordement
+        $wTheme = $pdf->getPageWidth() - 15.0 - $pdf->GetX();
+        $pdf->MultiCell($wTheme, 6, (string) $data['theme'], 0, 'L');
 
         $pdf->Cell(70, 6, 'NOM ET PRENOMS DE L\'IMPETRANT :', 0, 0);
-        $pdf->Cell(0, 6, (string) $data['nom_etudiant'], 0, 1);
+        $wNom = $pdf->getPageWidth() - 15.0 - $pdf->GetX();
+        $pdf->MultiCell($wNom, 6, (string) $data['nom_etudiant'], 0, 'L');
 
         $pdf->Ln(4);
         $pdf->SetFont('helvetica', 'B', 9);
@@ -323,13 +338,14 @@ final class PvFinalGeneratorService
     public function addPageAnnexe2(TCPDF $pdf, array $data): void
     {
         $pdf->AddPage();
-        $this->addEnteteInstitutionnel($pdf, 2, self::COULEUR_ANNEXE2, (string) ($data['numero_pv'] ?? ''));
+        $this->addEnteteInstitutionnel($pdf, 2, self::COULEUR_ANNEXE2, (string) ($data['numero_pv'] ?? ''), (string) ($data['annee_academique'] ?? ''));
 
         $pdf->SetFont('helvetica', '', 10);
         $pdf->Cell(15, 6, 'DATE:', 0, 0);
         $pdf->Cell(60, 6, (string) $data['date_deliberation'], 0, 0);
         $pdf->Cell(65, 6, 'NOM ET PRENOMS DE L\'IMPETRANT :', 0, 0);
-        $pdf->Cell(0, 6, (string) $data['nom_etudiant'], 0, 1);
+        $wNom = $pdf->getPageWidth() - 15.0 - $pdf->GetX();
+        $pdf->MultiCell($wNom, 6, (string) $data['nom_etudiant'], 0, 'L');
 
         $pdf->Ln(4);
         $pdf->SetFont('helvetica', 'B', 8);
@@ -378,13 +394,14 @@ final class PvFinalGeneratorService
     public function addPageAnnexe3(TCPDF $pdf, array $data): void
     {
         $pdf->AddPage();
-        $this->addEnteteInstitutionnel($pdf, 3, self::COULEUR_ANNEXE3, (string) ($data['numero_pv'] ?? ''));
+        $this->addEnteteInstitutionnel($pdf, 3, self::COULEUR_ANNEXE3, (string) ($data['numero_pv'] ?? ''), (string) ($data['annee_academique'] ?? ''));
 
         $pdf->SetFont('helvetica', '', 10);
         $pdf->Cell(15, 6, 'DATE:', 0, 0);
         $pdf->Cell(60, 6, (string) $data['date_deliberation'], 0, 0);
         $pdf->Cell(65, 6, 'NOM ET PRENOMS DE L\'IMPETRANT :', 0, 0);
-        $pdf->Cell(0, 6, (string) $data['nom_etudiant'], 0, 1);
+        $wNom = $pdf->getPageWidth() - 15.0 - $pdf->GetX();
+        $pdf->MultiCell($wNom, 6, (string) $data['nom_etudiant'], 0, 'L');
 
         $pdf->Ln(4);
         $pdf->SetFont('helvetica', 'B', 8);
@@ -430,7 +447,7 @@ final class PvFinalGeneratorService
     /**
      * @param array<int, int> $colors
      */
-    public function addEnteteInstitutionnel(TCPDF $pdf, int $annexeNum, array $colors, string $numeroPv = ''): void
+    public function addEnteteInstitutionnel(TCPDF $pdf, int $annexeNum, array $colors, string $numeroPv = '', string $anneeAcademique = ''): void
     {
         $numeroPv = trim($numeroPv);
         if ($numeroPv === '') {
@@ -446,8 +463,8 @@ final class PvFinalGeneratorService
 
         // ── En-tête avec logos ──
         // On appelle addHeader avec un titre court pour éviter le chevauchement
-        // avec les logos (25 mm de chaque côté). On gère le sous-titre nous-mêmes.
-        $this->pdfGenerator->addHeader($pdf, 'ANNEXE ' . $annexeNum, null);
+        $headerTitle = $anneeAcademique;
+        $this->pdfGenerator->addHeader($pdf, $headerTitle, null);
 
         // Sous-titre : thème de l'annexe, centré en 11pt gras (pas d'italique pour lisibilité réduite)
         $pdf->SetFont('helvetica', 'B', 11);

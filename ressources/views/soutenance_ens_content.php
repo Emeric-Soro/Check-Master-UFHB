@@ -168,13 +168,16 @@ $filterResetUrl = '?page=' . rawurlencode($currentPageSlug);
                 <?php if ($isAdmin): ?>
                     <div class="cm-grid-2 cm-mb-md">
                         <?php
-                        cm_component('form/select', [
+                        cm_component('form/select-search', [
                             'name' => 'id_enseignant_selected',
                             'label' => 'Enseignant',
                             'options' => $teacherOptions,
                             'selected' => $selectedTeacherId,
                             'placeholder' => 'Selectionner un enseignant',
                             'control_class' => 'cm-field-lg cm-size-personne',
+                            'dense' => true,
+                            'size' => 'sm',
+                            'show_selected_label' => false,
                         ]);
                         ?>
 

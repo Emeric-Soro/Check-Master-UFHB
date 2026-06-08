@@ -512,12 +512,15 @@ function normalizeRoleName(string $role): string {
 
             <?php if (!empty($enseignantOptions)): ?>
                 <div class="cm-mb-md" style="max-width: 380px;">
-                    <?= cm_component('form/select', [
+                    <?= cm_component('form/select-search', [
                         'name' => 'id_enseignant_selected',
                         'label' => 'Enseignant',
                         'options' => $enseignantOptions,
                         'selected' => (string)($enseignantSelectionne ?? ''),
-                        'placeholder' => 'Sélectionner un enseignant'
+                        'placeholder' => 'Sélectionner un enseignant',
+                        'dense' => true,
+                        'size' => 'sm',
+                        'show_selected_label' => false,
                     ]) ?>
                 </div>
             <?php else: ?>

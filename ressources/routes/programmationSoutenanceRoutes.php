@@ -22,6 +22,10 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['programmation_soutenance',
             $controller->getEtudiants();
             break;
 
+        case 'searchEtudiants':
+            $controller->searchEtudiants();
+            break;
+
         case 'getEnseignants':
             $controller->getEnseignants();
             break;

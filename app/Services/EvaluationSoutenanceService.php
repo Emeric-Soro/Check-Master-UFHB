@@ -1513,4 +1513,139 @@ class EvaluationSoutenanceService
             ];
         }
     }
+
+    /**
+     * Rechercher des soutenances programmées par nom/matricule étudiant (AJAX autocomplete)
+     */
+    public function searchSoutenances(string $query): array
+    {
+        try {
+            $progTable = $this->getProgrammationTable();
+            if ($progTable === null) {
+                return [];
+            }
+
+            $hasMetaTable = $this->ensureEvaluationMetaTable();
+
+            $idCol = $this->getProgrammationIdColumn($progTable);
+            $juryCol = $this->getProgrammationJuryColumn($progTable);
+
+            $presidentNom = $this->juryNameExpr('president', 'p');
+            $examinateurNom = $this->juryNameExpr('examinateur', 'p');
+            $directeurNom = $this->juryNameExpr('directeur', 'p');
+            $encadreurNom = $this->juryNameExpr('encadreur', 'p');
+            $promotionLabel = $this->getPromotionLabelExpr('e', 'p');
+            $selectedYearId = $this->getSelectedAcademicYearId();
+            $studentJoin = $this->studentJoinCondition('e', 'p');
+            $hasYearColumn = $this->columnExists($progTable, 'id_annee_acad');
+            $studentRefExpr = "COALESCE(NULLIF(e.num_carte_etud, ''), NULLIF(e.num_ident_etud, ''), p.num_etud)";
+            $evaluationStudentMatch = "(ev.num_etudiant = {$studentRefExpr} OR ev.num_etudiant = p.num_etud";
+            if ($this->columnExists('etudiants', 'num_ident_etud')) {
+                $evaluationStudentMatch .= " OR ev.num_etudiant = e.num_ident_etud";
+            }
+            $evaluationStudentMatch .= ")";
+            $metaStudentMatch = "(esm.num_etudiant = {$studentRefExpr} OR esm.num_etudiant = p.num_etud";
+            if ($this->columnExists('etudiants', 'num_ident_etud')) {
+                $metaStudentMatch .= " OR esm.num_etudiant = e.num_ident_etud";
+            }
+            $metaStudentMatch .= ")";
+
+            $searchParam = '%' . $query . '%';
+
+            $sql = "
+                SELECT
+                    p.{$idCol} AS id_programmation,
+                    p.{$juryCol} AS jury_ref,
+                    " . ($hasYearColumn ? 'p.id_annee_acad' : 'NULL') . " AS id_annee_acad,
+                    p.theme_soutenance,
+                    p.date_soutenance,
+                    p.heure_soutenance,
+                    {$studentRefExpr} AS num_etu,
+                    CONCAT(COALESCE(e.prenom_etu, ''), ' ', COALESCE(e.nom_etu, '')) AS nom_etudiant,
+                    {$studentRefExpr} AS matricule_etudiant,
+                    COALESCE(e.promotion_etu, '') AS promotion_etu,
+                    {$promotionLabel} AS promotion_label,
+                    s.lib_salle AS nom_salle,
+                    {$presidentNom} AS president_nom,
+                    {$examinateurNom} AS examinateur_nom,
+                    {$directeurNom} AS directeur_nom,
+                    {$encadreurNom} AS encadreur_nom,
+                    (SELECT CONCAT(ms2.prenom, ' ', ms2.Nom)
+                     FROM informations_stage ist2
+                     JOIN maitre_de_stage ms2 ON ms2.id_maitre_stage = ist2.id_maitre_stage
+                         WHERE ist2.num_etu IN (p.num_etud, {$studentRefExpr})
+                     LIMIT 1) AS maitre_stage_nom,
+                    (
+                        SELECT COUNT(*)
+                        FROM evaluer ev
+                        WHERE {$evaluationStudentMatch}
+                          AND ev.num_jury = p.{$juryCol}
+                    ) AS est_evalue,
+                    (
+                        SELECT SUM(ev.note)
+                        FROM evaluer ev
+                        WHERE {$evaluationStudentMatch}
+                          AND ev.num_jury = p.{$juryCol}
+                    ) AS note_finale_calculee,
+                    " . ($hasMetaTable ? "esm.note_finale AS note_finale_meta, esm.decision AS decision, esm.commentaire_general AS commentaire_general" : "NULL AS note_finale_meta, NULL AS decision, NULL AS commentaire_general") . "
+                FROM {$progTable} p
+                LEFT JOIN etudiants e ON {$studentJoin}
+                LEFT JOIN salles s ON p.id_salle = s.id_salle
+                " . ($hasMetaTable ? "LEFT JOIN " . self::EVALUATION_META_TABLE . " esm ON {$metaStudentMatch} AND esm.jury_ref = CAST(p.{$juryCol} AS CHAR(50))" : "") . "
+                WHERE p.id_salle IS NOT NULL
+                  AND p.date_soutenance IS NOT NULL
+                  AND p.heure_soutenance IS NOT NULL
+                  AND (
+                      e.nom_etu LIKE :search_query
+                      OR e.prenom_etu LIKE :search_query
+                      OR e.num_carte_etud LIKE :search_query
+                  )
+            ";
+
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                if ($hasYearColumn) {
+                    $sql .= " AND p.id_annee_acad = :id_annee_acad";
+                } else {
+                    $sql .= " AND EXISTS (
+                        SELECT 1
+                        FROM inscriptions i
+                        WHERE (i.num_carte_etud = e.num_carte_etud"
+                        . ($this->columnExists('etudiants', 'num_ident_etud') ? " OR i.num_carte_etud = e.num_ident_etud" : "")
+                        . ")
+                          AND i.id_annee_acad = :id_annee_acad
+                    )";
+                }
+            }
+
+            $sql .= "
+                ORDER BY p.date_soutenance DESC, p.heure_soutenance DESC
+                LIMIT 20
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':search_query', $searchParam, PDO::PARAM_STR);
+            if ($selectedYearId !== null && $selectedYearId > 0) {
+                $stmt->bindValue(':id_annee_acad', $selectedYearId, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows as &$row) {
+                $computed = isset($row['note_finale_calculee']) ? (float) $row['note_finale_calculee'] : null;
+                $meta = isset($row['note_finale_meta']) && $row['note_finale_meta'] !== null
+                    ? (float) $row['note_finale_meta']
+                    : null;
+                $row['note_finale'] = $meta ?? $computed ?? 0.0;
+                $row['decision'] = $this->normalizeDecision((string) ($row['decision'] ?? ''), $row['note_finale']);
+                $row['commentaire_general'] = trim((string) ($row['commentaire_general'] ?? ''));
+                unset($row['note_finale_calculee'], $row['note_finale_meta']);
+            }
+            unset($row);
+
+            return $rows;
+        } catch (Throwable $e) {
+            error_log('Erreur searchSoutenances: ' . $e->getMessage());
+            return [];
+        }
+    }
 }

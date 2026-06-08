@@ -65,13 +65,16 @@ foreach ($etudiants as $etudiant) {
 
                 <div class="cm-grid-2">
                     <?php
-                    cm_component('form/select', [
+                    cm_component('form/select-search', [
                         'name' => 'cm_memoire_etudiant',
                         'id' => 'cmMemoireEtudiantSelect',
                         'label' => 'Étudiant',
                         'required' => true,
                         'options' => $etudiantOptions,
                         'placeholder' => '-- Sélectionner --',
+                        'dense' => true,
+                        'size' => 'sm',
+                        'show_selected_label' => false,
                     ]);
                     cm_component('form/input-text', [
                         'name' => 'cm_memoire_promotion',
@@ -273,7 +276,7 @@ foreach ($etudiants as $etudiant) {
     (function () {
         const etudiants = <?php echo json_encode($etudiants, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
-        const etudiantSelect = document.getElementById('cmMemoireEtudiantSelect');
+        const etudiantSelect = document.getElementById('cmMemoireEtudiantSelect_hidden');
         const form = document.getElementById('cmMemoireForm');
         const numEtuInput = document.getElementById('cmMemoireNumEtu');
         const promotionInput = document.getElementById('cmMemoirePromotion');

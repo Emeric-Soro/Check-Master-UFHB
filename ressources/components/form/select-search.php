@@ -26,7 +26,7 @@ $options = $options ?? [];
 $placeholder = $placeholder ?? '-- Selectionner --';
 $selected = (string) ($selected ?? $value ?? '');
 $search_placeholder = $search_placeholder ?? 'Rechercher...';
-$min_search = isset($min_search) ? max(0, (int) $min_search) : 5;
+$min_search = isset($min_search) ? max(0, (int) $min_search) : 0;
 
 $normalized_options = cm_form_normalize_options((array) $options);
 $show_search = count($normalized_options) >= $min_search;
@@ -88,6 +88,24 @@ foreach ($normalized_options as $option) {
                placeholder="<?= htmlspecialchars((string) $search_placeholder, ENT_QUOTES, 'UTF-8') ?>"
                autocomplete="off"
                <?= $disabled ? 'disabled' : '' ?>>
+        <?php else: ?>
+        <div id="<?= htmlspecialchars($search_id, ENT_QUOTES, 'UTF-8') ?>"
+             class="<?= htmlspecialchars(cm_form_control_class('cm-form-control cm-form-select cm-select-search__trigger', [
+                 'readonly' => $readonly,
+                 'disabled' => $disabled,
+                 'dense' => $dense,
+                 'size' => $size,
+                 'control_class' => $control_class,
+             ]), ENT_QUOTES, 'UTF-8') ?>"
+             tabindex="0"
+             role="combobox"
+             aria-expanded="false"
+             aria-haspopup="listbox"
+             <?= $disabled ? 'aria-disabled="true"' : '' ?>>
+             <span class="cm-select-search__selected-value" id="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>_selected_label">
+                 <?= htmlspecialchars($selected_label, ENT_QUOTES, 'UTF-8') ?>
+             </span>
+        </div>
         <?php endif; ?>
 
         <div class="cm-select-search__list"
@@ -123,7 +141,7 @@ foreach ($normalized_options as $option) {
                value="<?= htmlspecialchars($selected, ENT_QUOTES, 'UTF-8') ?>"
                <?= $required ? 'required' : '' ?><?= cm_form_attr_string((array) $attrs) ?>>
 
-        <?php if ($show_selected_label): ?>
+        <?php if ($show_search && $show_selected_label): ?>
         <div class="cm-form-hint cm-select-search__selected-label" id="<?= htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') ?>_selected_label">
             <?= htmlspecialchars($selected_label, ENT_QUOTES, 'UTF-8') ?>
         </div>
@@ -239,13 +257,22 @@ foreach ($normalized_options as $option) {
         if (event.target.closest('.cm-select-search__option')) {
             return;
         }
-        if (searchInput && event.target !== searchInput && event.target !== label && !event.target.closest('.cm-form-hint')) {
-            return;
+        if (searchInput) {
+            const isClickOnTrigger = (event.target === searchInput || searchInput.contains(event.target));
+            const isClickOnLabel = (label && (event.target === label || label.contains(event.target)));
+            const isClickOnHint = event.target.closest('.cm-form-hint');
+            if (!isClickOnTrigger && !isClickOnLabel && !isClickOnHint) {
+                return;
+            }
         }
-        openList();
+        if (wrapper.classList.contains('is-open') && searchInput && searchInput.tagName !== 'INPUT') {
+            closeList();
+        } else {
+            openList();
+        }
     });
 
-    if (searchInput) {
+    if (searchInput && searchInput.tagName === 'INPUT') {
         if (keepSelectedInInput && hidden.value !== '') {
             searchInput.value = selectedLabel !== placeholder ? selectedLabel : '';
         }
@@ -283,6 +310,18 @@ foreach ($normalized_options as $option) {
                 }
             } else if (empty) {
                 empty.remove();
+            }
+        });
+    } else if (searchInput) {
+        searchInput.addEventListener('focus', openList);
+        searchInput.addEventListener('keydown', function (event) {
+            if (event.key === ' ' || event.key === 'Enter') {
+                event.preventDefault();
+                if (wrapper.classList.contains('is-open')) {
+                    closeList();
+                } else {
+                    openList();
+                }
             }
         });
     }
