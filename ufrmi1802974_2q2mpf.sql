@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mar. 02 juin 2026 à 02:26
+-- Généré le : mer. 10 juin 2026 à 23:22
 -- Version du serveur : 8.3.0
 -- Version de PHP : 8.3.6
 
@@ -1565,7 +1565,6 @@ INSERT INTO `etudiants` (`num_ident_etud`, `num_carte_etud`, `nom_etu`, `prenom_
 ('CI0114284425', 'CI0114284425', 'Mondah', 'Aristide Arnaud ', '2000-06-06', 'M', 'checkmaster.ci@gmail.com', '21817'),
 ('ASSJ2304030001', 'CI0114284687', 'Asseko-Nkogho', 'Jean-Alphonse Chris Ange Emmanuel', '2000-07-19', 'M', 'checkmaster.ci@gmail.com', '22625'),
 ('CI0114285095', 'CI0114285095', 'Dibi', 'Brice Armand Kouassi', '2001-06-14', 'M', 'checkmaster.ci@gmail.com', '22019'),
-('CISSN2304030001', 'CI0115004687', 'CISSE', 'Nana', '2005-01-15', 'F', 'checkmaster@gmail.com', '22625'),
 ('HOUG2309970001', 'CI0115289178', 'Houndji', 'Kouadio Lionnel ', '2001-08-13', 'M', 'checkmaster.ci@gmail.com', '22120'),
 ('KOUP2506970001', 'CI0115289478', 'Kouamé', 'Prince Samuel ', '2001-09-20', 'M', 'checkmaster.ci@gmail.com', '22120'),
 ('CI0115290087', 'CI0115290087', 'Alléchy', 'Assi Axel Alex', '2001-10-01', 'M', 'checkmaster.ci@gmail.com', '22019'),
@@ -1955,9 +1954,9 @@ INSERT INTO `etudiants` (`num_ident_etud`, `num_carte_etud`, `nom_etu`, `prenom_
 ('CI2200000246', 'CI2200000253', 'Kouassi', 'N\'gonian Emmanuel ', '2000-09-02', 'M', 'checkmaster.ci@gmail.com', '21413'),
 ('CI2200000247', 'CI2200000254', 'Kouassi', 'Zilé Yao Eric-Gael', '2000-05-08', 'M', 'checkmaster.ci@gmail.com', '21413'),
 ('CI2200000248', 'CI2200000255', 'Kouman', 'Kouakou Sidoine ', '2001-09-25', 'M', 'checkmaster.ci@gmail.com', '21413'),
-('CI2200000249', 'CI2200000256', 'Mekoundé', 'Olivier Clotaire ', '2001-08-14', 'M', 'checkmaster.ci@gmail.com', '21413');
+('CI2200000249', 'CI2200000256', 'Mekoundé', 'Olivier Clotaire ', '2001-08-14', 'M', 'checkmaster.ci@gmail.com', '21413'),
+('CI2200000250', 'CI2200000257', 'Moro', 'Yves-Kévin  ', '2000-11-20', 'M', 'checkmaster.ci@gmail.com', '21413');
 INSERT INTO `etudiants` (`num_ident_etud`, `num_carte_etud`, `nom_etu`, `prenom_etu`, `date_naiss_etu`, `id_genre`, `email_etu`, `promotion_etu`) VALUES
-('CI2200000250', 'CI2200000257', 'Moro', 'Yves-Kévin  ', '2000-11-20', 'M', 'checkmaster.ci@gmail.com', '21413'),
 ('CI2200000251', 'CI2200000258', 'N\'goran', 'Angoua Omer N.', '2001-08-03', 'M', 'checkmaster.ci@gmail.com', '21413'),
 ('CI2200000252', 'CI2200000259', 'N\'goran', 'N\'sikan Jean Baptiste', '2001-04-10', 'M', 'checkmaster.ci@gmail.com', '21413'),
 ('CI2200000253', 'CI2200000260', 'Ouattara', 'Gninlipkoho Romuald ', '2001-08-07', 'M', 'checkmaster.ci@gmail.com', '21413'),
@@ -4222,7 +4221,7 @@ CREATE TABLE IF NOT EXISTS `pister` (
   KEY `idx_table` (`contexte`),
   KEY `idx_created_at` (`date_creation`),
   KEY `idx_utilisateur_action` (`id_utilisateur`,`action`)
-) ENGINE=InnoDB AUTO_INCREMENT=1170 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=1202 DEFAULT CHARSET=utf8mb3;
 
 --
 -- Déchargement des données de la table `pister`
@@ -5399,7 +5398,39 @@ INSERT INTO `pister` (`id_piste`, `id_utilisateur`, `action`, `statut_action`, `
 (1166, 127, 'GET | validation_memoires', 'Succès', 'xhr | page=validation_memoires', '2026-06-02 02:24:43'),
 (1167, 127, 'POST | validation_memoires | act:enregistrer_decision', 'Succès', 'ui | page=validation_memoires | action=enregistrer_decision', '2026-06-02 02:24:51'),
 (1168, 127, 'GET | validation_memoires', 'Succès', 'ui | page=validation_memoires', '2026-06-02 02:24:52'),
-(1169, 5, 'GET | programmation_soutenance', 'Succès', 'xhr | page=programmation_soutenance', '2026-06-02 02:25:01');
+(1169, 5, 'GET | programmation_soutenance', 'Succès', 'xhr | page=programmation_soutenance', '2026-06-02 02:25:01'),
+(1170, 5, 'GET | programmation_soutenance', 'Succès', 'ui | page=programmation_soutenance', '2026-06-02 19:47:56'),
+(1171, 5, 'GET | programmation_soutenance', 'Succès', 'ui | page=programmation_soutenance', '2026-06-02 20:46:25'),
+(1172, 5, 'GET | evaluation_soutenance', 'Succès', 'xhr | page=evaluation_soutenance', '2026-06-02 23:27:31'),
+(1173, 5, 'GET | programmation_soutenance', 'Succès', 'xhr | page=programmation_soutenance', '2026-06-02 23:27:47'),
+(1174, 5, 'GET | edition_bulletin', 'Succès', 'xhr | page=edition_bulletin', '2026-06-02 23:27:57'),
+(1175, 5, 'GET | tableau_bord_enseignant', 'Succès', 'xhr | page=tableau_bord_enseignant', '2026-06-02 23:28:04'),
+(1176, 5, 'GET | programmation_ens', 'Succès', 'xhr | page=programmation_ens', '2026-06-02 23:28:06'),
+(1177, 5, 'GET | enseignant_gestion', 'Succès', 'xhr | page=enseignant_gestion', '2026-06-02 23:28:14'),
+(1178, 5, 'GET | enseignant_gestion', 'Succès', 'xhr | page=enseignant_gestion', '2026-06-02 23:28:15'),
+(1179, 5, 'GET | access_denied', 'Succès', 'ui | page=access_denied', '2026-06-02 23:28:18'),
+(1180, 5, 'GET | enseignant_gestion', 'Succès', 'ui | page=enseignant_gestion', '2026-06-02 23:28:21'),
+(1181, 5, 'GET | enseignant_gestion | tab:planning_jurys_enseignant', 'Succès', 'xhr | page=enseignant_gestion | tab=planning_jurys_enseignant', '2026-06-02 23:28:22'),
+(1182, 5, 'GET | enseignant_gestion | tab:stats_encadrement_enseignant', 'Succès', 'xhr | page=enseignant_gestion | tab=stats_encadrement_enseignant', '2026-06-02 23:28:24'),
+(1183, 5, 'GET | enseignant_gestion | tab:portfolio_enseignant', 'Succès', 'xhr | page=enseignant_gestion | tab=portfolio_enseignant', '2026-06-02 23:28:28'),
+(1184, 5, 'GET | enseignant_gestion | tab:portfolio_enseignant', 'Succès', 'ui | page=enseignant_gestion | tab=portfolio_enseignant', '2026-06-02 23:28:28'),
+(1185, 5, 'GET | access_denied', 'Succès', 'ui | page=access_denied', '2026-06-02 23:28:29'),
+(1186, 5, 'GET | enseignant_gestion | tab:stats_encadrement_enseignant', 'Succès', 'ui | page=enseignant_gestion | tab=stats_encadrement_enseignant', '2026-06-02 23:28:31'),
+(1187, 5, 'GET | validation_memoires', 'Succès', 'xhr | page=validation_memoires', '2026-06-02 23:28:34'),
+(1188, 5, 'GET | dashboard_scolarite', 'Succès', 'ui | page=dashboard_scolarite', '2026-06-10 21:08:03'),
+(1189, 5, 'GET | redaction_compte_rendu', 'Succès', 'xhr | page=redaction_compte_rendu', '2026-06-10 21:17:32'),
+(1190, 5, 'GET | commissions_archives', 'Succès', 'xhr | page=commissions_archives', '2026-06-10 21:17:33'),
+(1191, 5, 'GET | commissions_archives | tab:archives_documents', 'Succès', 'xhr | page=commissions_archives | tab=archives_documents', '2026-06-10 21:17:41'),
+(1192, 5, 'GET | commissions_archives | tab:archives_documents', 'Succès', 'xhr | page=commissions_archives | tab=archives_documents', '2026-06-10 21:17:42'),
+(1193, 5, 'GET | commissions_archives | tab:archives_documents', 'Succès', 'xhr | page=commissions_archives | tab=archives_documents', '2026-06-10 21:17:44'),
+(1194, 5, 'Connexion', 'Succès', 'utilisateur', '2026-06-10 23:21:53'),
+(1195, 5, 'GET | dashboard_scolarite', 'Succès', 'ui | page=dashboard_scolarite', '2026-06-10 23:21:54'),
+(1196, 5, 'GET | redaction_compte_rendu', 'Succès', 'xhr | page=redaction_compte_rendu', '2026-06-10 23:22:02'),
+(1197, 5, 'GET | commissions_archives', 'Succès', 'xhr | page=commissions_archives', '2026-06-10 23:22:06'),
+(1198, 5, 'GET | commissions_archives | tab:archives_documents', 'Succès', 'xhr | page=commissions_archives | tab=archives_documents', '2026-06-10 23:22:14'),
+(1199, 5, 'GET | commissions_archives | tab:archives_etudiants', 'Succès', 'xhr | page=commissions_archives | tab=archives_etudiants', '2026-06-10 23:22:18'),
+(1200, 5, 'GET | commissions_archives | tab:archive_comptes_rendus', 'Succès', 'xhr | page=commissions_archives | tab=archive_comptes_rendus', '2026-06-10 23:22:22'),
+(1201, 5, 'GET | reception_rapport_com', 'Succès', 'xhr | page=reception_rapport_com', '2026-06-10 23:22:28');
 
 -- --------------------------------------------------------
 
@@ -6264,7 +6295,6 @@ INSERT INTO `utilisateur` (`id_utilisateur`, `nom_utilisateur`, `id_type_utilisa
 (118, 'Diarrassouba Siaka', 7, 13, 5, 'Actif', 'dsiaka', '$2y$12$ew0KstfFYEo3EFD/9Fndve9xR2hJ8MPv2mI8uZm6coS53o34.bk7S'),
 (119, 'Attitso Kossivi Joël', 7, 13, 5, 'Actif', 'akossivijol', '$2y$12$BhxOasPVN4TSyQb/0ZbZm.8iPVJ07bCN7LpaJtBpRfmJ2lBtyP5z2'),
 (120, 'Soro Eméric Jamel Désiré Katanan', 7, 13, 5, 'Actif', 'semeric', '$2y$10$sYmS4nxe1o3tlMLY6HGfgORGJ.qLmC0R1BMSIKQEPJFj7/5h0Go8W'),
-(121, 'CISSE Nana', 7, 13, 5, 'Actif', 'cinana', '$2y$12$9Wii.wtmgg1NtT6JE78Hfua5ePkrnzm64BqyeubwW27Lr2WrcAskK'),
 (122, 'Thio Ramatien Latyfa', 7, 13, 5, 'Actif', 'tramatienlatyfa', '$2y$12$elHg260bNweiUuY67OEEyOHjmbfLimM7bxhjmGu.09xHnve0mVsUa'),
 (123, 'Touré Gnimy Henock', 7, 13, 5, 'Actif', 'tgnimyhenock', '$2y$12$FAWqj5GxTotB4ZhqjbafUu0gP1Ijzo4VrKIcQW9uagHEizKqsIbvO'),
 (124, 'Koné Mohamed', 7, 13, 5, 'Actif', 'kmohamed', '$2y$12$hkucVJMS2IvdTEnqDUCpW.xNtUWhXT5mFPPRk4MCNK5dEbHPUQU5u'),
