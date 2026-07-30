@@ -1,20 +1,17 @@
 <?php
 
-class Utilisateur
+use CheckMaster\Models\BaseModel;
+
+class Utilisateur extends BaseModel
 {
-
-    private $db;
-
-    public function __construct($db)
-    {
-        $this->db = $db;
-    }
+    protected const TABLE = 'utilisateur';
+    protected const PRIMARY_KEY = 'id_utilisateur';
 
     public function verifierConnexion($login, $password)
     {
 
         $query = "SELECT id_utilisateur,id_GU,nom_utilisateur,statut_utilisateur,login_utilisateur,mdp_utilisateur FROM utilisateur WHERE login_utilisateur = :login";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':login', $login);
         $stmt->execute();
 
@@ -35,12 +32,12 @@ class Utilisateur
      */
     public function getLibelleGroupeUtilisateur($idUtilisateur)
     {
-        $query = "SELECT g.lib_GU 
+        $query = "SELECT g.lib_GU
               FROM utilisateur u
               LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
               WHERE u.id_utilisateur = :id";
 
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindValue(':id', $idUtilisateur, PDO::PARAM_INT);
 
         if ($stmt->execute()) {
@@ -59,11 +56,11 @@ class Utilisateur
      */
     public function getLibelleTypeUtilisateur($idUtilisateur)
     {
-        $query = "SELECT t.lib_type_utilisateur 
+        $query = "SELECT t.lib_type_utilisateur
               FROM utilisateur u
               JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
               WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':id', $idUtilisateur);
         $stmt->execute();
 
@@ -84,7 +81,7 @@ class Utilisateur
               FROM utilisateur u
               JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':id', $idUtilisateur);
         $stmt->execute();
 
@@ -99,7 +96,7 @@ class Utilisateur
      */
     public function getAllUserLabels($idUtilisateur)
     {
-        $query = "SELECT 
+        $query = "SELECT
                 g.lib_groupe,
                 f.lib_fonction,
                 t.lib_type_utilisateur,
@@ -108,9 +105,9 @@ class Utilisateur
               LEFT JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
               LEFT JOIN fonction f ON u.id_fonction = f.id_fonction
               LEFT JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
-              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niv_acces_donnees
+              LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':id', $idUtilisateur);
         $stmt->execute();
 
@@ -119,7 +116,7 @@ class Utilisateur
 
     public function getAllUtilisateurs()
     {
-        $sql = "SELECT u.*, tu.lib_type_utilisateur as role_utilisateur, 
+        $sql = "SELECT u.*, tu.lib_type_utilisateur as role_utilisateur,
                        gu.lib_GU, nad.lib_niveau_acces_donnees as niveau_acces
                 FROM utilisateur u
                 LEFT JOIN type_utilisateur tu ON u.id_type_utilisateur = tu.id_type_utilisateur
@@ -127,18 +124,18 @@ class Utilisateur
                 LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
                 ORDER BY u.nom_utilisateur";
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
     public function getUtilisateurById($id)
     {
-        $sql = "SELECT u.*, nad.id_niveau_acces_donnees as id_niv_acces_donnee 
+        $sql = "SELECT u.*, nad.id_niveau_acces_donnees as id_niv_acces_donnee
                 FROM utilisateur u
                 LEFT JOIN niveau_acces_donnees nad ON u.id_niv_acces_donnee = nad.id_niveau_acces_donnees
                 WHERE u.id_utilisateur = :id";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_OBJ);
@@ -147,12 +144,12 @@ class Utilisateur
     public function getUtilisateurByLogin($login)
     {
         $query = "SELECT u.*, t.lib_type_utilisateur, g.lib_GU, n.lib_niveau_acces_donnees
-                 FROM utilisateur u 
+                 FROM utilisateur u
                  JOIN type_utilisateur t ON u.id_type_utilisateur = t.id_type_utilisateur
                  JOIN groupe_utilisateur g ON u.id_GU = g.id_GU
                  JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
                  WHERE u.login_utilisateur = :login";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':login', $login);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_OBJ);
@@ -161,9 +158,9 @@ class Utilisateur
     public function ajouterUtilisateur($nom, $id_type_utilisateur, $id_GU, $id_niv_acces_donnees, $statut_utilisateur, $login, $mdp)
     {
 
-        $query = "INSERT INTO utilisateur (nom_utilisateur,id_type_utilisateur,id_GU,id_niv_acces_donnee,statut_utilisateur, login_utilisateur, mdp_utilisateur ) 
+        $query = "INSERT INTO utilisateur (nom_utilisateur,id_type_utilisateur,id_GU,id_niv_acces_donnee,statut_utilisateur, login_utilisateur, mdp_utilisateur )
                   VALUES (:nom,:id_type_utilisateur ,:id_GU,:id_niv_acces_donnees, :statut_utilisateur,:login, :mdp )";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':nom', $nom);
         $stmt->bindParam(':id_type_utilisateur', $id_type_utilisateur);
         $stmt->bindParam(':id_GU', $id_GU);
@@ -177,7 +174,7 @@ class Utilisateur
     public function updateUtilisateur($nom, $id_type_utilisateur, $id_GU, $id_niv_acces_donnees, $statut_utilisateur, $login, $id)
     {
         $query = "UPDATE utilisateur SET nom_utilisateur = :nom, login_utilisateur = :login, id_GU = :id_GU, id_type_utilisateur = :id_type_utilisateur, id_niv_acces_donnee = :id_niv_acces_donnees,statut_utilisateur = :statut  WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':nom', $nom);
         $stmt->bindParam(':login', $login);
         $stmt->bindParam(':id_GU', $id_GU);
@@ -190,28 +187,28 @@ class Utilisateur
 
     /**
      * Désactive un utilisateur
-     * 
+     *
      * @param int $id ID de l'utilisateur
      * @return bool True si la désactivation a réussi
      */
     public function desactiverUtilisateur($id)
     {
         $sql = "UPDATE utilisateur SET statut_utilisateur = 'Inactif' WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':id', $id);
         return $stmt->execute();
     }
 
     /**
      * Réactive un utilisateur
-     * 
+     *
      * @param int $id ID de l'utilisateur
      * @return bool True si la réactivation a réussi
      */
     public function reactiverUtilisateur($id)
     {
         $sql = "UPDATE utilisateur SET statut_utilisateur = 'Actif' WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':id', $id);
         return $stmt->execute();
     }
@@ -225,7 +222,7 @@ class Utilisateur
     public function supprimerUtilisateur($id)
     {
         $sql = "DELETE FROM utilisateur WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':id', $id);
         return $stmt->execute();
     }
@@ -233,7 +230,7 @@ class Utilisateur
     public function updatePassword($id, $newPassword)
     {
         $query = "UPDATE utilisateur SET mdp_utilisateur = :mdp WHERE id_utilisateur = :id";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':mdp', $newPassword);
         $stmt->bindParam(':id', $id);
         return $stmt->execute();
@@ -242,7 +239,7 @@ class Utilisateur
     public function updatePasswordByLogin($login, $newPassword)
     {
         $query = "UPDATE utilisateur SET mdp_utilisateur = :mdp WHERE login_utilisateur = :login";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':mdp', $newPassword);
         $stmt->bindParam(':login', $login);
         return $stmt->execute();
@@ -281,7 +278,7 @@ class Utilisateur
             return false;
         }
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->bindParam(':email', $newEmail);
         $stmt->bindParam(':part1', $part1);
         $stmt->bindParam(':part2', $part2);
@@ -294,7 +291,7 @@ class Utilisateur
 
     public function getAllUtilisateursActifs()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -305,13 +302,13 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE u.statut_utilisateur = 'Actif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     public function getAllUtilisateursInactifs()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -322,13 +319,13 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE u.statut_utilisateur = 'Inactif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     public function getAllUtilisateursByType($type)
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -339,7 +336,7 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE t.lib_type_utilisateur = :type
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':type', $type);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -347,7 +344,7 @@ class Utilisateur
 
     public function getAllUtilisateursByGroupe($groupe)
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -358,7 +355,7 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE g.lib_GU = :groupe
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':groupe', $groupe);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -366,7 +363,7 @@ class Utilisateur
 
     public function getEnseignantActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -377,14 +374,14 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE (t.lib_type_utilisateur = 'Enseignant Simple' OR t.lib_type_utilisateur='Enseignant Administratif' ) AND u.statut_utilisateur = 'Actif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
     public function getEnseignantInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -395,13 +392,13 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE (t.lib_type_utilisateur = 'Enseignant Simple' OR t.lib_type_utilisateur='Enseignant Administratif' ) AND u.statut_utilisateur = 'Inactif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     public function getEtudiantActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -412,14 +409,14 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE t.lib_type_utilisateur = 'Etudiant' AND u.statut_utilisateur = 'Actif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
     public function getEtudiantInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -430,13 +427,13 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE t.lib_type_utilisateur = 'Etudiant' AND u.statut_utilisateur = 'Inactif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     public function getPersAdminActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -447,13 +444,13 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE t.lib_type_utilisateur = 'Personnel Administratif' AND u.statut_utilisateur = 'Actif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     public function getPersAdminInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -464,13 +461,13 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE t.lib_type_utilisateur = 'Personnel Administratif' AND u.statut_utilisateur = 'Inactif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     public function getAllUtilisateursByStatut($statut)
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -481,7 +478,7 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE u.statut_utilisateur = :statut
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':statut', $statut);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
@@ -489,7 +486,7 @@ class Utilisateur
 
     public function getUtilisateurActif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -500,13 +497,13 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE u.statut_utilisateur = 'Actif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     public function getUtilisateurInactif()
     {
-        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur, 
+        $query = "SELECT u.id_utilisateur, u.nom_utilisateur, u.login_utilisateur,
                     u.statut_utilisateur,
                     t.lib_type_utilisateur as role_utilisateur,
                     g.lib_GU as gu,
@@ -517,7 +514,7 @@ class Utilisateur
               LEFT JOIN niveau_acces_donnees n ON u.id_niv_acces_donnee = n.id_niveau_acces_donnees
               WHERE u.statut_utilisateur = 'Inactif'
               ORDER BY u.nom_utilisateur";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
@@ -525,12 +522,12 @@ class Utilisateur
     // Récupérer les enseignants non enregistrés comme utilisateurs
     public function getEnseignantsNonUtilisateurs()
     {
-        $query = "SELECT e.id_enseignant, e.nom_enseignant, e.prenom_enseignant, e.mail_enseignant 
-                 FROM enseignants e 
-                 LEFT JOIN utilisateur u ON e.mail_enseignant = u.login_utilisateur 
-                 WHERE u.id_utilisateur IS NULL 
+        $query = "SELECT e.id_enseignant, e.nom_enseignant, e.prenom_enseignant, e.mail_enseignant
+                 FROM enseignants e
+                 LEFT JOIN utilisateur u ON e.mail_enseignant = u.login_utilisateur
+                 WHERE u.id_utilisateur IS NULL
                  ORDER BY e.nom_enseignant, e.prenom_enseignant";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
@@ -538,12 +535,12 @@ class Utilisateur
     // Récupérer le personnel administratif non enregistré comme utilisateur
     public function getPersonnelNonUtilisateurs()
     {
-        $query = "SELECT pa.id_pers_admin, pa.nom_pers_admin, pa.prenom_pers_admin, pa.email_pers_admin 
-                 FROM personnel_admin pa 
-                 LEFT JOIN utilisateur u ON pa.email_pers_admin = u.login_utilisateur 
-                 WHERE u.id_utilisateur IS NULL 
+        $query = "SELECT pa.id_pers_admin, pa.nom_pers_admin, pa.prenom_pers_admin, pa.email_pers_admin
+                 FROM personnel_admin pa
+                 LEFT JOIN utilisateur u ON pa.email_pers_admin = u.login_utilisateur
+                 WHERE u.id_utilisateur IS NULL
                  ORDER BY pa.nom_pers_admin, pa.prenom_pers_admin";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
@@ -552,11 +549,11 @@ class Utilisateur
     public function getEtudiantsNonUtilisateurs()
     {
         $query = "SELECT e.num_carte_etud as num_etu, e.nom_etu, e.prenom_etu,e.email_etu
-                 FROM etudiants e 
-                 LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur 
-                 WHERE u.id_utilisateur IS NULL 
+                 FROM etudiants e
+                 LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
+                 WHERE u.id_utilisateur IS NULL
                  ORDER BY e.nom_etu, e.prenom_etu";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
@@ -572,7 +569,7 @@ class Utilisateur
                  LEFT JOIN utilisateur u ON e.email_etu = u.login_utilisateur
                  WHERE u.id_utilisateur IS NULL
                  ORDER BY e.nom_etu, e.prenom_etu";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
@@ -581,7 +578,7 @@ class Utilisateur
     public function isLoginUsed($login)
     {
         $query = "SELECT COUNT(*) as count FROM utilisateur WHERE login_utilisateur = :login";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':login', $login);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -600,7 +597,7 @@ class Utilisateur
     // Ajouter plusieurs utilisateurs en masse
     public function ajouterUtilisateursEnMasse($utilisateurs)
     {
-        $this->db->beginTransaction();
+        $this->pdo->beginTransaction();
         try {
             $utilisateursAjoutes = [];
             foreach ($utilisateurs as $utilisateur) {
@@ -623,13 +620,13 @@ class Utilisateur
                         'login' => $utilisateur['login']
                     ];
                 } else {
-                    throw new Exception("Erreur lors de l'ajout de l'utilisateur " . $utilisateur['nom']);
+                    throw new \Exception("Erreur lors de l'ajout de l'utilisateur " . $utilisateur['nom']);
                 }
             }
-            $this->db->commit();
+            $this->pdo->commit();
             return $utilisateursAjoutes;
-        } catch (Exception $e) {
-            $this->db->rollBack();
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
             throw $e;
         }
     }
@@ -638,7 +635,7 @@ class Utilisateur
     public function getEnseignantById($id)
     {
         $sql = "SELECT * FROM enseignants WHERE id_enseignant = :id";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
@@ -647,7 +644,7 @@ class Utilisateur
     public function getPersonnelById($id)
     {
         $sql = "SELECT * FROM personnel_admin WHERE id_pers_admin = :id";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
@@ -656,9 +653,9 @@ class Utilisateur
     public function getEtudiantById($id)
     {
         $sql = "SELECT * FROM etudiants WHERE num_carte_etud = :id OR num_ident_etud = :id2";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id, 'id2' => $id]);
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
@@ -692,22 +689,22 @@ class Utilisateur
         if ($idTypeUtilisateur == 5 || $idTypeUtilisateur == 6) {
             // Chercher dans enseignants (types 5 et 6)
             // Essayer d'abord "NOM Prénom"
-            $sql = "SELECT mail_enseignant as email 
-                    FROM enseignants 
+            $sql = "SELECT mail_enseignant as email
+                    FROM enseignants
                     WHERE (UPPER(nom_enseignant) = UPPER(:part1) AND UPPER(prenom_enseignant) = UPPER(:part2))
                        OR (UPPER(prenom_enseignant) = UPPER(:part1) AND UPPER(nom_enseignant) = UPPER(:part2))
                     LIMIT 1";
         } elseif ($idTypeUtilisateur == 4) {
             // Chercher dans personnel_admin (type 4)
-            $sql = "SELECT email_pers_admin as email 
-                    FROM personnel_admin 
+            $sql = "SELECT email_pers_admin as email
+                    FROM personnel_admin
                     WHERE (UPPER(nom_pers_admin) = UPPER(:part1) AND UPPER(prenom_pers_admin) = UPPER(:part2))
                        OR (UPPER(prenom_pers_admin) = UPPER(:part1) AND UPPER(nom_pers_admin) = UPPER(:part2))
                     LIMIT 1";
         } elseif ($idTypeUtilisateur == 7) {
             // Chercher dans etudiants (type 7)
-            $sql = "SELECT email_etu as email 
-                    FROM etudiants 
+            $sql = "SELECT email_etu as email
+                    FROM etudiants
                     WHERE (UPPER(nom_etu) = UPPER(:part1) AND UPPER(prenom_etu) = UPPER(:part2))
                        OR (UPPER(prenom_etu) = UPPER(:part1) AND UPPER(nom_etu) = UPPER(:part2))
                     LIMIT 1";
@@ -715,7 +712,7 @@ class Utilisateur
             return null;
         }
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['part1' => $part1, 'part2' => $part2]);
         $result = $stmt->fetch(PDO::FETCH_OBJ);
 

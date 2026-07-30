@@ -1,23 +1,23 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../Services/GestionReclamationsService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use CheckMaster\Services\GestionReclamationsService;
 
-class GestionReclamationsController {
+class GestionReclamationsController extends BaseController {
 
-    private $baseViewPath;
     private $service;
 
     public function __construct()
     {
-        $this->baseViewPath = __DIR__ . '/../../ressources/views/gestion_reclamations/';
+        parent::__construct(\Database::getConnection());
 
-        $reclamationModel = new Reclamation();
-        $auditLog = new AuditLog(Database::getConnection());
+        $reclamationModel = new Reclamation($this->pdo);
+        $auditLog = new AuditLog($this->pdo);
         $this->service = new GestionReclamationsService($reclamationModel, $auditLog);
 
         // Vérifier que l'utilisateur est connecté et est un étudiant
@@ -38,7 +38,7 @@ class GestionReclamationsController {
             $reclamationsRecentes = $data['reclamationsRecentes'];
 
         } catch (Exception $e) {
-            $this->afficherErreur("Erreur lors du chargement du dashboard : " . $e->getMessage());
+            $this->afficherErreur(Messages::get('error.generic') . ' : ' . $e->getMessage());
         }
     }
 
@@ -60,7 +60,7 @@ class GestionReclamationsController {
     private function traiterSoumissionReclamation()
     {
         if (!canView('gestion_reclamations')) {
-            $this->afficherMessage("Accès non autorisé.", 'error');
+            $this->afficherMessage(Messages::get('error.permission_denied'), 'error');
             header('Location: ?page=gestion_reclamations');
             exit;
         }
@@ -101,16 +101,16 @@ class GestionReclamationsController {
             if ($resultat['success']) {
                 try {
                     $this->service->notifierReclamationSoumise(
-                        $resultat['reclamationId'], 
-                        $donneesReclamation['titre'], 
-                        $donneesReclamation['type'], 
+                        $resultat['reclamationId'],
+                        $donneesReclamation['titre'],
+                        $donneesReclamation['type'],
                         $_SESSION['num_etu']
                     );
                 } catch (\Throwable $e) {
                     error_log('Erreur notif reclamation: ' . $e->getMessage());
                 }
-                
-                $this->afficherMessage($resultat['message'], 'success');
+
+                $this->afficherMessage(Messages::get('business.claim_submitted'), 'success');
                 header('Location: ?page=gestion_reclamations');
                 exit;
             } else {
@@ -121,7 +121,7 @@ class GestionReclamationsController {
 
         } catch (Exception $e) {
             error_log("Exception dans traiterSoumissionReclamation: " . $e->getMessage());
-            $this->afficherMessage("Erreur lors de la soumission : " . $e->getMessage(), 'error');
+            $this->afficherMessage(Messages::get('error.generic') . ' : ' . $e->getMessage(), 'error');
             header('Location: ?page=gestion_reclamations&action=soumettre_reclamation');
             exit;
         }
@@ -163,7 +163,7 @@ class GestionReclamationsController {
             $filtresActuels = $_GET;
 
         } catch (Exception $e) {
-            $this->afficherErreur("Erreur lors du chargement du suivi : " . $e->getMessage());
+            $this->afficherErreur(Messages::get('error.generic') . ' : ' . $e->getMessage());
         }
     }
 
@@ -181,7 +181,7 @@ class GestionReclamationsController {
     public function exporterReclamations()
     {
         if (!$this->service->verifierDroitsAdmin((int) ($_SESSION['groupe_utilisateur'] ?? 0))) {
-            $this->afficherErreur("Accès non autorisé.");
+            $this->afficherErreur(Messages::get('error.permission_denied'));
             return;
         }
 
@@ -215,16 +215,14 @@ class GestionReclamationsController {
 
             fclose($output);
         } catch (Exception $e) {
-            $this->afficherErreur("Erreur lors de l'export : " . $e->getMessage());
+            $this->afficherErreur(Messages::get('error.export_failed') . ' : ' . $e->getMessage());
         }
     }
 
     public function getReclamationDetailsAjax()
     {
         if (!isset($_GET['id'])) {
-            http_response_code(400);
-            echo "ID de la réclamation manquant";
-            return;
+            $this->jsonError(Messages::get('error.invalid_input'), 400);
         }
 
         $result = $this->service->getReclamationDetails((int) $_GET['id'], $_SESSION['num_etu']);
@@ -305,5 +303,5 @@ class GestionReclamationsController {
         $html = ob_get_clean();
         echo $html;
     }
- 
+
 }

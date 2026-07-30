@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/AuditLog.php';
@@ -11,23 +10,24 @@ require_once __DIR__ . '/../Services/Document/RapportPdfGeneratorService.php';
 require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
+use CheckMaster\Core\AppConfig;
 use CheckMaster\Services\GestionRapportService;
 
-class GestionRapportController
+class GestionRapportController extends BaseController
 {
-
-    private $baseViewPath;
     private $service;
 
     public function __construct()
     {
-        $this->baseViewPath = __DIR__ . '/../../ressources/views/gestion_rapports/';
-        $this->service = new GestionRapportService(Database::getConnection());
+        parent::__construct(\Database::getConnection());
+        $this->viewPath = AppConfig::viewPath() . DIRECTORY_SEPARATOR . 'gestion_rapports' . DIRECTORY_SEPARATOR;
+        $this->service = new GestionRapportService($this->pdo);
 
         // Vérifier que l'utilisateur est connecté
         if (!isset($_SESSION['id_utilisateur'])) {
-            header('Location: page_connexion.php');
-            exit;
+            $this->redirect('page_connexion.php');
         }
 
         // Vérifier les variables de session
@@ -78,7 +78,7 @@ class GestionRapportController
                     $rapport = $this->service->getRapportById($edit_id);
 
                     if ($rapport === null) {
-                        $this->afficherErreur("Rapport non trouvé.");
+                        $this->afficherErreur(Messages::get('error.not_found'));
                         return;
                     }
 
@@ -99,7 +99,7 @@ class GestionRapportController
                     }
 
                 } catch (Exception $e) {
-                    $this->afficherErreur("Erreur lors du chargement du rapport : " . $e->getMessage());
+                    $this->afficherErreur(Messages::get('error.generic') . ' : ' . $e->getMessage());
                     return;
                 }
             }
@@ -111,21 +111,15 @@ class GestionRapportController
     //=============================TRAITER LA CREATION DE RAPPORT=============================
     public function traiterCreationRapport()
     {
-        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        $isAjax = $this->isAjax();
 
         try {
 
             if (!canCreate('gestion_rapports')) {
                 if ($isAjax) {
-                    while (ob_get_level())
-                        ob_end_clean();
-                    header('Content-Type: application/json; charset=utf-8');
-                    http_response_code(403);
-                    echo json_encode(['success' => false, 'message' => "Accès non autorisé. Vous n'avez pas la permission de créer un rapport."], JSON_UNESCAPED_UNICODE);
-                    exit;
+                    $this->jsonError(Messages::get('error.permission_denied'), 403);
                 }
-                $this->afficherErreur("Accès non autorisé. Vous n'avez pas la permission de créer un rapport.");
+                $this->afficherErreur(Messages::get('error.permission_denied'));
                 return;
             }
 
@@ -143,10 +137,10 @@ class GestionRapportController
             if ($action === 'deposer_rapport' && empty($nom_rapport) && $edit_id !== null) {
                 $resultat = $this->service->traiterDepotRapport($edit_id, $num_etu);
                 if ($resultat['success']) {
-                    $_SESSION['success'] = "Rapport déposé avec succès. Vous recevrez la notification des résultats à la date prévue.";
+                    $_SESSION['success'] = Messages::get('business.report_submitted');
                     header('Location: ' . $resultat['redirect']);
                 } else {
-                    $_SESSION['error'] = "Une erreur est survenue lors du dépôt du rapport.";
+                    $_SESSION['error'] = Messages::get('error.generic');
                     header('Location: ' . $resultat['redirect']);
                 }
                 exit;
@@ -160,9 +154,9 @@ class GestionRapportController
                     if ($extCheck !== 'html') {
                         $resultat = $this->service->traiterDepotRapport($edit_id, $num_etu);
                         if ($resultat['success']) {
-                            $_SESSION['success'] = "Rapport déposé avec succès. Vous recevrez la notification des résultats à la date prévue.";
+                            $_SESSION['success'] = Messages::get('business.report_submitted');
                         } else {
-                            $_SESSION['error'] = "Une erreur est survenue lors du dépôt du rapport.";
+                            $_SESSION['error'] = Messages::get('error.generic');
                         }
                         header('Location: ' . ($resultat['redirect'] ?? '?page=gestion_rapports'));
                         exit;
@@ -182,15 +176,7 @@ class GestionRapportController
 
             if (!empty($erreurs)) {
                 if ($isAjax) {
-                    while (ob_get_level())
-                        ob_end_clean();
-                    header('Content-Type: application/json; charset=utf-8');
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Erreurs de validation',
-                        'errors' => $erreurs
-                    ], JSON_UNESCAPED_UNICODE);
-                    exit;
+                    $this->jsonError(Messages::get('error.invalid_input'), 400, $erreurs);
                 }
                 $_SESSION['erreurs_rapport'] = $erreurs;
                 if ($edit_id !== null) {
@@ -207,14 +193,7 @@ class GestionRapportController
             // Vérifier que le nom du rapport est unique (sauf si on l'édite)
             if ($this->service->isRapportNomExist($nom_rapport, $num_etu, $isEdit ? $edit_id : null)) {
                 if ($isAjax) {
-                    while (ob_get_level())
-                        ob_end_clean();
-                    header('Content-Type: application/json; charset=utf-8');
-                    echo json_encode([
-                        'success' => false,
-                        'message' => "Un rapport avec ce nom existe déjà. Veuillez choisir un autre nom."
-                    ], JSON_UNESCAPED_UNICODE);
-                    exit;
+                    $this->jsonError("Un rapport avec ce nom existe déjà. Veuillez choisir un autre nom.");
                 }
                 $_SESSION['error'] = "Un rapport avec ce nom existe déjà. Veuillez choisir un autre nom.";
                 if ($isEdit) {
@@ -243,17 +222,9 @@ class GestionRapportController
             }
 
             if (!$rapport_id) {
-                $errorMessage = $resultat['message'] ?? "Une erreur est survenue lors de la sauvegarde du rapport.";
+                $errorMessage = $resultat['message'] ?? Messages::get('error.generic');
                 if ($isAjax) {
-                    while (ob_get_level())
-                        ob_end_clean();
-                    header('Content-Type: application/json; charset=utf-8');
-                    echo json_encode([
-                        'success' => false,
-                        'message' => $errorMessage,
-                        'debug' => $resultat['debug'] ?? null
-                    ], JSON_UNESCAPED_UNICODE);
-                    exit;
+                    $this->jsonError($errorMessage, 500, $resultat['debug'] ?? null);
                 }
                 $_SESSION['error'] = $errorMessage;
                 if ($isEdit) {
@@ -272,18 +243,10 @@ class GestionRapportController
 
             if ($action === 'save_rapport') {
                 if ($isAjax) {
-                    while (ob_get_level())
-                        ob_end_clean();
-                    header('Content-Type: application/json; charset=utf-8');
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Rapport sauvegardé avec succès.',
-                        'rapport_id' => $rapport_id
-                    ], JSON_UNESCAPED_UNICODE);
-                    exit;
+                    $this->jsonSuccess(['rapport_id' => $rapport_id], Messages::get('success.saved'));
                 }
 
-                $_SESSION['success'] = "Rapport sauvegardé avec succès.";
+                $_SESSION['success'] = Messages::get('success.saved');
                 header('Location: ?page=gestion_rapports&action=creer_rapport&edit=' . $rapport_id);
                 exit;
 
@@ -294,10 +257,10 @@ class GestionRapportController
                 // Enregistrer le dépôt du rapport
                 $resultat = $this->service->traiterDepotRapport($rapport_id, $num_etu);
                 if ($resultat['success']) {
-                    $_SESSION['success'] = "Rapport déposé avec succès. Vous recevrez la notification des résultats à la date prévue.";
+                    $_SESSION['success'] = Messages::get('business.report_submitted');
                     header('Location: ' . $resultat['redirect']);
                 } else {
-                    $_SESSION['error'] = "Une erreur est survenue lors du dépôt du rapport.";
+                    $_SESSION['error'] = Messages::get('error.generic');
                     header('Location: ' . $resultat['redirect']);
                 }
                 exit;
@@ -305,14 +268,9 @@ class GestionRapportController
 
         } catch (Exception $e) {
             if ($isAjax) {
-                while (ob_get_level())
-                    ob_end_clean();
-                header('Content-Type: application/json; charset=utf-8');
-                http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
-                exit;
+                $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 500);
             }
-            $this->afficherErreur('Erreur : ' . $e->getMessage());
+            $this->afficherErreur(Messages::get('error.generic') . ' : ' . $e->getMessage());
         }
     }
 
@@ -325,7 +283,7 @@ class GestionRapportController
             $id_rapport = $rapport_id ?? ($_GET['id'] ?? null);
 
             if (!$id_rapport) {
-                $this->afficherErreur("ID du rapport manquant.");
+                $this->afficherErreur(Messages::get('error.invalid_input'));
                 return;
             }
 
@@ -335,7 +293,7 @@ class GestionRapportController
             $rapport = $this->service->getRapportById($id_rapport);
 
             if (!$rapport || $rapport['num_etu'] != $num_etu) {
-                $this->afficherErreur("Accès non autorisé à ce rapport.");
+                $this->afficherErreur(Messages::get('error.permission_denied'));
                 return;
             }
 
@@ -354,15 +312,15 @@ class GestionRapportController
             $dbWrapper = new \App\Support\Database();
             $planningDataUtils = new \App\Utils\PlanningDataUtils($dbWrapper);
             $pdfGen = new \App\Services\Document\PdfGeneratorService(
-                __DIR__ . '/../../storage/documents',
-                __DIR__ . '/../../public/image/logo_ufhb.png'
+                $this->storagePath(),
+                $this->logoPath()
             );
             $pdfGenerator = new \App\Services\Document\RapportPdfGeneratorService($pdfGen, $planningDataUtils);
 
             $result = $pdfGenerator->generate((int) $id_rapport, (int) $_SESSION['id_utilisateur']);
 
             if (!$result['success']) {
-                throw new Exception($result['error'] ?? "Erreur lors de la génération du PDF.");
+                throw new Exception($result['error'] ?? Messages::get('error.pdf_generation'));
             }
 
             $filepath = $result['path'] ?? null;
@@ -377,7 +335,7 @@ class GestionRapportController
             exit;
 
         } catch (Exception $e) {
-            $this->afficherErreur('Erreur lors de la génération du PDF : ' . $e->getMessage());
+            $this->afficherErreur(Messages::get('error.pdf_generation') . ' : ' . $e->getMessage());
         }
     }
 
@@ -394,7 +352,7 @@ class GestionRapportController
      */
     protected function afficherMessage($message)
     {
-        $_SESSION['success'] = $message;
+        $this->flash('success', $message, 'success');
     }
 
     /**
@@ -402,17 +360,15 @@ class GestionRapportController
      */
     protected function afficherErreur($erreur)
     {
-        $_SESSION['error'] = $erreur;
+        $this->flash('error', $erreur, 'error');
     }
 
     /**
-     * Envoie une réponse JSON
+     * Envoie une réponse JSON (délègue à BaseController::json)
      */
     protected function sendJsonResponse($data)
     {
-        header('Content-Type: application/json');
-        echo json_encode($data);
-        exit;
+        $this->json($data);
     }
 
     private function verifierDroitsAdmin()
@@ -498,7 +454,7 @@ class GestionRapportController
     {
         try {
             if (!$this->isEtudiant()) {
-                $_SESSION['error'] = "Accès non autorisé.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 header('Location: ?page=gestion_rapports&action=telecharger_rapport');
                 exit;
             }
@@ -508,7 +464,7 @@ class GestionRapportController
 
             // Vérifier qu'un fichier a été soumis
             if (!isset($_FILES['rapport_fichier']) || $_FILES['rapport_fichier']['error'] === UPLOAD_ERR_NO_FILE) {
-                $_SESSION['error'] = "Veuillez sélectionner un fichier à uploader.";
+                $_SESSION['error'] = Messages::get('error.selection_required');
                 header('Location: ?page=gestion_rapports&action=telecharger_rapport');
                 exit;
             }
@@ -535,27 +491,27 @@ class GestionRapportController
             exit;
 
         } catch (Exception $e) {
-            $_SESSION['error'] = "Erreur : " . $e->getMessage();
+            $_SESSION['error'] = Messages::get('error.generic') . ' : ' . $e->getMessage();
             header('Location: ?page=gestion_rapports&action=telecharger_rapport');
             exit;
         }
     }
 
     /**
-     * Télécharge le modèle de rapport
+     * Supprime un rapport
      */
     public function supprimerRapport()
     {
         try {
             if (!$this->isEtudiant() || !canDelete('gestion_rapports')) {
-                $_SESSION['error'] = "AccÃ¨s non autorisÃ©.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 header('Location: ?page=gestion_rapports');
                 exit;
             }
 
             $idRapport = isset($_POST['id_rapport']) ? (int) $_POST['id_rapport'] : 0;
             if ($idRapport <= 0) {
-                $_SESSION['error'] = "Rapport introuvable.";
+                $_SESSION['error'] = Messages::get('error.not_found');
                 header('Location: ?page=gestion_rapports');
                 exit;
             }
@@ -565,7 +521,7 @@ class GestionRapportController
             header('Location: ?page=gestion_rapports');
             exit;
         } catch (Exception $e) {
-            $_SESSION['error'] = "Erreur : " . $e->getMessage();
+            $_SESSION['error'] = Messages::get('error.generic') . ' : ' . $e->getMessage();
             header('Location: ?page=gestion_rapports');
             exit;
         }
@@ -574,7 +530,7 @@ class GestionRapportController
     public function downloadModele()
     {
         $cheminModele = $this->service->getModeleRapportUrl();
-        $cheminAbsolu = __DIR__ . '/../../' . $cheminModele;
+        $cheminAbsolu = AppConfig::projectRoot() . DIRECTORY_SEPARATOR . $cheminModele;
 
         if (file_exists($cheminAbsolu)) {
             while (ob_get_level())
@@ -586,27 +542,26 @@ class GestionRapportController
             exit;
         }
 
-        $_SESSION['error'] = "Le modèle de rapport n'est pas disponible actuellement.";
+        $_SESSION['error'] = Messages::get('error.file_not_found');
         header('Location: ?page=gestion_rapports&action=telecharger_rapport');
         exit;
     }
 
     /**
      * Télécharge le PDF d'un rapport.
-     * L'ancien fichier source uploadé n'est plus servi directement.
      */
     public function downloadFichierRapport()
     {
         $id_rapport = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if (!$id_rapport) {
-            $_SESSION['error'] = "ID du rapport manquant.";
+            $_SESSION['error'] = Messages::get('error.invalid_input');
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
 
         $rapport = $this->service->getRapportById($id_rapport);
         if (!$rapport) {
-            $_SESSION['error'] = "Rapport introuvable.";
+            $_SESSION['error'] = Messages::get('error.not_found');
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
@@ -619,7 +574,7 @@ class GestionRapportController
         }
 
         if (!$isAuthorized) {
-            $_SESSION['error'] = "Accès non autorisé.";
+            $_SESSION['error'] = Messages::get('error.permission_denied');
             header('Location: ?page=gestion_rapports&action=telecharger_rapport');
             exit;
         }
@@ -636,7 +591,7 @@ class GestionRapportController
     public function adminTelechargerRapport()
     {
         if (!$this->hasRapportAdminPermission('voir')) {
-            $_SESSION['error'] = "Accès non autorisé.";
+            $_SESSION['error'] = Messages::get('error.permission_denied');
             header('Location: ?page=gestion_rapports&action=telecharger_rapport');
             exit;
         }
@@ -665,7 +620,7 @@ class GestionRapportController
     {
         try {
             if (!$this->hasRapportAdminPermission('creer')) {
-                $_SESSION['error'] = "Accès non autorisé.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
                 exit;
             }
@@ -675,13 +630,13 @@ class GestionRapportController
             $date_operation = isset($_POST['date_operation']) ? trim($_POST['date_operation']) : date('Y-m-d H:i:s');
 
             if (empty($num_etu)) {
-                $_SESSION['error'] = "Veuillez sélectionner un étudiant.";
+                $_SESSION['error'] = Messages::get('error.selection_required');
                 header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
                 exit;
             }
 
             if (!isset($_FILES['rapport_fichier']) || $_FILES['rapport_fichier']['error'] === UPLOAD_ERR_NO_FILE) {
-                $_SESSION['error'] = "Veuillez sélectionner un fichier à uploader.";
+                $_SESSION['error'] = Messages::get('error.selection_required');
                 header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
                 exit;
             }
@@ -704,7 +659,7 @@ class GestionRapportController
             exit;
 
         } catch (Exception $e) {
-            $_SESSION['error'] = "Erreur : " . $e->getMessage();
+            $_SESSION['error'] = Messages::get('error.generic') . ' : ' . $e->getMessage();
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
@@ -715,11 +670,8 @@ class GestionRapportController
      */
     public function getEtudiantsSansRapportAjax()
     {
-        header('Content-Type: application/json; charset=utf-8');
-
         if (!$this->hasRapportAdminPermission('voir')) {
-            echo json_encode(['success' => false, 'message' => 'Accès non autorisé.']);
-            exit;
+            $this->jsonError(Messages::get('error.permission_denied'), 403);
         }
 
         $search = isset($_GET['q']) ? trim($_GET['q']) : '';
@@ -747,8 +699,7 @@ class GestionRapportController
             ];
         }
 
-        echo json_encode(['success' => true, 'results' => $resultats]);
-        exit;
+        $this->jsonSuccess(['results' => $resultats]);
     }
 
     /**
@@ -757,7 +708,7 @@ class GestionRapportController
     public function exporterRapportsCsv()
     {
         if (!$this->hasRapportAdminPermission('voir')) {
-            $_SESSION['error'] = "Accès non autorisé.";
+            $_SESSION['error'] = Messages::get('error.permission_denied');
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
@@ -817,7 +768,7 @@ class GestionRapportController
     public function updateRapportInline()
     {
         if (!$this->hasRapportAdminPermission('modifier')) {
-            $_SESSION['error'] = "Accès non autorisé.";
+            $_SESSION['error'] = Messages::get('error.permission_denied');
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
@@ -828,7 +779,7 @@ class GestionRapportController
         $theme_rapport = isset($_POST['theme_rapport']) ? trim($_POST['theme_rapport']) : '';
 
         if (!$id_rapport) {
-            $_SESSION['error'] = "Paramètres manquants.";
+            $_SESSION['error'] = Messages::get('error.invalid_input');
             header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');
             exit;
         }
@@ -842,9 +793,9 @@ class GestionRapportController
         $result = $this->service->updateRapportInlineWithAudit($id_rapport, $nouvelle_date, $ancienne_date, $nom_rapport, $ancien_nom, $theme_rapport, $ancien_theme);
 
         if ($result) {
-            $_SESSION['success'] = "Rapport mis à jour avec succès.";
+            $_SESSION['success'] = Messages::get('success.updated');
         } else {
-            $_SESSION['error'] = "Erreur lors de la mise à jour.";
+            $_SESSION['error'] = Messages::get('error.generic');
         }
 
         header('Location: ?page=' . $this->getRapportAdminPage() . '&action=admin_telecharger_rapport');

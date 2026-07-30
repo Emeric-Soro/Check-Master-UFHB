@@ -1,5 +1,7 @@
 <?php
 
+use CheckMaster\Core\Messages;
+
 class AcademicYear
 {
     private const ALL_QUERY_VALUE = 'all';
@@ -309,7 +311,7 @@ class AcademicYear
         if ($active === null) {
             return [
                 'success' => false,
-                'message' => "Aucune année académique active n'est définie.",
+                'message' => Messages::get('business.no_active_year'),
                 'year' => null,
             ];
         }
@@ -328,7 +330,7 @@ class AcademicYear
         if ($normalizedYearId !== (int) ($active['id'] ?? 0)) {
             return [
                 'success' => false,
-                'message' => "Impossible d'enregistrer {$context} dans une année académique antérieure. Seule l'année active {$active['label']} accepte des écritures.",
+                'message' => Messages::get('business.write_past_year', ['context' => $context, 'year' => $active['label']]),
                 'year' => $active,
             ];
         }

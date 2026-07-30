@@ -54,7 +54,7 @@ class EtudiantFicheService
         $this->infoStageModel = new InfoStage($this->db);
         $this->rapportModel = new RapportEtudiant($this->db);
         $this->noteModel = new Note($this->db);
-        $this->reclamationModel = new Reclamation();
+        $this->reclamationModel = new Reclamation($this->db);
         $this->soutenanceModel = new Soutenance($this->db);
         $this->anneeModel = new AnneeAcademique($this->db);
         $this->registry = new DocumentRegistry($this->db);

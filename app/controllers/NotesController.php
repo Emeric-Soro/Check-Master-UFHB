@@ -1,19 +1,20 @@
 <?php
 
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/NotesService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use CheckMaster\Services\NotesService;
 
-class NotesController
+class NotesController extends BaseController
 {
     private $service;
 
     public function __construct()
     {
-        $db = Database::getConnection();
-        $this->service = new NotesService($db);
+        parent::__construct(\Database::getConnection());
+        $this->service = new NotesService($this->pdo);
     }
 
     public function index()
@@ -41,7 +42,7 @@ class NotesController
 
         } catch (Exception $e) {
             error_log("Erreur dans NotesController::index : " . $e->getMessage());
-            $GLOBALS['messageErreur'] = "Une erreur est survenue lors du chargement des données.";
+            $GLOBALS['messageErreur'] = Messages::get('error.generic');
         }
     }
 
@@ -49,8 +50,8 @@ class NotesController
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_enregistrer_notes'])) {
             if (!canCreate('gestion_notes_evaluations') && !canEdit('gestion_notes_evaluations')) {
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'enregistrer des notes.";
-                $this->redirectBack();
+                $_SESSION['error'] = Messages::get('error.permission_denied');
+                $this->redirectToNotes();
                 return;
             }
             $studentId = $_GET['student'] ?? ($_POST['student'] ?? ($_POST['student_picker'] ?? null));
@@ -58,14 +59,14 @@ class NotesController
             $anneeAcadId = $_POST['id_annee_acad'] ?? null;
 
             if (!$studentId) {
-                $_SESSION['error'] = "ID étudiant manquant";
-                $this->redirectBack();
+                $_SESSION['error'] = Messages::get('error.invalid_input');
+                $this->redirectToNotes();
                 return;
             }
 
             if (!$anneeAcadId) {
-                $_SESSION['error'] = "Année académique manquante";
-                $this->redirectBack();
+                $_SESSION['error'] = Messages::get('error.invalid_input');
+                $this->redirectToNotes();
                 return;
             }
 
@@ -86,11 +87,11 @@ class NotesController
                 $_SESSION['error'] = $result['message'];
             }
 
-            $this->redirectBack();
+            $this->redirectToNotes();
         }
     }
 
-    private function redirectBack()
+    private function redirectToNotes()
     {
         $redirectUrl = "?page=gestion_notes_evaluations";
         if (!empty($_GET['niveau'])) {
@@ -111,18 +112,14 @@ class NotesController
     public function getNotesByEtudiant()
     {
         if (!canView('gestion_notes_evaluations')) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => "Accès non autorisé."]);
-            exit;
+            $this->jsonError(Messages::get('error.permission_denied'), 403);
         }
         if (isset($_GET['student_id'])) {
             $anneeAcadId = isset($_GET['annee_acad_id']) ? (int) $_GET['annee_acad_id'] : null;
             $notes = $this->service->getNotesByEtudiant($_GET['student_id'], $anneeAcadId);
-            echo json_encode($notes);
-            exit;
+            $this->json($notes);
         }
 
-        echo json_encode([]);
+        $this->json([]);
     }
 }

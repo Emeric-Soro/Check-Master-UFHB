@@ -1,16 +1,14 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 
-class Reclamation
+use CheckMaster\Models\BaseModel;
+
+class Reclamation extends BaseModel
 {
-    private $db;
+    protected const TABLE = 'reclamations';
+    protected const PRIMARY_KEY = 'id_reclamation';
+
     private $columnExistsCache = [];
     private $tableExistsCache = [];
-
-    public function __construct()
-    {
-        $this->db = Database::getConnection();
-    }
 
     private function tableExists($tableName)
     {
@@ -18,7 +16,7 @@ class Reclamation
             return $this->tableExistsCache[$tableName];
         }
 
-        $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
+        $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
         $stmt->execute([$tableName]);
         $exists = (bool) $stmt->fetchColumn();
         $this->tableExistsCache[$tableName] = $exists;
@@ -32,7 +30,7 @@ class Reclamation
             return $this->columnExistsCache[$cacheKey];
         }
 
-        $stmt = $this->db->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
+        $stmt = $this->pdo->prepare("SHOW COLUMNS FROM `$tableName` LIKE ?");
         $stmt->execute([$columnName]);
         $exists = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
         $this->columnExistsCache[$cacheKey] = $exists;
@@ -77,7 +75,7 @@ class Reclamation
             return $fallback[$normalized] ?? 1;
         }
 
-        $stmt = $this->db->prepare("
+        $stmt = $this->pdo->prepare("
             SELECT id_statut_reclamation
             FROM statut_reclamation
             WHERE LOWER(libelle_statut_reclamation) = LOWER(?)
@@ -89,34 +87,34 @@ class Reclamation
             return (int) $existing['id_statut_reclamation'];
         }
 
-        $stmt = $this->db->prepare("
+        $stmt = $this->pdo->prepare("
             INSERT INTO statut_reclamation (libelle_statut_reclamation)
             VALUES (?)
         ");
         $stmt->execute([$normalized]);
-        return (int) $this->db->lastInsertId();
+        return (int) $this->pdo->lastInsertId();
     }
 
     public function creer($donnees)
     {
         try {
             $sql = "INSERT INTO reclamations (
-                        num_etu,  
-                        titre_reclamation, 
-                        description_reclamation, 
-                        type_reclamation, 
-                        priorite_reclamation, 
+                        num_carte_etud,
+                        objet_reclamation,
+                        description_reclamation,
+                        type_reclamation,
+                        priorite_reclamation,
                         statut_reclamation
                     ) VALUES (
-                        :num_etu, 
-                        :titre, 
-                        :description, 
-                        :type, 
-                        :priorite, 
+                        :num_etu,
+                        :titre,
+                        :description,
+                        :type,
+                        :priorite,
                         'En attente'
                     )";
 
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindParam(':num_etu', $donnees['num_etu']);
             $stmt->bindParam(':titre', $donnees['titre']);
             $stmt->bindParam(':description', $donnees['description']);
@@ -124,7 +122,7 @@ class Reclamation
             $stmt->bindParam(':priorite', $donnees['priorite']);
 
             if ($stmt->execute()) {
-                return $this->db->lastInsertId();
+                return $this->pdo->lastInsertId();
             }
             return false;
         } catch (PDOException $e) {
@@ -136,11 +134,32 @@ class Reclamation
     public function getTous($limit = 10, $offset = 0, $filtres = [])
     {
         try {
-            $sql = "SELECT r.*, 
-                           CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu
-                    FROM reclamations r
-                    LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
-                    WHERE 1=1";
+            $usesNewSchema = $this->hasColumn('reclamations', 'num_carte_etud');
+
+            if ($usesNewSchema) {
+                $sql = "SELECT r.*,
+                               CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu,
+                               COALESCE(
+                                   sr.libelle_statut_reclamation,
+                                   CASE r.statut_reclamation
+                                       WHEN 1 THEN 'En attente'
+                                       WHEN 2 THEN 'En cours'
+                                       WHEN 3 THEN 'Résolue'
+                                       WHEN 4 THEN 'Rejetée'
+                                       ELSE CAST(r.statut_reclamation AS CHAR)
+                                   END
+                               ) as statut_label
+                        FROM reclamations r
+                        LEFT JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
+                        LEFT JOIN statut_reclamation sr ON sr.id_statut_reclamation = r.statut_reclamation
+                        WHERE 1=1";
+            } else {
+                $sql = "SELECT r.*,
+                               CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu
+                        FROM reclamations r
+                        LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
+                        WHERE 1=1";
+            }
 
             $params = [];
 
@@ -166,7 +185,7 @@ class Reclamation
 
             $sql .= " ORDER BY r.date_creation DESC LIMIT :limit OFFSET :offset";
 
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
 
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
@@ -187,14 +206,25 @@ class Reclamation
     public function getParId($id)
     {
         try {
-            $sql = "SELECT r.*, 
-                           CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu,
-                           e.email_etu
-                    FROM reclamations r
-                    LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
-                    WHERE r.id_reclamation = :id";
+            $usesNewSchema = $this->hasColumn('reclamations', 'num_carte_etud');
 
-            $stmt = $this->db->prepare($sql);
+            if ($usesNewSchema) {
+                $sql = "SELECT r.*,
+                               CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu,
+                               e.email_etu
+                        FROM reclamations r
+                        LEFT JOIN etudiants e ON r.num_carte_etud = e.num_carte_etud
+                        WHERE r.id_reclamation = :id";
+            } else {
+                $sql = "SELECT r.*,
+                               CONCAT(e.nom_etu, ' ', e.prenom_etu) as nom_etu,
+                               e.email_etu
+                        FROM reclamations r
+                        LEFT JOIN etudiants e ON (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)
+                        WHERE r.id_reclamation = :id";
+            }
+
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindParam(':id', $id);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -220,7 +250,7 @@ class Reclamation
                 $params[':type'] = $filtres['type'];
             }
 
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
 
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
@@ -237,14 +267,14 @@ class Reclamation
     public function getStatistiques()
     {
         try {
-            $sql = "SELECT 
+            $sql = "SELECT
                         COUNT(*) as total,
                         SUM(CASE WHEN statut_reclamation = 'En attente' THEN 1 ELSE 0 END) as en_attente,
                         SUM(CASE WHEN statut_reclamation = 'Résolue' THEN 1 ELSE 0 END) as resolues,
                         SUM(CASE WHEN statut_reclamation = 'Rejetée' THEN 1 ELSE 0 END) as rejetees
                     FROM reclamations";
 
-            $stmt = $this->db->query($sql);
+            $stmt = $this->pdo->query($sql);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des statistiques : " . $e->getMessage());
@@ -292,7 +322,7 @@ class Reclamation
                     ORDER BY r.date_creation DESC";
         }
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
@@ -305,12 +335,12 @@ class Reclamation
         if ($usesNewSchema) {
             $statusId = $this->getOrCreateStatutId($newStatut);
             $sql = "UPDATE reclamations SET statut_reclamation = ? WHERE id_reclamation = ?";
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             return $stmt->execute([$statusId, $id]);
         }
 
         $sql = "UPDATE reclamations SET statut_reclamation = ? WHERE id_reclamation = ?";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([$newStatut, $id]);
     }
 }

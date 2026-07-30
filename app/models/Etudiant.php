@@ -1,13 +1,11 @@
 <?php
 
-class Etudiant
-{
-    private $db;
+use CheckMaster\Models\BaseModel;
 
-    public function __construct($db)
-    {
-        $this->db = $db;
-    }
+class Etudiant extends BaseModel
+{
+    protected const TABLE = 'etudiants';
+    protected const PRIMARY_KEY = 'num_carte_etud';
 
     /**
      * Résout les identifiants connus d'un étudiant à partir d'un matricule
@@ -43,7 +41,7 @@ class Etudiant
         }
 
         try {
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) AS libelle
                 FROM annee_academique
                 WHERE id_annee_acad = ?
@@ -92,11 +90,11 @@ class Etudiant
         try {
             // Optimized: replaced correlated subquery with ROW_NUMBER window function.
             // Original query took ~18s for 510 students; this takes ~16ms.
-            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs, 
-                            n.lib_niv_etude as lib_niv_etude, 
+            $query = "SELECT e.*, e.num_ident_etud as identifiant_mesrs,
+                            n.lib_niv_etude as lib_niv_etude,
                             a.date_deb, a.date_fin, g.libelle_genre,
                             i.id_annee_acad, i.id_niv_etude
-                     FROM etudiants e 
+                     FROM etudiants e
                      LEFT JOIN (
                          SELECT i2.*,
                                 ROW_NUMBER() OVER (
@@ -105,14 +103,14 @@ class Etudiant
                                 ) as rn
                          FROM inscriptions i2
                      ) i ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) AND i.rn = 1
-                     LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude 
+                     LEFT JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                      LEFT JOIN annee_academique a ON i.id_annee_acad = a.id_annee_acad
                      LEFT JOIN genre g ON e.id_genre = g.id_genre";
 
             $params = [];
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
                 $promotionValues = $this->getAcademicYearPromotionValues((int) $id_annee_acad);
-                $query .= " WHERE (i.id_annee_acad = ? 
+                $query .= " WHERE (i.id_annee_acad = ?
                             OR EXISTS (
                                 SELECT 1
                                 FROM inscriptions i3
@@ -129,7 +127,7 @@ class Etudiant
             }
 
             $query .= " ORDER BY e.promotion_etu DESC, e.nom_etu, e.prenom_etu";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -185,7 +183,7 @@ class Etudiant
             }
 
             $query .= " ORDER BY e.nom_etu, e.prenom_etu";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             if ($id_annee_acad !== null && (int) $id_annee_acad > 0) {
                 $stmt->bindValue(':annee_lookup', (int) $id_annee_acad, PDO::PARAM_INT);
                 $stmt->bindValue(':annee_filter', (int) $id_annee_acad, PDO::PARAM_INT);
@@ -209,7 +207,7 @@ class Etudiant
                       FROM etudiants
                       WHERE num_carte_etud = :num_etu OR num_ident_etud = :num_etu_alt
                       LIMIT 1";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->bindValue(':num_etu', $num_etu);
             $stmt->bindValue(':num_etu_alt', $num_etu);
             $stmt->execute();
@@ -235,12 +233,12 @@ class Etudiant
 
             // Chercher dans etudiants en essayant les deux ordres possibles
             // (NOM Prénom) OU (Prénom NOM)
-            $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants 
+            $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants
                       WHERE (UPPER(nom_etu) = UPPER(:part1) AND UPPER(prenom_etu) = UPPER(:part2))
                          OR (UPPER(prenom_etu) = UPPER(:part1) AND UPPER(nom_etu) = UPPER(:part2))
                       LIMIT 1";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute(['part1' => $part1, 'part2' => $part2]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -254,7 +252,7 @@ class Etudiant
     {
         try {
             $query = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE LOWER(email_etu) = LOWER(:email) LIMIT 1";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute(['email' => trim($email)]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -266,9 +264,9 @@ class Etudiant
     public function ajouterEtudiant($num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {
-            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, id_genre, email_etu, promotion_etu) 
+            $sql = "INSERT INTO etudiants (num_carte_etud, num_ident_etud, nom_etu, prenom_etu, date_naiss_etu, id_genre, email_etu, promotion_etu)
                     VALUES (:num_etu, :num_ident_etud, :nom_etu, :prenom_etu, :date_naiss_etu, :genre_etu, :email_etu, :promotion_etu)";
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindParam(':num_etu', $num_etu);
             $stmt->bindParam(':num_ident_etud', $identifiant_mesrs);
             $stmt->bindParam(':nom_etu', $nom_etu);
@@ -287,17 +285,17 @@ class Etudiant
     public function modifierEtudiant($old_num_etu, $new_num_etu, $nom_etu, $prenom_etu, $date_naiss_etu, $genre_etu, $email_etu, $promotion_etu, $id_niveau = null, $id_annee_acad = null, $identifiant_mesrs = null)
     {
         try {
-            $sql = "UPDATE etudiants 
+            $sql = "UPDATE etudiants
                     SET num_carte_etud = :new_num_etu,
-                        nom_etu = :nom_etu, 
-                        prenom_etu = :prenom_etu, 
-                        date_naiss_etu = :date_naiss_etu, 
-                        id_genre = :genre_etu, 
+                        nom_etu = :nom_etu,
+                        prenom_etu = :prenom_etu,
+                        date_naiss_etu = :date_naiss_etu,
+                        id_genre = :genre_etu,
                         email_etu = :email_etu,
                         promotion_etu = :promotion_etu,
                         num_ident_etud = :num_ident_etud
                     WHERE num_carte_etud = :old_num_etu";
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindParam(':old_num_etu', $old_num_etu);
             $stmt->bindParam(':new_num_etu', $new_num_etu);
             $stmt->bindParam(':nom_etu', $nom_etu);
@@ -318,7 +316,7 @@ class Etudiant
     {
         try {
             $query = "DELETE FROM etudiants WHERE num_carte_etud = :num_etu";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->bindParam(':num_etu', $num_etu);
             return $stmt->execute();
         } catch (PDOException $e) {
@@ -329,11 +327,11 @@ class Etudiant
 
     public function getEtudiantsByNiveau($niveauId, $anneeAcadId = null)
     {
-        $query = "SELECT e.*, n.lib_niv_etude as niveau_nom, g.libelle_genre 
-                 FROM etudiants e 
+        $query = "SELECT e.*, n.lib_niv_etude as niveau_nom, g.libelle_genre
+                 FROM etudiants e
                  INNER JOIN inscriptions i ON " . $this->studentInscriptionMatchCondition('e', 'i') . "
                  INNER JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
-                 LEFT JOIN genre g ON e.id_genre = g.id_genre 
+                 LEFT JOIN genre g ON e.id_genre = g.id_genre
                  WHERE i.id_niv_etude = :niveau_id";
 
         if ($anneeAcadId !== null && (int) $anneeAcadId > 0) {
@@ -343,7 +341,7 @@ class Etudiant
         $query .= "
                  ORDER BY e.nom_etu, e.prenom_etu";
 
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->bindParam(':niveau_id', $niveauId, PDO::PARAM_INT);
         if ($anneeAcadId !== null && (int) $anneeAcadId > 0) {
             $stmt->bindValue(':annee_id', (int) $anneeAcadId, PDO::PARAM_INT);
@@ -366,26 +364,26 @@ class Etudiant
                 WHERE num_etu IN ($placeholders)
                 ORDER BY date_candidature DESC
                 LIMIT 1";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute($identifiers);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getAllCandidature()
     {
-        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.promotion_etu, 
+        $sql = "SELECT cs.*, e.nom_etu, e.prenom_etu, e.promotion_etu,
                        i.id_annee_acad, a.date_deb, a.date_fin
-                FROM candidature_soutenance cs 
-                INNER JOIN etudiants e ON (e.num_carte_etud = cs.num_etu OR e.num_ident_etud = cs.num_etu) 
+                FROM candidature_soutenance cs
+                INNER JOIN etudiants e ON (e.num_carte_etud = cs.num_etu OR e.num_ident_etud = cs.num_etu)
                 LEFT JOIN (
                     SELECT i2.num_carte_etud, i2.id_annee_acad, i2.date_inscription,
-                           ROW_NUMBER() OVER (PARTITION BY i2.num_carte_etud 
+                           ROW_NUMBER() OVER (PARTITION BY i2.num_carte_etud
                                              ORDER BY i2.id_annee_acad DESC, i2.date_inscription DESC) as rn
                     FROM inscriptions i2
                 ) i ON (" . $this->studentInscriptionMatchCondition('e', 'i') . ") AND i.rn = 1
                 LEFT JOIN annee_academique a ON a.id_annee_acad = i.id_annee_acad
                 ORDER BY cs.date_candidature DESC";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -408,7 +406,7 @@ class Etudiant
             ORDER BY cr.date_CR DESC, cr.id_CR DESC
             LIMIT 1
         ";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$etudiant_id, $etudiant_id, $etudiant_id, $etudiant_id, $etudiant_id, $etudiant_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -416,14 +414,14 @@ class Etudiant
     public function traiterCandidature($id_candidature, $decision, $commentaire, $id_pers_admin)
     {
         try {
-            $sql = "UPDATE candidature_soutenance 
-                   SET statut_candidature = :decision, 
+            $sql = "UPDATE candidature_soutenance
+                   SET statut_candidature = :decision,
                        commentaire_admin = :commentaire,
                        id_pers_admin = :id_pers_admin,
                        date_traitement = NOW()
                    WHERE id_candidature = :id_candidature";
 
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             return $stmt->execute([
                 ':decision' => $decision,
                 ':commentaire' => $commentaire,
@@ -445,13 +443,13 @@ class Etudiant
             $resolvedNumEtu = $etudiant ? $etudiant->num_carte_etud : $numEtu;
 
             // D'abord, récupérer le niveau d'étude de l'étudiant
-            $sql_niveau = "SELECT i.id_niv_etude 
-                          FROM inscriptions i 
-                          WHERE i.num_carte_etud = :num_etu 
+            $sql_niveau = "SELECT i.id_niv_etude
+                          FROM inscriptions i
+                          WHERE i.num_carte_etud = :num_etu
                           ORDER BY i.id_annee_acad DESC, i.date_inscription DESC
                           LIMIT 1";
 
-            $stmt_niveau = $this->db->prepare($sql_niveau);
+            $stmt_niveau = $this->pdo->prepare($sql_niveau);
             $stmt_niveau->execute([':num_etu' => $resolvedNumEtu]);
             $niveau_etudiant = $stmt_niveau->fetch(PDO::FETCH_ASSOC);
 
@@ -468,32 +466,32 @@ class Etudiant
             $id_niveau = $niveau_etudiant['id_niv_etude'];
 
             // Compter le nombre total d'UE pour ce niveau
-            $sql_total_ue = "SELECT COUNT(*) as total_ue 
-                            FROM ue 
-                            WHERE id_niveau_etude = :id_niveau 
+            $sql_total_ue = "SELECT COUNT(*) as total_ue
+                            FROM ue
+                            WHERE id_niveau_etude = :id_niveau
                            ";
 
-            $stmt_total_ue = $this->db->prepare($sql_total_ue);
+            $stmt_total_ue = $this->pdo->prepare($sql_total_ue);
             $stmt_total_ue->execute([':id_niveau' => $id_niveau]);
             $total_ue = $stmt_total_ue->fetch(PDO::FETCH_ASSOC)['total_ue'];
 
             // Compter le nombre d'UE où l'étudiant a des notes
-            $sql_ue_avec_notes = "SELECT COUNT(DISTINCT u.id_ue) as ue_avec_notes 
-                                 FROM ue u 
-                                 JOIN notes n ON u.id_ue = n.id_ue 
-                                 WHERE u.id_niveau_etude = :id_niveau 
+            $sql_ue_avec_notes = "SELECT COUNT(DISTINCT u.id_ue) as ue_avec_notes
+                                 FROM ue u
+                                 JOIN notes n ON u.id_ue = n.id_ue
+                                 WHERE u.id_niveau_etude = :id_niveau
                                  AND n.num_etu = :num_etu ";
 
-            $stmt_ue_avec_notes = $this->db->prepare($sql_ue_avec_notes);
+            $stmt_ue_avec_notes = $this->pdo->prepare($sql_ue_avec_notes);
             $stmt_ue_avec_notes->execute([':id_niveau' => $id_niveau, ':num_etu' => $resolvedNumEtu]);
             $ue_avec_notes = $stmt_ue_avec_notes->fetch(PDO::FETCH_ASSOC)['ue_avec_notes'];
 
             // Debug: Vérifier les notes de l'étudiant
             $sql_debug_notes = "SELECT n.moyenne, u.lib_ue, u.id_niveau_etude, u.id_annee_academique
-                               FROM notes n 
+                               FROM notes n
                                JOIN ue u ON n.id_ue = u.id_ue
                                WHERE n.num_etu = :num_etu";
-            $stmt_debug = $this->db->prepare($sql_debug_notes);
+            $stmt_debug = $this->pdo->prepare($sql_debug_notes);
             $stmt_debug->execute([':num_etu' => $resolvedNumEtu]);
             $debug_notes = $stmt_debug->fetchAll(PDO::FETCH_ASSOC);
 
@@ -503,12 +501,12 @@ class Etudiant
             }
 
             // Calculer la moyenne (version simplifiée pour debug)
-            $sql_moyenne = "SELECT AVG(n.moyenne) as moyenne 
-                           FROM notes n 
+            $sql_moyenne = "SELECT AVG(n.moyenne) as moyenne
+                           FROM notes n
                            JOIN ue u ON n.id_ue = u.id_ue
                            WHERE n.num_etu = :num_etu";
 
-            $stmt_moyenne = $this->db->prepare($sql_moyenne);
+            $stmt_moyenne = $this->pdo->prepare($sql_moyenne);
             $stmt_moyenne->execute([':num_etu' => $resolvedNumEtu]);
             $result = $stmt_moyenne->fetch(PDO::FETCH_ASSOC);
 
@@ -519,7 +517,7 @@ class Etudiant
                                  FROM ue u
                                  WHERE u.id_niveau_etude = :id_niveau";
 
-            $stmt_total_credits = $this->db->prepare($sql_total_credits);
+            $stmt_total_credits = $this->pdo->prepare($sql_total_credits);
             $stmt_total_credits->execute([':id_niveau' => $id_niveau]);
             $total_credits = $stmt_total_credits->fetch(PDO::FETCH_ASSOC)['total_credits'] ?? 0;
 
@@ -535,10 +533,10 @@ class Etudiant
                 $sql_credits_ue = "SELECT SUM(u.credit) as credits_valides
                                   FROM ue u
                                   LEFT JOIN notes n ON u.id_ue = n.id_ue AND n.num_etu = :num_etu
-                                  WHERE u.id_niveau_etude = :id_niveau 
+                                  WHERE u.id_niveau_etude = :id_niveau
                                   AND n.moyenne >= 10";
 
-                $stmt_credits_ue = $this->db->prepare($sql_credits_ue);
+                $stmt_credits_ue = $this->pdo->prepare($sql_credits_ue);
                 $stmt_credits_ue->execute([':num_etu' => $resolvedNumEtu, ':id_niveau' => $id_niveau]);
                 $credits_valides = $stmt_credits_ue->fetch(PDO::FETCH_ASSOC)['credits_valides'] ?? 0;
             }
@@ -572,7 +570,7 @@ class Etudiant
                    JOIN entreprises e ON infos_stage.id_entreprise = e.id_entreprise
                    WHERE (infos_stage.num_etu = :num_etu OR EXISTS (SELECT 1 FROM etudiants e2 WHERE e2.num_carte_etud = infos_stage.num_etu AND e2.num_ident_etud = :num_etu2))
                    LIMIT 1";
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':num_etu', $numEtu);
             $stmt->bindValue(':num_etu2', $numEtu);
             $stmt->execute();
@@ -597,7 +595,7 @@ class Etudiant
     public function getEtudiantByNumEtu($numEtu)
     {
         $sql = "SELECT *, num_ident_etud as identifiant_mesrs FROM etudiants WHERE (num_ident_etud = :num_etu OR num_carte_etud = :num_etu2) LIMIT 1";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue(':num_etu', $numEtu);
         $stmt->bindValue(':num_etu2', $numEtu);
         $stmt->execute();
@@ -619,7 +617,7 @@ class Etudiant
                    WHERE i.num_carte_etud = :num_etu
                    ORDER BY s.lib_semestre ASC";
 
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':num_etu' => $resolvedNumEtu]);
             $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -640,7 +638,7 @@ class Etudiant
     public function createCandidature($etudiant_id)
     {
         $sql = "INSERT INTO candidature_soutenance (num_etu, date_candidature, statut_candidature) VALUES (?, NOW(), 'En attente')";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([$etudiant_id]);
     }
 
@@ -652,7 +650,7 @@ class Etudiant
         $sql = "INSERT INTO resume_candidature (id_candidature, num_etu, resume_json, decision, date_enregistrement)
                 VALUES (:id_candidature, :num_etu, :resume_json, :decision, NOW())
                 ON DUPLICATE KEY UPDATE resume_json = :resume_json, decision = :decision, date_enregistrement = NOW()";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([
             ':id_candidature' => $id_candidature,
             ':num_etu' => $num_etu,
@@ -667,7 +665,7 @@ class Etudiant
     public function getResumeCandidature($id_candidature)
     {
         $sql = "SELECT * FROM resume_candidature WHERE id_candidature = ? ORDER BY date_enregistrement DESC LIMIT 1";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$id_candidature]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row) {
@@ -691,7 +689,7 @@ class Etudiant
                 FROM candidature_soutenance
                 WHERE num_etu IN ($placeholders)
                 ORDER BY date_candidature DESC";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute($identifiers);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -709,7 +707,7 @@ class Etudiant
                 WHERE num_etu IN ($placeholders)
                 ORDER BY date_candidature DESC
                 LIMIT 1";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute($identifiers);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -725,7 +723,7 @@ class Etudiant
                 JOIN ue u ON n.id_ue = u.id_ue
                 WHERE n.num_etu = :num_etu
                   AND u.id_semestre = :id_semestre";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':num_etu' => $numEtu, ':id_semestre' => $id_semestre]);
         $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -750,7 +748,7 @@ class Etudiant
         $credits = 0;
         if ($semestre_valide) {
             $sql = "SELECT SUM(credit) as total_credits FROM ue WHERE id_semestre = :id_semestre";
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':id_semestre' => $id_semestre]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             $credits = $row['total_credits'] ?? 0;
@@ -767,10 +765,10 @@ class Etudiant
 
     public function getNiveauByEtudiant($num_etu)
     {
-        $query = "SELECT n.* FROM inscriptions i JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude 
+        $query = "SELECT n.* FROM inscriptions i JOIN niveau_etude n ON i.id_niv_etude = n.id_niv_etude
                   WHERE (i.num_carte_etud = ? OR EXISTS (SELECT 1 FROM etudiants e2 WHERE e2.num_carte_etud = i.num_carte_etud AND e2.num_ident_etud = ?))
                   ORDER BY i.date_inscription DESC, i.id_annee_acad DESC, i.num_versement DESC LIMIT 1";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->pdo->prepare($query);
         $stmt->execute([$num_etu, $num_etu]);
         return $stmt->fetch(PDO::FETCH_OBJ);
     }
@@ -794,7 +792,7 @@ class Etudiant
         $sql .= " ORDER BY e.nom_etu ASC, e.prenom_etu ASC LIMIT :cm_limit OFFSET :cm_offset";
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
@@ -824,7 +822,7 @@ class Etudiant
         }
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
@@ -916,7 +914,7 @@ class Etudiant
         ";
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
                 ':m1' => $resolved,
                 ':m2' => $resolved,
@@ -1032,7 +1030,7 @@ class Etudiant
         ";
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
@@ -1058,7 +1056,7 @@ class Etudiant
         }
 
         try {
-            $stmtBase = $this->db->prepare("
+            $stmtBase = $this->pdo->prepare("
                 SELECT
                     e.*,
                     g.libelle_genre,
@@ -1117,7 +1115,7 @@ class Etudiant
                 $yearParams[':id_annee'] = $idAnneeFromBase;
             }
 
-            $stmtNotes = $this->db->prepare("
+            $stmtNotes = $this->pdo->prepare("
                 SELECT n.*
                 FROM notes n
                 WHERE n.num_etu = :matricule
@@ -1128,7 +1126,7 @@ class Etudiant
             $stmtNotes->execute($yearParams);
             $notes = $stmtNotes->fetch(PDO::FETCH_ASSOC) ?: null;
 
-            $stmtStage = $this->db->prepare("
+            $stmtStage = $this->pdo->prepare("
                 SELECT
                     inf.*,
                     en.lib_long_entreprise,
@@ -1150,7 +1148,7 @@ class Etudiant
             $stmtStage->execute([':matricule' => $matricule]);
             $stage = $stmtStage->fetch(PDO::FETCH_ASSOC) ?: null;
 
-            $stmtRapport = $this->db->prepare("
+            $stmtRapport = $this->pdo->prepare("
                 SELECT re.*
                 FROM rapport_etudiants re
                 WHERE re.num_etu = :matricule
@@ -1162,7 +1160,7 @@ class Etudiant
 
             $encadrement = [];
             if ($rapport && isset($rapport['id_rapport'])) {
-                $stmtEnc = $this->db->prepare("
+                $stmtEnc = $this->pdo->prepare("
                     SELECT
                         af.role,
                         ens.id_enseignant,
@@ -1178,7 +1176,7 @@ class Etudiant
                 $encadrement = $stmtEnc->fetchAll(PDO::FETCH_ASSOC) ?: [];
             }
 
-            $stmtSoutenance = $this->db->prepare("
+            $stmtSoutenance = $this->pdo->prepare("
                 SELECT
                     ps.*,
                     s.lib_salle,
@@ -1198,7 +1196,7 @@ class Etudiant
             $jury = [];
             $evaluation = [];
             if ($soutenance && !empty($soutenance['num_soutenance'])) {
-                $stmtJury = $this->db->prepare("
+                $stmtJury = $this->pdo->prepare("
                     SELECT
                         en.id_enseignant,
                         en.nom_enseignant,
@@ -1241,13 +1239,13 @@ class Etudiant
                     }
                     $evalSql .= " WHERE ev.num_etudiant = :num_etud AND ev.num_jury = :num_jury";
 
-                    $stmtEval = $this->db->prepare($evalSql);
+                    $stmtEval = $this->pdo->prepare($evalSql);
                     $stmtEval->execute($evalParams);
                     $evaluation = $stmtEval->fetchAll(PDO::FETCH_ASSOC) ?: [];
                 }
             }
 
-            $stmtCandidatures = $this->db->prepare("
+            $stmtCandidatures = $this->pdo->prepare("
                 SELECT
                     cs.*,
                     CONCAT(pa.nom_pers_admin, ' ', pa.prenom_pers_admin) AS traite_par
@@ -1259,7 +1257,7 @@ class Etudiant
             $stmtCandidatures->execute([':matricule' => $matricule]);
             $candidatures = $stmtCandidatures->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-            $stmtReclamations = $this->db->prepare("
+            $stmtReclamations = $this->pdo->prepare("
                 SELECT
                     r.*,
                     sr.libelle_statut_reclamation
@@ -1390,15 +1388,6 @@ class Etudiant
             $sql .= " AND e.promotion_etu = :f_promotion";
             $params[':f_promotion'] = (string) $filters['promotion'];
         }
-
-        // NOTE: Le filtre de spécialité est désactivé car la table niveau_etude n'a plus de lien avec enseignants/specialite
-        // Pour réactiver ce filtre, il faudrait trouver une autre relation (via affecter, avoir, etc.)
-        /*
-        if (!empty($filters['specialite'])) {
-            $sql .= " AND sp.id_specialite = :f_specialite";
-            $params[':f_specialite'] = (int) $filters['specialite'];
-        }
-        */
 
         if (!empty($filters['statut'])) {
             $statut = strtolower(trim((string) $filters['statut']));

@@ -12,6 +12,8 @@ require_once __DIR__ . '/../utils/RecuDataUtils.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use App\Services\Document\PdfGeneratorService;
 use App\Services\Document\DocumentStorageService;
 use App\Services\Document\PvCommissionGeneratorService;
@@ -26,9 +28,8 @@ use App\Utils\RecuDataUtils;
  * Contrôleur unifié pour la prévisualisation et le téléchargement des PDF.
  * Route : ?page=docviewer&type={TYPE}&id={ID}&action={preview|download}
  */
-class DocViewerController
+class DocViewerController extends BaseController
 {
-    private $db;
     private DocumentRegistry $registry;
     private DocumentStorageService $documentStorage;
     private ?AppDatabase $appDb = null;
@@ -43,9 +44,10 @@ class DocViewerController
 
     public function __construct($db = null)
     {
-        $this->db = $db ?: Database::getConnection();
-        $this->registry = new DocumentRegistry($this->db);
-        $this->documentStorage = new DocumentStorageService($this->db, dirname(__DIR__, 2));
+        $pdo = $db ?: \Database::getConnection();
+        parent::__construct($pdo);
+        $this->registry = new DocumentRegistry($this->pdo);
+        $this->documentStorage = new DocumentStorageService($this->pdo, dirname(__DIR__, 2));
     }
 
     public function preview(): void
@@ -101,7 +103,7 @@ class DocViewerController
         $actionLabel = $disposition === 'inline'
             ? 'Previsualisation document'
             : 'Telechargement document';
-        $this->logAudit($actionLabel, 'document', 'Succes');
+        $this->logAudit($actionLabel, 'document', 'Succès');
         $this->incrementConsultation($type, $id);
 
         if (is_array($storedDocument)) {
@@ -151,7 +153,7 @@ class DocViewerController
         try {
             $userId = (int) ($_SESSION['id_utilisateur'] ?? 0);
             if ($userId > 0) {
-                $audit = new AuditLog($this->db);
+                $audit = new AuditLog($this->pdo);
                 $audit->logAction($userId, $action, $table, $status);
             }
         } catch (\Throwable $e) {
@@ -174,7 +176,7 @@ class DocViewerController
                        OR (id_source = ? AND type_document IN ($placeholders))
                     LIMIT 1";
             $params = array_merge([$id, $id], $codes);
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
         } catch (\Throwable) {
         }
@@ -222,8 +224,8 @@ class DocViewerController
     {
         if (!$this->pdfGenerator instanceof PdfGeneratorService) {
             $this->pdfGenerator = new PdfGeneratorService(
-                __DIR__ . '/../../storage/documents',
-                __DIR__ . '/../../public/image/logo_ufhb.png'
+                $this->storagePath(),
+                $this->logoPath()
             );
         }
 

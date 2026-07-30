@@ -1,5 +1,7 @@
 <?php
 
+use CheckMaster\Core\Messages;
+
 /**
  * TableHelper - declarative helpers for table definitions.
  */
@@ -75,8 +77,8 @@ if (!function_exists('cm_action_column')) {
     {
         if (empty($actions)) {
             $actions = [
-                ['label' => 'Modifier', 'icon' => 'fa-pen', 'action' => 'edit', 'class' => 'cm-btn-action is-edit'],
-                ['label' => 'Supprimer', 'icon' => 'fa-trash', 'action' => 'delete', 'class' => 'cm-btn-action is-delete'],
+                ['label' => Messages::get('button.edit'), 'icon' => 'fa-pen', 'action' => 'edit', 'class' => 'cm-btn-action is-edit'],
+                ['label' => Messages::get('button.delete'), 'icon' => 'fa-trash', 'action' => 'delete', 'class' => 'cm-btn-action is-delete'],
             ];
         }
 

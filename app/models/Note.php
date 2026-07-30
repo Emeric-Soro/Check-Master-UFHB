@@ -1,13 +1,11 @@
 <?php
 
-class Note
-{
-    private $db;
+use CheckMaster\Models\BaseModel;
 
-    public function __construct($db)
-    {
-        $this->db = $db;
-    }
+class Note extends BaseModel
+{
+    protected const TABLE = 'notes';
+    protected const PRIMARY_KEY = 'num_etu';
 
     /**
      * Récupérer les notes d'un étudiant
@@ -16,7 +14,7 @@ class Note
     {
         try {
             $query = "SELECT n.*, a.date_deb, a.date_fin
-                     FROM notes n 
+                     FROM notes n
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
                      WHERE n.num_etu = ?";
 
@@ -29,7 +27,7 @@ class Note
 
             $query .= " ORDER BY n.date_creation DESC";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -57,10 +55,10 @@ class Note
                 return $this->updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
             }
 
-            
+
                 // Création
                 return $this->createNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId);
-            
+
         } catch (PDOException $e) {
             error_log("Erreur lors de l'enregistrement des notes: " . $e->getMessage());
             return false;
@@ -74,12 +72,12 @@ class Note
     {
         try {
             $query = "SELECT n.*, a.date_deb, a.date_fin
-                     FROM notes n 
+                     FROM notes n
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
                      WHERE n.num_etu = ? AND n.id_annee_acad = ?
                      LIMIT 1";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute([$studentId, $anneeAcadId]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -94,10 +92,10 @@ class Note
     private function createNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId)
     {
         try {
-            $query = "INSERT INTO notes (num_etu, moyenne_M1, moyenne_M2, id_annee_acad) 
+            $query = "INSERT INTO notes (num_etu, moyenne_M1, moyenne_M2, id_annee_acad)
                      VALUES (?, ?, ?, ?)";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             return $stmt->execute([$numEtu, $moyenneM1, $moyenneM2, $anneeAcadId]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la création de la note: " . $e->getMessage());
@@ -111,7 +109,7 @@ class Note
     private function updateNote($numEtu, $moyenneM1, $moyenneM2, $anneeAcadId = null)
     {
         try {
-            $query = "UPDATE notes 
+            $query = "UPDATE notes
                      SET moyenne_M1 = ?, moyenne_M2 = ?";
 
             $params = [$moyenneM1, $moyenneM2];
@@ -124,7 +122,7 @@ class Note
             $query .= " WHERE num_etu = ?";
             $params[] = $numEtu;
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log("Erreur lors de la mise à jour de la note: " . $e->getMessage());
@@ -139,7 +137,7 @@ class Note
     {
         try {
             $query = "DELETE FROM notes WHERE num_etu = ?";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             return $stmt->execute([$numEtu]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la suppression de la note: " . $e->getMessage());
@@ -180,7 +178,7 @@ class Note
             }
 
             return ($note->moyenne_M1 ?? 0) >= 10;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Erreur estSemestreValide: " . $e->getMessage());
             return false;
         }
@@ -221,13 +219,13 @@ class Note
     {
         try {
             $query = "SELECT n.*, a.date_deb, a.date_fin
-                     FROM notes n 
+                     FROM notes n
                      LEFT JOIN annee_academique a ON n.id_annee_acad = a.id_annee_acad
                      WHERE n.num_etu = ?
                      ORDER BY n.date_creation DESC
                      LIMIT 1";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute([$studentId]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -279,7 +277,7 @@ class Note
                 $params = [(int) $anneeAcadId, $niveauId];
             }
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -316,7 +314,7 @@ class Note
 
             $query .= " GROUP BY e.num_carte_etud, e.nom_etu, e.prenom_etu ORDER BY e.nom_etu, e.prenom_etu";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -339,7 +337,7 @@ class Note
 
             // 2. Trouver le niveau via l'inscription
             $queryNiveau = "SELECT id_niv_etude FROM inscriptions WHERE num_carte_etud = ? ORDER BY num_versement DESC LIMIT 1";
-            $stmtNiv = $this->db->prepare($queryNiveau);
+            $stmtNiv = $this->pdo->prepare($queryNiveau);
             $stmtNiv->execute([$studentId]);
             $niveau = $stmtNiv->fetch(PDO::FETCH_OBJ);
             if (!$niveau) return (object)['classement' => null, 'total' => 0];
@@ -353,8 +351,8 @@ class Note
                         INNER JOIN inscriptions i ON n.num_etu = i.num_carte_etud
                         WHERE i.id_niv_etude = ? AND n.id_annee_acad = ?
                         ORDER BY moyenne_gen DESC";
-            
-            $stmtAll = $this->db->prepare($queryAll);
+
+            $stmtAll = $this->pdo->prepare($queryAll);
             $stmtAll->execute([$niveauId, $anneeAcadId]);
             $allNotes = $stmtAll->fetchAll(PDO::FETCH_OBJ);
 
@@ -381,13 +379,13 @@ class Note
     public function getSemestreByEtudiant($studentId)
     {
         try {
-            $query = "SELECT s.* 
+            $query = "SELECT s.*
                      FROM semestre s
                      INNER JOIN inscriptions i ON s.id_niv_etude = i.id_niv_etude
                      WHERE i.num_carte_etud = ?
                      ORDER BY i.num_versement DESC, s.id_semestre ASC";
-            
-            $stmt = $this->db->prepare($query);
+
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute([$studentId]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {

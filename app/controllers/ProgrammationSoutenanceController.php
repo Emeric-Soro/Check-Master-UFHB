@@ -7,13 +7,15 @@ require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
 require_once __DIR__ . '/../utils/PlanningDataUtils.php';
 require_once __DIR__ . '/../Support/Database.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use App\Services\Document\PdfGeneratorService;
 use App\Services\Document\PlanningGeneratorService;
 use App\Support\Database as AppDatabase;
 use App\Utils\PlanningDataUtils;
 use CheckMaster\Services\ProgrammationSoutenanceService;
 
-class ProgrammationSoutenanceController
+class ProgrammationSoutenanceController extends BaseController
 {
     private $service;
     private ?PlanningGeneratorService $planningGeneratorService = null;
@@ -21,6 +23,7 @@ class ProgrammationSoutenanceController
 
     public function __construct()
     {
+        parent::__construct(\Database::getConnection());
         $this->service = new ProgrammationSoutenanceService();
     }
 
@@ -87,19 +90,9 @@ class ProgrammationSoutenanceController
     {
         try {
             $etudiants = $this->service->getEtudiantsValides();
-
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $etudiants
-            ]);
+            $this->jsonSuccess($etudiants);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des étudiants : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 500);
         }
     }
 
@@ -111,25 +104,14 @@ class ProgrammationSoutenanceController
         try {
             $query = trim($_GET['q'] ?? '');
             if (mb_strlen($query) < 2) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'data' => []]);
+                $this->jsonSuccess([]);
                 return;
             }
 
             $results = $this->service->searchEtudiants($query);
-
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $results
-            ]);
+            $this->jsonSuccess($results);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la recherche des étudiants : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 500);
         }
     }
 
@@ -140,19 +122,9 @@ class ProgrammationSoutenanceController
     {
         try {
             $enseignants = $this->service->getEnseignants();
-
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $enseignants
-            ]);
+            $this->jsonSuccess($enseignants);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des enseignants : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 500);
         }
     }
 
@@ -163,19 +135,9 @@ class ProgrammationSoutenanceController
     {
         try {
             $professeurs = $this->service->getProfesseursTitulaires();
-
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $professeurs
-            ]);
+            $this->jsonSuccess($professeurs);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des professeurs titulaires : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 500);
         }
     }
 
@@ -186,19 +148,9 @@ class ProgrammationSoutenanceController
     {
         try {
             $salles = $this->service->getSalles();
-
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $salles
-            ]);
+            $this->jsonSuccess($salles);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des salles : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 500);
         }
     }
 
@@ -209,19 +161,9 @@ class ProgrammationSoutenanceController
     {
         try {
             $attributions = $this->service->getAttributions();
-
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'data' => $attributions
-            ]);
+            $this->jsonSuccess($attributions);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors du chargement des attributions : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 500);
         }
     }
 
@@ -232,12 +174,11 @@ class ProgrammationSoutenanceController
     {
         try {
             if (!canCreate('programmation_soutenance')) {
-                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                    http_response_code(403);
-                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                if ($this->isAjax()) {
+                    $this->jsonError(Messages::get('error.permission_denied'), 403);
                     exit;
                 }
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;
@@ -257,15 +198,9 @@ class ProgrammationSoutenanceController
                 }
             }
 
-            header('Content-Type: application/json');
-            echo json_encode($result);
+            $this->json($result);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la création : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 400);
         }
     }
 
@@ -276,12 +211,11 @@ class ProgrammationSoutenanceController
     {
         try {
             if (!canEdit('programmation_soutenance')) {
-                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                    http_response_code(403);
-                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                if ($this->isAjax()) {
+                    $this->jsonError(Messages::get('error.permission_denied'), 403);
                     exit;
                 }
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;
@@ -292,15 +226,9 @@ class ProgrammationSoutenanceController
             }
             $result = $this->service->updateAttribution($input);
 
-            header('Content-Type: application/json');
-            echo json_encode($result);
+            $this->json($result);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la mise à jour : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 400);
         }
     }
 
@@ -311,12 +239,11 @@ class ProgrammationSoutenanceController
     {
         try {
             if (!canDelete('programmation_soutenance')) {
-                if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                    http_response_code(403);
-                    echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                if ($this->isAjax()) {
+                    $this->jsonError(Messages::get('error.permission_denied'), 403);
                     exit;
                 }
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;
@@ -327,15 +254,9 @@ class ProgrammationSoutenanceController
             }
             $result = $this->service->deleteAttribution($input['id'] ?? null);
 
-            header('Content-Type: application/json');
-            echo json_encode($result);
+            $this->json($result);
         } catch (Exception $e) {
-            header('Content-Type: application/json');
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Erreur lors de la suppression : ' . $e->getMessage()
-            ]);
+            $this->jsonError(Messages::get('error.generic') . ' : ' . $e->getMessage(), 400);
         }
     }
 
@@ -346,10 +267,7 @@ class ProgrammationSoutenanceController
     public function getPlanningPreview()
     {
         if (!canView('programmation_soutenance')) {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
-            ], 403);
+            $this->jsonError(Messages::get('error.permission_denied'), 403);
             return;
         }
 
@@ -384,18 +302,12 @@ class ProgrammationSoutenanceController
 
             ksort($groupedByDate);
 
-            $this->jsonResponse([
-                'success' => true,
-                'data' => [
-                    'total_soutenances' => count($soutenances),
-                    'dates' => $groupedByDate,
-                ],
+            $this->jsonSuccess([
+                'total_soutenances' => count($soutenances),
+                'dates' => $groupedByDate,
             ]);
         } catch (Exception $e) {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => 'Erreur lors de la prévisualisation du planning.',
-            ], 500);
+            $this->jsonError(Messages::get('error.generic'), 500);
         }
     }
 
@@ -405,19 +317,13 @@ class ProgrammationSoutenanceController
     public function getDayDetails()
     {
         if (!canView('programmation_soutenance')) {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
-            ], 403);
+            $this->jsonError(Messages::get('error.permission_denied'), 403);
             return;
         }
 
         $date = trim((string) ($_GET['date'] ?? ''));
         if ($date === '') {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => 'Date requise.',
-            ], 400);
+            $this->jsonError(Messages::get('error.invalid_input'), 400);
             return;
         }
 
@@ -436,20 +342,14 @@ class ProgrammationSoutenanceController
             }
             unset($row);
 
-            $this->jsonResponse([
-                'success' => true,
-                'data' => [
-                    'date' => $date,
-                    'soutenances' => $soutenances,
-                    'salles_utilisees' => array_keys($salles),
-                    'conflicts' => $this->buildSalleConflicts($soutenances),
-                ],
+            $this->jsonSuccess([
+                'date' => $date,
+                'soutenances' => $soutenances,
+                'salles_utilisees' => array_keys($salles),
+                'conflicts' => $this->buildSalleConflicts($soutenances),
             ]);
         } catch (Exception $e) {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => 'Erreur lors du chargement du détail de la journée.',
-            ], 500);
+            $this->jsonError(Messages::get('error.generic'), 500);
         }
     }
 
@@ -459,19 +359,16 @@ class ProgrammationSoutenanceController
     public function generatePlanningPdf()
     {
         error_log('[generatePlanningPdf] Request received. Method: ' . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
-        
+
         if (!canView('programmation_soutenance')) {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => "Vous n'avez pas l'autorisation d'effectuer cette action.",
-            ], 403);
+            $this->jsonError(Messages::get('error.permission_denied'), 403);
             return;
         }
 
         try {
             $input = $this->readRequestInput();
             error_log('[generatePlanningPdf] Input: ' . json_encode($input));
-            
+
             $selectedIds = $this->normalizeSelectedIds($input['selected_ids'] ?? $input['selectedIds'] ?? []);
             error_log('[generatePlanningPdf] Selected IDs: ' . json_encode($selectedIds));
 
@@ -481,11 +378,7 @@ class ProgrammationSoutenanceController
                 $dateTo = isset($input['date_to']) && $input['date_to'] !== '' ? (string) $input['date_to'] : null;
 
                 if ($dateFrom === null && $dateTo === null) {
-                    $this->jsonResponse([
-                        'success' => false,
-                        'error' => 'Aucune soutenance sélectionnée.',
-                        'error_code' => 'no_selection',
-                    ], 400);
+                    $this->jsonError(Messages::get('error.selection_required'), 400);
                     return;
                 }
 
@@ -496,11 +389,7 @@ class ProgrammationSoutenanceController
                 ), static fn (string $id): bool => $id !== ''));
 
                 if (empty($selectedIds)) {
-                    $this->jsonResponse([
-                        'success' => false,
-                        'error' => 'Aucune soutenance trouvée pour la période sélectionnée.',
-                        'error_code' => 'no_soutenances_found',
-                    ], 400);
+                    $this->jsonError(Messages::get('error.not_found'), 400);
                     return;
                 }
             }
@@ -514,12 +403,11 @@ class ProgrammationSoutenanceController
                     'generation_failed' => 500,
                     default => 400,
                 };
-                $this->jsonResponse([
-                    'success' => false,
-                    'error' => (string) ($result['error'] ?? 'Erreur lors de la génération du planning PDF.'),
-                    'error_code' => (string) ($result['error_code'] ?? 'generation_failed'),
-                    'missing_ids' => $result['missing_ids'] ?? [],
-                ], $status);
+                $this->jsonError(
+                    (string) ($result['error'] ?? Messages::get('error.pdf_generation')),
+                    $status,
+                    ['error_code' => (string) ($result['error_code'] ?? 'generation_failed'), 'missing_ids' => $result['missing_ids'] ?? []]
+                );
                 return;
             }
 
@@ -528,8 +416,7 @@ class ProgrammationSoutenanceController
             $docId = $reference !== '' ? $reference : pathinfo($path, PATHINFO_FILENAME);
             $downloadUrl = '?page=docviewer&type=planning&id=' . urlencode($docId) . '&action=download';
 
-            $this->jsonResponse([
-                'success' => true,
+            $this->jsonSuccess([
                 'reference' => $reference,
                 'download_url' => $downloadUrl,
                 'preview_url' => '?page=docviewer&type=planning&id=' . urlencode($docId) . '&action=preview',
@@ -541,10 +428,7 @@ class ProgrammationSoutenanceController
                 $e->getFile(),
                 $e->getLine()
             ));
-            $this->jsonResponse([
-                'success' => false,
-                'error' => 'Erreur lors de la génération du planning PDF.',
-            ], 500);
+            $this->jsonError(Messages::get('error.pdf_generation'), 500);
         }
     }
 
@@ -620,17 +504,16 @@ class ProgrammationSoutenanceController
             return $this->planningGeneratorService;
         }
 
-        $db = new AppDatabase();
         $pdfGenerator = new PdfGeneratorService(
-            __DIR__ . '/../../storage/documents',
-            __DIR__ . '/../../public/image/logo_ufhb.png'
+            $this->storagePath(),
+            $this->logoPath()
         );
 
-        $this->planningDataUtils = new PlanningDataUtils($db);
+        $this->planningDataUtils = new PlanningDataUtils(new AppDatabase());
         $this->planningGeneratorService = new PlanningGeneratorService(
             $pdfGenerator,
             $this->planningDataUtils,
-            $db
+            new AppDatabase()
         );
 
         return $this->planningGeneratorService;
@@ -641,8 +524,7 @@ class ProgrammationSoutenanceController
         if ($this->planningDataUtils instanceof PlanningDataUtils) {
             return $this->planningDataUtils;
         }
-        $db = new AppDatabase();
-        $this->planningDataUtils = new PlanningDataUtils($db);
+        $this->planningDataUtils = new PlanningDataUtils(new AppDatabase());
         return $this->planningDataUtils;
     }
 
@@ -694,15 +576,6 @@ class ProgrammationSoutenanceController
         }
 
         return array_values($ids);
-    }
-
-    private function jsonResponse(array $payload, int $status = 200): void
-    {
-        http_response_code($status);
-        header('Content-Type: application/json');
-        echo json_encode($payload);
-        error_log('[jsonResponse] Sent response: ' . json_encode(['status' => $status, 'payload' => $payload]));
-        exit;
     }
 
     private function flattenJuryDetails(array $juryDetails): string
@@ -808,4 +681,3 @@ class ProgrammationSoutenanceController
         return $decoded;
     }
 }
-?>

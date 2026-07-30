@@ -55,11 +55,14 @@ final class DbRateLimiter
         $windowStart = $now - $windowSeconds;
 
         try {
-            // Lire état actuel
+            // Transaction avec SELECT ... FOR UPDATE pour éviter la race condition TOCTOU
+            $this->pdo->beginTransaction();
+
+            // Lire état actuel avec verrouillage de ligne
             $sql = "SELECT attempts, window_start, blocked_until
                     FROM auth_rate_limits
                     WHERE action = :action AND ip = :ip AND identifier = :identifier
-                    LIMIT 1";
+                    FOR UPDATE";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
                 ':action' => $action,
@@ -69,14 +72,17 @@ final class DbRateLimiter
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $attempts = 0;
-            $existingWindowStart = null;
+            $existingWindowStart = $now;
             if (is_array($row)) {
                 $attempts = (int)($row['attempts'] ?? 0);
-                $existingWindowStart = isset($row['window_start']) ? strtotime((string) $row['window_start']) : null;
+                $existingWindowStart = isset($row['window_start']) ? (int) strtotime((string) $row['window_start']) : $now;
+                if ($existingWindowStart === 0) {
+                    $existingWindowStart = $now;
+                }
             }
 
             // Reset fenêtre si expirée
-            if (!$existingWindowStart || $existingWindowStart < $windowStart) {
+            if ($existingWindowStart < $windowStart) {
                 $attempts = 0;
                 $existingWindowStart = $now;
             }
@@ -104,7 +110,13 @@ final class DbRateLimiter
                 ':last_attempt' => date('Y-m-d H:i:s', $now),
                 ':blocked_until' => $blockedUntil,
             ]);
+
+            $this->pdo->commit();
         } catch (\Throwable $e) {
+            // Annuler la transaction en cas d'erreur
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             // Fail-open
         }
     }

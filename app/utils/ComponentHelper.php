@@ -1,5 +1,7 @@
 <?php
 
+use CheckMaster\Core\Messages;
+
 /**
  * ComponentHelper - centralized rendering for reusable UI components.
  *
@@ -467,13 +469,13 @@ if (!function_exists('cm_render_param_crud_view')) {
 
             <?php
             $cancelAction = $isEdit
-                ? ['tag' => 'a', 'href' => $baseUrl, 'label' => 'Annuler', 'class' => 'cm-btn is-light is-sm']
-                : ['label' => 'Annuler', 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']];
+                ? ['tag' => 'a', 'href' => $baseUrl, 'label' => Messages::get('button.cancel'), 'class' => 'cm-btn is-light is-sm']
+                : ['label' => Messages::get('button.cancel'), 'type' => 'button', 'class' => 'cm-btn is-light is-sm', 'attrs' => ['data-reset-form' => '1']];
             $actions = [];
             $actions[] = [
                 'tag' => 'button',
                 'type' => 'reset',
-                'label' => 'Réinitialiser',
+                'label' => Messages::get('button.reset'),
                 'icon' => 'fa-rotate-left',
                 'class' => 'cm-btn is-secondary is-sm',
             ];
@@ -515,7 +517,7 @@ if (!function_exists('cm_render_param_crud_view')) {
             $tableActions[] = [
                 'tag' => 'button',
                 'type' => 'button',
-                'label' => 'Modifier',
+                'label' => Messages::get('button.edit'),
                 'icon' => 'fa-pen',
                 'class' => 'cm-btn-action is-edit',
             ];
@@ -527,7 +529,7 @@ if (!function_exists('cm_render_param_crud_view')) {
             $tableActions[] = [
                 'tag' => 'button',
                 'type' => 'button',
-                'label' => 'Supprimer',
+                'label' => Messages::get('button.delete'),
                 'icon' => 'fa-trash',
                 'class' => 'cm-btn-action is-delete',
             ];
@@ -1548,11 +1550,11 @@ if (!function_exists('cm_toolbar')) {
                                         <div class="cm-filter-actions">
                                             <button type="button" class="cm-btn is-light is-xs cm-filter-reset"
                                                 data-cm-toolbar-action="filter-reset">
-                                                Réinitialiser
+                                                <?= Messages::get('button.reset') ?>
                                             </button>
                                             <button type="button" class="cm-btn is-info is-xs cm-filter-apply"
                                                 data-cm-toolbar-action="filter-apply">
-                                                Appliquer
+                                                <?= Messages::get('button.filter') ?>
                                             </button>
                                         </div>
                                     </div>
@@ -1579,7 +1581,7 @@ if (!function_exists('cm_toolbar')) {
                                 <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
                                     class="cm-btn is-danger is-sm" disabled data-cm-toolbar-action="delete">
                                     <i class="fas fa-trash" aria-hidden="true"></i>
-                                    <span>Supprimer</span>
+                                    <span><?= Messages::get('button.delete') ?></span>
                                     <span class="cm-delete-count" data-selected-count="0"></span>
                                 </button>
                             <?php endif; ?>

@@ -6,9 +6,27 @@ class Permission
 
     private static $hasSlugPermissionColumn = null;
 
+    private const ALLOWED_PERMISSION_COLUMNS = [
+        'peut_voir',
+        'peut_creer',
+        'peut_modifier',
+        'peut_supprimer',
+    ];
+
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
+    }
+
+    /**
+     * Valider que le nom de colonne de permission est autorisé
+     */
+    private function validatePermissionColumn(string $type_permission): string
+    {
+        if (!in_array($type_permission, self::ALLOWED_PERMISSION_COLUMNS, true)) {
+            throw new \InvalidArgumentException("Type de permission invalide : $type_permission");
+        }
+        return $type_permission;
     }
 
     /**
@@ -16,7 +34,8 @@ class Permission
      */
     public function checkPermission($id_GU, $id_fonctionnalite, $type_permission = 'peut_voir')
     {
-        $sql = "SELECT $type_permission FROM permissions 
+        $type_permission = $this->validatePermissionColumn($type_permission);
+        $sql = "SELECT $type_permission FROM permissions
                 WHERE id_GU = :id_GU AND id_fonctionnalite = :id_fonctionnalite";
 
         $stmt = $this->pdo->prepare($sql);
@@ -33,7 +52,8 @@ class Permission
      */
     public function checkPermissionByCode($id_GU, $code_fonctionnalite, $type_permission = 'peut_voir')
     {
-        $sql = "SELECT p.$type_permission 
+        $type_permission = $this->validatePermissionColumn($type_permission);
+        $sql = "SELECT p.$type_permission
                 FROM permissions p
                 INNER JOIN fonctionnalites f ON p.id_fonctionnalite = f.id_fonctionnalite
                 WHERE p.id_GU = :id_GU AND f.code_fonctionnalite = :code_fonctionnalite";
@@ -52,6 +72,7 @@ class Permission
         if (!$this->hasSlugPermissionColumn()) {
             return false;
         }
+        $type_permission = $this->validatePermissionColumn($type_permission);
 
         $sql = "SELECT p.$type_permission
                 FROM permissions p

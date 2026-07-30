@@ -1,13 +1,11 @@
 <?php
 
-class Rapport
-{
-    private $db;
+use CheckMaster\Models\BaseModel;
 
-    public function __construct($db)
-    {
-        $this->db = $db;
-    }
+class Rapport extends BaseModel
+{
+    protected const TABLE = 'rapport_etudiants';
+    protected const PRIMARY_KEY = 'id_rapport';
 
     /**
      * Centre de documents archivés (rapports, CR, fiches inscription).
@@ -135,7 +133,7 @@ class Rapport
         $sql .= " ORDER BY docs.date_depot DESC LIMIT :cm_limit OFFSET :cm_offset";
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
@@ -165,7 +163,7 @@ class Rapport
 
         try {
             if ($type === 'rapport') {
-                $stmt = $this->db->prepare("
+                $stmt = $this->pdo->prepare("
                     SELECT
                         'rapport' AS type_doc,
                         CAST(re.id_rapport AS CHAR) AS id_doc,
@@ -185,7 +183,7 @@ class Rapport
             }
 
             if ($type === 'compte_rendu') {
-                $stmt = $this->db->prepare("
+                $stmt = $this->pdo->prepare("
                     SELECT
                         'compte_rendu' AS type_doc,
                         CAST(cr.id_CR AS CHAR) AS id_doc,
@@ -216,7 +214,7 @@ class Rapport
                 if ($numCarteEtud === '' || $annee === '' || $versement === '') {
                     return null;
                 }
-                $stmt = $this->db->prepare("
+                $stmt = $this->pdo->prepare("
                     SELECT
                         'fiche_inscription' AS type_doc,
                         CONCAT(i.num_carte_etud, '-', i.id_annee_acad, '-', i.num_versement) AS id_doc,

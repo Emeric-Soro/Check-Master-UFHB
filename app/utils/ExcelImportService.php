@@ -1,5 +1,7 @@
 <?php
 
+use CheckMaster\Core\Messages;
+
 /**
  * Service for importing Excel/CSV files for student history archives
  * Handles both Excel (.xlsx, .xls) and CSV files
@@ -99,7 +101,7 @@ class ExcelImportService
     {
         $handle = fopen($filePath, 'r');
         if (!$handle) {
-            $this->errors[] = ['line' => 'Système', 'message' => "Impossible d'ouvrir le fichier"];
+            $this->errors[] = ['line' => 'Système', 'message' => Messages::get('error.file_open')];
             return false;
         }
 
@@ -144,7 +146,7 @@ class ExcelImportService
 
     private function importExcelAsCSV($filePath)
     {
-        $this->errors[] = ['line' => 'Système', 'message' => "Pour le moment, veuillez convertir votre fichier Excel en CSV avant l'importation."];
+        $this->errors[] = ['line' => 'Système', 'message' => Messages::get('business.excel_convert_first')];
         return false;
     }
 
@@ -470,7 +472,7 @@ class ExcelImportService
                 $idSession = $this->getFirstAvailableId('session', 'id_session');
 
                 if ($idDomaine === null || $idSession === null) {
-                    throw new Exception("Impossible d'importer la soutenance: domaine ou session indisponible.");
+                    throw new Exception(Messages::get('business.domaine_session_unavailable'));
                 }
 
                 $stmt = $this->db->prepare("

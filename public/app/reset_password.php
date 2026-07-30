@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../app/Core/Autoload.php';
-require_once __DIR__ . '/../../vendor/autoload.php';
+$composerAutoload = __DIR__ . '/../../vendor/autoload.php';
+if (is_file($composerAutoload)) {
+    require_once $composerAutoload;
+}
 
 use CheckMaster\Core\Session;
 use CheckMaster\Core\Bootstrap;
@@ -13,6 +16,7 @@ require_once __DIR__ . '/../../app/models/Utilisateur.php';
 // EmailService : autoloadé par Composer classmap
 
 use CheckMaster\Core\Csrf;
+use CheckMaster\Core\Messages;
 use CheckMaster\Security\DbRateLimiter;
 
 $db = Database::getConnection();
@@ -43,7 +47,7 @@ $csrf = Csrf::token();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
     if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
-        $error = "Session expirée. Veuillez réessayer.";
+        $error = Messages::get('auth.session_expired');
     } else {
         $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
         $identifier = strtolower(trim((string) ($_POST['email'] ?? '')));
@@ -52,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
         }
         $limiter = new DbRateLimiter($db);
         if (!$limiter->isAllowed('reset', $ip, $identifier)) {
-            $error = "Trop de demandes de réinitialisation. Veuillez patienter avant de réessayer.";
+            $error = Messages::get('auth.rate_limited');
         } else {
             $limiter->hit('reset', $ip, $identifier, 5, 15 * 60, 15 * 60);
 
@@ -62,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
             $stmt->execute();
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $success = "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.";
+            $success = Messages::get('auth.password_reset_sent');
             if ($user) {
                 $token = generateToken();
                 $expires = date('Y-m-d H:i:s', time() + 3600);
@@ -72,7 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
                 $stmt->bindParam(':expires', $expires);
                 $stmt->execute();
 
-                $scheme = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https://' : 'http://';
+                $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+                $scheme = $isHttps ? 'https://' : 'http://';
                 $resetLink = $scheme . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token=$token";
                 $emailService->sendTemplate('PASSWORD_RESET', $email, ['reset_link' => $resetLink]);
             }
@@ -82,24 +88,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['token'], $_POST['newPassword'], $_POST['confirmPassword'])) {
     if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
-        $error = "Session expirée. Veuillez réessayer.";
+        $error = Messages::get('auth.session_expired');
     } else {
-        $token = $_POST['token'];
-        $newPassword = $_POST['newPassword'];
-        $confirmPassword = $_POST['confirmPassword'];
+        $token = (string) ($_POST['token'] ?? '');
+        $newPassword = (string) ($_POST['newPassword'] ?? '');
+        $confirmPassword = (string) ($_POST['confirmPassword'] ?? '');
         $reset = getPasswordResetByToken($db, $token);
         if (!$reset) {
-            $error = "Lien invalide ou expiré.";
+            $error = Messages::get('auth.password_reset_invalid');
         } elseif ($newPassword !== $confirmPassword) {
-            $error = "Les mots de passe ne correspondent pas.";
+            $error = Messages::get('auth.password_mismatch');
         } elseif (strlen($newPassword) < 8) {
-            $error = "Le mot de passe doit contenir au moins 8 caractères.";
+            $error = Messages::get('auth.password_min_length', ['min' => 8]);
         } elseif (!preg_match('/[A-Z]/', $newPassword)) {
-            $error = "Le mot de passe doit contenir au moins une majuscule.";
+            $error = Messages::get('auth.password_uppercase');
         } elseif (!preg_match('/[0-9]/', $newPassword)) {
-            $error = "Le mot de passe doit contenir au moins un chiffre.";
+            $error = Messages::get('auth.password_digit');
         } elseif (!preg_match('/[!@#$%^&*()_+\-=[\]{};\':"\\|,.<>\/?]+/', $newPassword)) {
-            $error = "Le mot de passe doit contenir au moins un caractère spécial.";
+            $error = Messages::get('auth.password_special');
         } else {
             $user = null;
             $email = $reset['email'];
@@ -145,15 +151,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['token'], $_POST['newP
                 $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
                 $utilisateurModel->updatePassword($user['id_utilisateur'], $hashed);
                 markTokenUsed($db, $token);
-                $success = "Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.";
+                $success = Messages::get('auth.password_reset_ok');
             } else {
-                $error = "Utilisateur introuvable.";
+                $error = Messages::get('auth.user_not_found');
             }
         }
     }
 }
 
-$showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['token']);
+$getToken = isset($_GET['token']) ? (string) $_GET['token'] : '';
+$showResetForm = $getToken !== '' && preg_match('/^[a-f0-9]+$/', $getToken) && getPasswordResetByToken($db, $getToken);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -193,14 +200,14 @@ $showResetForm = isset($_GET['token']) && getPasswordResetByToken($db, $_GET['to
                 <div class="cm-alert is-success" id="feedback" role="alert">
                     <span class="cm-alert__icon"><i class="fas fa-circle-check" aria-hidden="true"></i></span>
                     <div class="cm-alert__content">
-                        <span class="cm-alert__message"><?php echo htmlspecialchars($success); ?></span>
+                        <span class="cm-alert__message"><?php echo htmlspecialchars($success, ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
                 </div>
             <?php elseif ($error !== ''): ?>
                 <div class="cm-alert is-danger" id="feedback" role="alert">
                     <span class="cm-alert__icon"><i class="fas fa-circle-exclamation" aria-hidden="true"></i></span>
                     <div class="cm-alert__content">
-                        <span class="cm-alert__message"><?php echo htmlspecialchars($error); ?></span>
+                        <span class="cm-alert__message"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
                 </div>
             <?php endif; ?>

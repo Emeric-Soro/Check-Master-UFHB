@@ -1,6 +1,9 @@
 <?php
 namespace CheckMaster\Services;
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Utilisateur.php';
 require_once __DIR__ . '/../models/TypeUtilisateur.php';
@@ -53,19 +56,19 @@ class GestionUtilisateurService
     private $auditLog;
 
     /** @var \PDO */
-    private $db;
+    private $pdo;
 
     /**
-     * @param \PDO $db Connexion à la base de données
+     * @param \PDO $pdo Connexion à la base de données
      */
-    public function __construct($db)
+    public function __construct($pdo)
     {
-        $this->db = $db;
-        $this->utilisateur = new Utilisateur($db);
-        $this->groupeUtilisateur = new GroupeUtilisateur($db);
-        $this->typeUtilisateur = new TypeUtilisateur($db);
-        $this->niveauAcces = new NiveauAccesDonnees($db);
-        $this->auditLog = new AuditLog($db);
+        $this->pdo = $pdo;
+        $this->utilisateur = new Utilisateur($pdo);
+        $this->groupeUtilisateur = new GroupeUtilisateur($pdo);
+        $this->typeUtilisateur = new TypeUtilisateur($pdo);
+        $this->niveauAcces = new NiveauAccesDonnees($pdo);
+        $this->auditLog = new AuditLog($pdo);
     }
 
     /**
@@ -124,7 +127,7 @@ class GestionUtilisateurService
     {
         $token = bin2hex(random_bytes(32));
         $expires = date('Y-m-d H:i:s', time() + 3600);
-        $stmt = $this->db->prepare('INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :expires)');
+        $stmt = $this->pdo->prepare('INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :expires)');
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':token', $token);
         $stmt->bindParam(':expires', $expires);
@@ -180,14 +183,14 @@ class GestionUtilisateurService
 
     private function recordExists(string $table, string $column, int $id): bool
     {
-        $stmt = $this->db->prepare("SELECT 1 FROM {$table} WHERE {$column} = ? LIMIT 1");
+        $stmt = $this->pdo->prepare("SELECT 1 FROM {$table} WHERE {$column} = ? LIMIT 1");
         $stmt->execute([$id]);
         return (bool) $stmt->fetchColumn();
     }
 
     private function groupBelongsToType(int $groupId, int $typeId): bool
     {
-        $stmt = $this->db->prepare("
+        $stmt = $this->pdo->prepare("
             SELECT 1
             FROM groupe_utilisateur
             WHERE id_GU = ? AND id_type_utilisateur = ?
@@ -256,38 +259,38 @@ class GestionUtilisateurService
             empty($nom_utilisateur) || empty($id_type_utilisateur) || empty($id_GU) ||
             empty($login_utilisateur) || empty($statut_utilisateur) || empty($id_niveau_acces)
         ) {
-            return ['success' => false, 'message' => 'Tous les champs sont obligatoires.'];
+            return ['success' => false, 'message' => Messages::get('error.invalid_input')];
         }
 
         if (!$this->recordExists('type_utilisateur', 'id_type_utilisateur', $id_type_utilisateur)) {
-            return ['success' => false, 'message' => "Type d'utilisateur invalide."];
+            return ['success' => false, 'message' => Messages::get('error.invalid_input')];
         }
 
         if (!$this->groupBelongsToType($id_GU, $id_type_utilisateur)) {
-            return ['success' => false, 'message' => "Le groupe utilisateur sélectionné ne correspond pas au type choisi."];
+            return ['success' => false, 'message' => Messages::get('error.invalid_input')];
         }
 
         if (!$this->recordExists('niveau_acces_donnees', 'id_niveau_acces_donnees', $id_niveau_acces)) {
-            return ['success' => false, 'message' => "Niveau d'accès invalide."];
+            return ['success' => false, 'message' => Messages::get('error.invalid_input')];
         }
 
         if (strlen($login_utilisateur) > 60) {
-            return ['success' => false, 'message' => 'Le login ne doit pas dépasser 60 caractères.'];
+            return ['success' => false, 'message' => Messages::get('validation.max_length', ['max' => 60])];
         }
 
         if ($this->utilisateur->isLoginUsed($login_utilisateur)) {
-            return ['success' => false, 'message' => 'Ce login est déjà utilisé par un autre utilisateur.'];
+            return ['success' => false, 'message' => Messages::get('error.invalid_input')];
         }
 
         $invitationEmail = $this->resolveInvitationEmail($data, $nom_utilisateur, $id_type_utilisateur, $login_utilisateur);
         $temporaryPassword = $this->generateRandomPassword(12);
         $mdp_hash = password_hash($temporaryPassword, PASSWORD_DEFAULT);
         $resetLink = null;
-        $manageTransaction = !$this->db->inTransaction();
+        $manageTransaction = !$this->pdo->inTransaction();
 
         try {
             if ($manageTransaction) {
-                $this->db->beginTransaction();
+                $this->pdo->beginTransaction();
             }
 
             $created = $this->utilisateur->ajouterUtilisateur(
@@ -309,12 +312,12 @@ class GestionUtilisateurService
                 $resetLink = $this->buildResetLink($token);
             }
 
-            if ($manageTransaction && $this->db->inTransaction()) {
-                $this->db->commit();
+            if ($manageTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->commit();
             }
         } catch (\Throwable $e) {
-            if ($manageTransaction && $this->db->inTransaction()) {
-                $this->db->rollBack();
+            if ($manageTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
             }
             $this->safeAudit(function () use ($userId) {
                 $this->auditLog->logCreation($userId, 'utilisateur', 'Erreur');
@@ -330,7 +333,7 @@ class GestionUtilisateurService
             return [
                 'success' => true,
                 'feedback_type' => 'warning',
-                'message' => "Utilisateur ajouté avec succès. Aucun email n'est renseigné pour ce profil, les accès n'ont pas été envoyés.",
+                'message' => Messages::get('success.created') . " Aucun email n'est renseigné pour ce profil, les accès n'ont pas été envoyés.",
             ];
         }
 
@@ -342,7 +345,7 @@ class GestionUtilisateurService
             return [
                 'success' => true,
                 'feedback_type' => 'success',
-                'message' => "Utilisateur ajouté avec succès. Un lien de définition du mot de passe a été envoyé.",
+                'message' => Messages::get('success.created') . ' Un lien de définition du mot de passe a été envoyé.',
             ];
         }
 
@@ -352,7 +355,7 @@ class GestionUtilisateurService
         return [
             'success' => true,
             'feedback_type' => 'warning',
-            'message' => "Utilisateur ajouté avec succès mais erreur lors de l'envoi de l'email: " . $emailResult['message'],
+            'message' => Messages::get('success.created') . " Mais erreur lors de l'envoi de l'email: " . $emailResult['message'],
         ];
     }
 
@@ -367,7 +370,7 @@ class GestionUtilisateurService
     public function addUtilisateursEnMasse(array $selectedPersons, array $commonData, int $userId): array
     {
         $utilisateurs = [];
-        $utilisateurModel = new Utilisateur($this->db);
+        $utilisateurModel = new Utilisateur($this->pdo);
         $selectedTypeId = (int) ($commonData['id_type_utilisateur'] ?? 0);
         $allowedPersonTypes = [];
         if ($selectedTypeId === 4) {
@@ -491,7 +494,7 @@ class GestionUtilisateurService
             empty($id_GU) || empty($login_utilisateur) || empty($statut_utilisateur) ||
             empty($id_niveau_acces)
         ) {
-            return ['success' => false, 'message' => 'Tous les champs sont obligatoires.'];
+            return ['success' => false, 'message' => Messages::get('error.invalid_input')];
         }
 
         if (
@@ -506,11 +509,11 @@ class GestionUtilisateurService
             )
         ) {
             $this->auditLog->logModification($userId, 'utilisateur', 'Succès');
-            return ['success' => true, 'message' => 'Utilisateur modifié avec succès.'];
+            return ['success' => true, 'message' => Messages::get('success.updated')];
         }
 
         $this->auditLog->logModification($userId, 'utilisateur', 'Erreur');
-        return ['success' => false, 'message' => "Erreur lors de la modification de l'utilisateur."];
+        return ['success' => false, 'message' => Messages::get('error.generic')];
     }
 
     /**
@@ -525,11 +528,11 @@ class GestionUtilisateurService
         foreach ($ids as $id) {
             if (!$this->utilisateur->reactiverUtilisateur($id)) {
                 $this->auditLog->logModification($userId, 'utilisateur', 'Erreur');
-                return ['success' => false, 'message' => "Erreur lors de l'activation des utilisateurs."];
+                return ['success' => false, 'message' => Messages::get('error.generic')];
             }
         }
         $this->auditLog->logModification($userId, 'utilisateur', 'Succès');
-        return ['success' => true, 'message' => 'Utilisateurs activés avec succès.'];
+        return ['success' => true, 'message' => Messages::get('success.updated')];
     }
 
     /**
@@ -544,11 +547,11 @@ class GestionUtilisateurService
         foreach ($ids as $id) {
             if (!$this->utilisateur->desactiverUtilisateur($id)) {
                 $this->auditLog->logModification($userId, 'utilisateur', 'Erreur');
-                return ['success' => false, 'message' => "Erreur lors de la désactivation des utilisateurs."];
+                return ['success' => false, 'message' => Messages::get('error.generic')];
             }
         }
         $this->auditLog->logModification($userId, 'utilisateur', 'Succès');
-        return ['success' => true, 'message' => 'Utilisateurs désactivés avec succès.'];
+        return ['success' => true, 'message' => Messages::get('success.updated')];
     }
 
     /**
@@ -563,11 +566,11 @@ class GestionUtilisateurService
         foreach ($ids as $id) {
             if (!$this->utilisateur->supprimerUtilisateur($id)) {
                 $this->auditLog->logSuppression($userId, 'utilisateur', 'Erreur');
-                return ['success' => false, 'message' => "Erreur lors de la suppression des utilisateurs."];
+                return ['success' => false, 'message' => Messages::get('error.generic')];
             }
         }
         $this->auditLog->logSuppression($userId, 'utilisateur', 'Succès');
-        return ['success' => true, 'message' => 'Utilisateurs supprimés avec succès.'];
+        return ['success' => true, 'message' => Messages::get('success.deleted')];
     }
 
     /**
@@ -756,7 +759,7 @@ class GestionUtilisateurService
             if ($result) {
                 error_log("Email envoyé avec succès à : " . $email);
                 file_put_contents(
-                    __DIR__ . '/../../logs/email.log',
+                    AppConfig::logPath() . '/email.log',
                     date('Y-m-d H:i:s') . " - Email envoyé avec succès à : $email\n",
                     FILE_APPEND | LOCK_EX
                 );
@@ -770,7 +773,7 @@ class GestionUtilisateurService
             error_log("Erreur d'envoi d'email: " . $errorMessage);
 
             $logMessage = date('Y-m-d H:i:s') . " - ERREUR Email à $email: " . $errorMessage . "\n";
-            file_put_contents(__DIR__ . '/../../logs/email.log', $logMessage, FILE_APPEND | LOCK_EX);
+            file_put_contents(AppConfig::logPath() . '/email.log', $logMessage, FILE_APPEND | LOCK_EX);
 
             return ['success' => false, 'message' => $errorMessage];
         }

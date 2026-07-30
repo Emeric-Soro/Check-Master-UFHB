@@ -32,6 +32,7 @@
       "App\\": ["src/", "app/"]
     },
     "classmap": [
+      "app/models/",
       "app/utils/ReceiptUtils.php",
       "app/utils/EmailService.php",
       "app/utils/FormHelper.php",

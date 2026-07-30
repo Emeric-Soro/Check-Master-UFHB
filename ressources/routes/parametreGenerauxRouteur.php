@@ -1,5 +1,5 @@
 <?php
-if ($_GET['page'] === 'parametres_generaux') {
+if (($_GET['page'] ?? '') === 'parametres_generaux') {
     require_once __DIR__ . '/../../app/controllers/ParametreController.php';
     require_once __DIR__ . '/../../app/controllers/PurgeCycleController.php';
     $controller = new ParametreController();

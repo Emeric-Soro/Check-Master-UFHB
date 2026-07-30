@@ -1,15 +1,14 @@
 <?php
 
-class RapportEtudiant
+use CheckMaster\Models\BaseModel;
+
+class RapportEtudiant extends BaseModel
 {
-    public $pdo;
+    protected const TABLE = 'rapport_etudiants';
+    protected const PRIMARY_KEY = 'id_rapport';
+
     private $tableExistsCache = [];
     private $columnExistsCache = [];
-
-    public function __construct($pdo)
-    {
-        $this->pdo = $pdo;
-    }
 
     private function tableExists($tableName)
     {
@@ -22,7 +21,7 @@ class RapportEtudiant
             $exists = (bool) $stmt->fetchColumn();
             $this->tableExistsCache[$tableName] = $exists;
             return $exists;
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->tableExistsCache[$tableName] = false;
             return false;
         }
@@ -44,7 +43,7 @@ class RapportEtudiant
             $exists = (bool) $stmt->fetchColumn();
             $this->columnExistsCache[$cacheKey] = $exists;
             return $exists;
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->columnExistsCache[$cacheKey] = false;
             return false;
         }
@@ -226,7 +225,7 @@ class RapportEtudiant
     {
         try {
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu,
                     " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -243,11 +242,11 @@ class RapportEtudiant
     public function getRapportById($id_rapport)
     {
         $stmt = $this->pdo->prepare("
-            SELECT 
-                r.*, 
+            SELECT
+                r.*,
                 " . $this->getReportSelectExtras('r') . ",
-                e.nom_etu, 
-                e.prenom_etu, 
+                e.nom_etu,
+                e.prenom_etu,
                 e.email_etu,
                 e.promotion_etu,
                 " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad,
@@ -264,7 +263,7 @@ class RapportEtudiant
     public function getRapportDetail($id_rapport)
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
+            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu,
                 " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad, d.date_depot
             FROM rapport_etudiants r
             JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -278,7 +277,7 @@ class RapportEtudiant
     public function getRapportByIdAndEtudiant($id_rapport, $num_etu)
     {
         $stmt = $this->pdo->prepare("
-            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
+            SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu,
                 " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
             FROM rapport_etudiants r
             JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -292,7 +291,7 @@ class RapportEtudiant
     {
         try {
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu,
                     " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -468,24 +467,24 @@ class RapportEtudiant
             $dateCol = $this->getReportDateColumn();
             if ($dateCol !== null) {
                 $sql = "
-                    SELECT 
+                    SELECT
                         COUNT(*) as total_rapports,
                         COUNT(CASE WHEN DATE($dateCol) = CURDATE() THEN 1 END) as rapports_aujourd_hui,
                         COUNT(CASE WHEN $dateCol >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as rapports_semaine,
                         COUNT(CASE WHEN $dateCol >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as rapports_mois,
                         MAX($dateCol) as dernier_rapport
-                    FROM rapport_etudiants 
+                    FROM rapport_etudiants
                     WHERE num_etu = ?
                 ";
             } else {
                 $sql = "
-                    SELECT 
+                    SELECT
                         COUNT(*) as total_rapports,
                         0 as rapports_aujourd_hui,
                         0 as rapports_semaine,
                         0 as rapports_mois,
                         NULL as dernier_rapport
-                    FROM rapport_etudiants 
+                    FROM rapport_etudiants
                     WHERE num_etu = ?
                 ";
             }
@@ -503,7 +502,7 @@ class RapportEtudiant
         try {
             $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu,
                     " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -538,7 +537,7 @@ class RapportEtudiant
             }
 
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu,
                     " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -621,7 +620,7 @@ class RapportEtudiant
     {
         try {
             $sql = "
-                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu, 
+                SELECT r.*, " . $this->getReportSelectExtras('r') . ", e.nom_etu, e.prenom_etu, e.email_etu,
                     " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
@@ -641,7 +640,7 @@ class RapportEtudiant
     {
         try {
             $stmt = $this->pdo->prepare("
-            INSERT INTO evaluations_rapports (id_rapport, id_evaluateur, type_evaluateur, commentaire, note) 
+            INSERT INTO evaluations_rapports (id_rapport, id_evaluateur, type_evaluateur, commentaire, note)
             VALUES (?, ?, ?, ?, ?)
         ");
             return $stmt->execute([$id_rapport, $id_evaluateur, $type_evaluateur, $commentaire, $note]);
@@ -715,12 +714,12 @@ class RapportEtudiant
             ");
             $stmt->execute([$numEtu]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($result && isset($result['decision_validation'])) {
                 $decision = strtolower($result['decision_validation']);
                 return ($decision === 'valider') ? 'favorable' : 'defavorable';
             }
-            
+
             return '';
         } catch (PDOException $e) {
             error_log("Erreur getDerniereDecisionCommission: " . $e->getMessage());
@@ -741,12 +740,12 @@ class RapportEtudiant
             if (!$soutenance) {
                 return false;
             }
-            
+
             $idRapport = $soutenance['id_rapport'] ?? null;
             if (!$idRapport) {
                 return false;
             }
-            
+
             // Check if all evaluations are present (we expect 4 evaluators)
             $stmt = $this->pdo->prepare("
                 SELECT COUNT(*) as total
@@ -755,9 +754,9 @@ class RapportEtudiant
             ");
             $stmt->execute([$idRapport]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             $totalEvaluations = $result['total'] ?? 0;
-            
+
             // Consider complete if we have at least 4 evaluations (jury complet)
             return $totalEvaluations >= 4;
         } catch (PDOException $e) {
@@ -775,8 +774,8 @@ class RapportEtudiant
     {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT r.*, 
-                       " . $this->getReportSelectExtras('r') . ", 
+                SELECT r.*,
+                       " . $this->getReportSelectExtras('r') . ",
                        e.nom_etu, e.prenom_etu, e.email_etu,
                        " . $this->getReportAcademicYearExpr('r', 'e') . " AS id_annee_acad
                 FROM rapport_etudiants r
@@ -802,7 +801,7 @@ class RapportEtudiant
                 : '';
 
             $stmt = $this->pdo->query("
-                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu, 
+                SELECT r.*, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu,
                     " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " AS id_annee_acad, d.date_depot,
                     cs.id_candidature, cs.statut_candidature
                 FROM deposer d
@@ -823,11 +822,11 @@ class RapportEtudiant
     {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT 
+                SELECT
                     e.*,
                     COALESCE(ens.nom_enseignant, u.nom_utilisateur) as nom_evaluateur,
                     COALESCE(ens.prenom_enseignant, '') as prenom_evaluateur,
-                    CASE 
+                    CASE
                         WHEN ens.id_enseignant IS NOT NULL THEN 'Enseignant'
                         ELSE 'Utilisateur'
                     END as fonction_evaluateur
@@ -845,7 +844,7 @@ class RapportEtudiant
         }
     }
 
-    // ======================== PRD 1 & 2 & 3 : Upload / Date opération / Étudiants sans rapport ========================
+    // ======================== PRD 1 & 2 & 3 : Upload / Date operation / Etudiants sans rapport ========================
 
     /**
      * Détecte la colonne date_operation si elle existe
@@ -1000,15 +999,15 @@ class RapportEtudiant
                 : '';
 
             $sql = "
-                SELECT DISTINCT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, 
+                SELECT DISTINCT e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu,
                        e.email_etu, e.promotion_etu,
                        " . $this->getStudentStageSelectExtras('e') . ",
                        " . ($id_annee_acad !== null ? '?' : $this->getFallbackStudentYearExpr('e')) . " AS id_annee_acad,
                        cs.id_candidature, cs.statut_candidature,
-                       (SELECT COUNT(*) FROM rapport_etudiants r 
+                       (SELECT COUNT(*) FROM rapport_etudiants r
                         LEFT JOIN deposer d ON d.id_rapport = r.id_rapport
                         WHERE (r.num_etu = e.num_carte_etud OR r.num_etu = e.num_ident_etud)" .
-                        ($id_annee_acad !== null ? " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?" : "") . 
+                        ($id_annee_acad !== null ? " AND " . $this->getReportAcademicYearExpr('r', 'e', 'd') . " = ?" : "") .
                         ") AS nb_rapports
                 FROM etudiants e
                 INNER JOIN inscriptions i ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud)
@@ -1020,7 +1019,7 @@ class RapportEtudiant
                 AND (
                     r.id_rapport IS NULL
                     OR (
-                        cs.statut_candidature IS NOT NULL 
+                        cs.statut_candidature IS NOT NULL
                         AND cs.statut_candidature IN ('Validee', 'Validée')
                         AND r.id_rapport IS NULL
                     )
@@ -1059,7 +1058,7 @@ class RapportEtudiant
                 : 'NOW() AS date_operation';
 
             $sql = "
-                SELECT r.*, 
+                SELECT r.*,
                        " . $this->getReportSelectExtras('r') . ",
                        $dateOpSelect,
                        e.num_carte_etud, e.num_ident_etud, e.nom_etu, e.prenom_etu, e.email_etu, e.promotion_etu,
@@ -1115,23 +1114,23 @@ class RapportEtudiant
         try {
             $dateOpCol = $this->getDateOperationColumn();
             $hasNomRapport = $this->columnExists('rapport_etudiants', 'nom_rapport');
-            
+
             $sql = "UPDATE rapport_etudiants SET theme_rapport = ?";
             $params = [$theme_rapport];
-            
+
             if ($dateOpCol !== null) {
                 $sql .= ", $dateOpCol = ?";
                 $params[] = $date_operation;
             }
-            
+
             if ($hasNomRapport) {
                 $sql .= ", nom_rapport = ?";
                 $params[] = $nom_rapport;
             }
-            
+
             $sql .= ", date_modification = NOW() WHERE id_rapport = ?";
             $params[] = $id_rapport;
-            
+
             $stmt = $this->pdo->prepare($sql);
             return $stmt->execute($params);
         } catch (PDOException $e) {
@@ -1185,14 +1184,14 @@ class RapportEtudiant
             $dateOpSelect = $dateOpCol !== null ? ('r.' . $dateOpCol . ' AS date_operation') : 'NULL AS date_operation';
 
             $sql = "
-                SELECT r.*, 
+                SELECT r.*,
                        " . $this->getReportSelectExtras('r') . ",
                        $dateOpSelect,
                        e.nom_etu, e.prenom_etu
                 FROM rapport_etudiants r
                 JOIN etudiants e ON (" . $this->studentJoinCondition('r', 'e') . ")
-                WHERE (r.num_etu = ? OR r.num_etu = ?) 
-                  AND r.chemin_fichier IS NOT NULL 
+                WHERE (r.num_etu = ? OR r.num_etu = ?)
+                  AND r.chemin_fichier IS NOT NULL
                   AND r.chemin_fichier != ''
                 ORDER BY r.date_modification DESC, r.id_rapport DESC
                 LIMIT 1

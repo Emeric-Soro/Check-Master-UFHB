@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/InscriptionService.php';
 require_once __DIR__ . '/../Support/Database.php';
 require_once __DIR__ . '/../Services/Document/RecuGeneratorService.php';
@@ -7,23 +6,25 @@ require_once __DIR__ . '/../utils/RecuDataUtils.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 require_once __DIR__ . '/../utils/EmailService.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use CheckMaster\Services\InscriptionService;
 
-class InscriptionController
+class InscriptionController extends BaseController
 {
     private $service;
 
     public function __construct()
     {
-        $db = Database::getConnection();
-        $this->service = new InscriptionService($db);
+        parent::__construct(\Database::getConnection());
+        $this->service = new InscriptionService($this->pdo);
     }
 
     public function index()
     {
         // Vérification permission d'accès à la page inscription/scolarité
         if (!canView('gestion_scolarite')) {
-            $_SESSION['error'] = "Accès non autorisé à la gestion des inscriptions.";
+            $_SESSION['error'] = Messages::get('error.permission_denied');
             header('Location: layout.php?page=dashboard');
             exit;
         }
@@ -50,8 +51,8 @@ class InscriptionController
                     $db = new \App\Support\Database();
                     $recuDataUtils = new \App\Utils\RecuDataUtils($db);
                     $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
-                        __DIR__ . '/../../storage/documents',
-                        __DIR__ . '/../../public/image/logo_ufhb.png'
+                        $this->storagePath(),
+                        $this->logoPath()
                     );
                     $recuService = new \App\Services\Document\RecuGeneratorService($pdfGenerator, $recuDataUtils, $db);
 
@@ -71,12 +72,12 @@ class InscriptionController
                     throw new Exception('Impossible de générer le recu PDF: versement non trouvé ou erreur');
 
                 } catch (Exception $e) {
-                    error_log('Erreur lors de la génération du recu: ' . $e->getMessage());
-                    $GLOBALS['messageErreur'] = 'Erreur lors de la génération du recu: ' . $e->getMessage();
+                    error_log(Messages::get('error.pdf_generation') . ': ' . $e->getMessage());
+                    $GLOBALS['messageErreur'] = Messages::get('error.pdf_generation') . ': ' . $e->getMessage();
                     $this->service->logPrint($_SESSION['id_utilisateur'], 'Erreur');
                 }
             } else {
-                $GLOBALS['messageErreur'] = "Inscription non trouvée.";
+                $GLOBALS['messageErreur'] = Messages::get('error.not_found');
                 $this->service->logPrint($_SESSION['id_utilisateur'], 'Erreur');
             }
         }
@@ -84,7 +85,7 @@ class InscriptionController
         // Gestion de la suppression d'inscription
         if (isset($_GET['modalAction']) && $_GET['modalAction'] === 'supprimer' && isset($_GET['id'])) {
             if (!canDelete('gestion_scolarite')) {
-                $_SESSION['error'] = "Accès non autorisé pour supprimer une inscription.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 header('Location: layout.php?page=gestion_scolarite');
                 exit;
             }
@@ -102,7 +103,7 @@ class InscriptionController
                 switch ($_POST['modalAction']) {
                     case 'inscrire':
                         if (!canCreate('gestion_scolarite')) {
-                            $_SESSION['error'] = "Accès non autorisé pour inscrire un étudiant.";
+                            $_SESSION['error'] = Messages::get('error.permission_denied');
                             header('Location: layout.php?page=gestion_scolarite');
                             exit;
                         }
@@ -110,7 +111,7 @@ class InscriptionController
                         break;
                     case 'modifier':
                         if (!canEdit('gestion_scolarite')) {
-                            $_SESSION['error'] = "Accès non autorisé pour modifier une inscription.";
+                            $_SESSION['error'] = Messages::get('error.permission_denied');
                             header('Location: layout.php?page=gestion_scolarite');
                             exit;
                         }
@@ -152,27 +153,25 @@ class InscriptionController
             $GLOBALS['messageSuccess'] = $result['message'];
 
             try {
-                $dbNotif = \Database::getConnection();
-                $inscService = new \CheckMaster\Services\InscriptionService($dbNotif);
                 $numEtu = $_POST['etudiant'] ?? '';
                 $niveau = (string) ($_POST['niveau'] ?? '');
                 $montantVerse = floatval($_POST['premier_versement'] ?? 0);
                 $idAnnee = $_POST['annee_academique'] ?? 0;
 
-                $stmtAnnee = $dbNotif->prepare("SELECT lib_annee_acad FROM annee_academique WHERE id_annee_acad = ?");
+                $stmtAnnee = $this->pdo->prepare("SELECT lib_annee_acad FROM annee_academique WHERE id_annee_acad = ?");
                 $stmtAnnee->execute([$idAnnee]);
                 $anneeLabel = (string) ($stmtAnnee->fetchColumn() ?: '');
 
-                $stmtNiv = $dbNotif->prepare("SELECT montant_scolarite FROM niveaux_etudes WHERE id_niveau = ?");
+                $stmtNiv = $this->pdo->prepare("SELECT montant_scolarite FROM niveaux_etudes WHERE id_niveau = ?");
                 $stmtNiv->execute([$niveau]);
                 $montantTotal = (float) ($stmtNiv->fetchColumn() ?: 0);
 
                 $solde = max(0, $montantTotal - $montantVerse);
-                $inscService->notifierInscription($numEtu, $niveau, $montantTotal, $montantVerse, $solde, $anneeLabel);
+                $this->service->notifierInscription($numEtu, $niveau, $montantTotal, $montantVerse, $solde, $anneeLabel);
 
-                $inscService->notifierPaiement($numEtu, $montantVerse, $_POST['methode_paiement'] ?? '', $solde);
+                $this->service->notifierPaiement($numEtu, $montantVerse, $_POST['methode_paiement'] ?? '', $solde);
                 if ($solde <= 0) {
-                    $inscService->notifierInscriptionValidee($numEtu, $anneeLabel);
+                    $this->service->notifierInscriptionValidee($numEtu, $anneeLabel);
                 }
             } catch (\Throwable $e) {
                 error_log('Erreur notif inscription: ' . $e->getMessage());
@@ -196,8 +195,7 @@ class InscriptionController
     {
         if (isset($_GET['num_etu'])) {
             $result = $this->service->getEtudiantInfo($_GET['num_etu']);
-            echo json_encode($result);
-            exit;
+            $this->json($result);
         }
     }
 }

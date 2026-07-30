@@ -18,16 +18,19 @@ final class Response
 
     public static function redirect(string $location, int $status = 302): self
     {
-        return new self('', $status, ['Location' => $location]);
+        return new self('', $status, [
+            'Location' => $location,
+            'Content-Type' => 'text/html; charset=UTF-8',
+        ]);
     }
 
     public function send(): void
     {
         http_response_code($this->status);
         foreach ($this->headers as $k => $v) {
-            // Nettoyer les en-têtes pour prévenir l'injection d'en-têtes HTTP
-            $k = str_replace(["\r", "\n"], '', $k);
-            $v = str_replace(["\r", "\n"], '', $v);
+            // Nettoyer les en-têtes pour prévenir l'injection CRLF et null bytes
+            $k = str_replace(["\r", "\n", "\0"], '', $k);
+            $v = str_replace(["\r", "\n", "\0"], '', $v);
             header($k . ': ' . $v);
         }
         echo $this->body;

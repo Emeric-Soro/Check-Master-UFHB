@@ -1,0 +1,757 @@
+================================================================================
+RAPPORT D'ANALYSE DES DUPLICATIONS DE CODE
+app/ — CheckMaster UFRMI-UFHB-CI
+Date: 2026-05-27
+================================================================================
+
+TABLE DES MATIÈRES
+  1. Résumé exécutif
+  2. Duplication de méthodes utilitaires (tableExists, columnExists)
+  3. Duplication des expressions SQL (studentJoinCondition, studentCarteExpr, etc.)
+  4. Duplication des méthodes de résolution d'enseignant
+  5. Duplication des méthodes de calcul (calculerMention)
+  6. Duplication des méthodes de notification par email
+  7. Duplication du pattern CRUD dans ParametreService
+  8. Duplication du pattern CRUD dans les modèles
+  9. Duplication des require_once et connexions à la base
+  10. Duplication du pattern logAction
+  11. Duplication des constructeurs de contrôleurs
+  12. Duplication dans les fichiers utils
+  13. Autres duplications notables
+  14. Statistiques générales
+
+================================================================================
+1. RÉSUMÉ EXÉCUTIF
+================================================================================
+
+L'analyse de la codebase app/ (205 fichiers PHP) révèle des DUPLICATIONS 
+MASSIVES de code, en particulier :
+
+- 32 fichiers implémentent leur propre méthode `tableExists()` (quasi-identique)
+- 22 fichiers implémentent leur propre méthode `columnExists()` (quasi-identique)
+- 9 fichiers implémentent `studentJoinCondition()` (logique quasi-identique)
+- 6 fichiers implémentent `studentCarteExpr()` (identique)
+- 5 fichiers implémentent `getFallbackStudentYearExpr()` (identique)
+- 5 fichiers implémentent `getAcademicYearFromDateExpr()` (identique)
+- 5 fichiers implémentent `getReportAcademicYearExpr()` (identique)
+- 4 fichiers implémentent `rapportDateExpr()` (identique)
+- 5 fichiers implémentent `getProgrammationTable()` (logique similaire)
+- 7 fichiers implémentent `getJuryTable()` (logique similaire)
+- 5 fichiers implémentent `getProgrammationIdColumn()` (logique similaire)
+- 6 fichiers implémentent `getProgrammationJuryColumn()` (logique similaire)
+- 3 fichiers implémentent `calculerMention()` (PRESQUE identique)
+- 3 fichiers implémentent `normalizeSqlExpr()` (IDENTIQUE)
+- 3+ fichiers implémentent `resolveEnseignantIdFromSession()` (très similaire)
+- 2 fichiers implémentent `getAdminLikeGroupIds()` (IDENTIQUE)
+- 2 fichiers implémentent `findEnseignantIdByLogin()` (très similaire)
+- 2 fichiers implémentent `enseignantResolutionSubquery()` (identique)
+- 21 méthodes `gestion*` dans ParametreService.php suivent un pattern quasi-identique
+- 26 modèles sur 48 suivent un pattern CRUD ajouter/update/delete/getById
+- 40/53 contrôleurs incluent database.php
+- 39/53 contrôleurs incluent permissions_helper.php
+
+Estimation: au moins 40-50% de code dupliqué dans la codebase.
+
+================================================================================
+2. DUPLICATION — Méthodes utilitaires tableExists / columnExists
+================================================================================
+
+2a. tableExists() — PRÉSENT DANS 32 FICHIERS
+
+La méthode `tableExists()` est implémentée de manière quasi-identique dans 
+32 fichiers différents. La logique est toujours la même :
+1. Vérifier un cache interne (array_key_exists)
+2. Exécuter "SHOW TABLES LIKE ?"
+3. Retourner le résultat booléen
+
+Fichiers concernés :
+  - controllers/ArchiveDocumentController.php
+  - models/Archive.php
+  - models/CritereEvaluation.php
+  - models/Echeance.php
+  - models/EvaluationRapport.php
+  - models/ProgrammationSessionSoutenance.php
+  - models/RapportEtudiant.php
+  - models/Reclamation.php
+  - models/Scolarite.php
+  - Services/ArchivesDossiersSoutenanceService.php
+  - Services/DashboardCommissionService.php
+  - Services/DashboardDirectionService.php
+  - Services/Document/DocumentRegistry.php
+  - Services/Document/DocumentStorageService.php
+  - Services/EcheancierEtudiantService.php
+  - Services/EditionBulletinService.php
+  - Services/EvaluationDossiersService.php
+  - Services/EvaluationSoutenanceService.php
+  - Services/FicheFinanciereService.php
+  - Services/GestionDossiersCandidaturesService.php
+  - Services/GestionSallesService.php
+  - Services/MiseEnLigneMemoireService.php
+  - Services/ParametreService.php
+  - Services/PlanificationSoutenanceService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+  - Services/RepertoireEnseignantService.php
+  - Services/ValidationMemoireService.php
+  - Services/VerificationRapportsService.php
+  - utils/ExcelImportService.php
+  - utils/PlanningDataUtils.php
+  - utils/RecuDataUtils.php
+
+Différences mineures :
+  - Certaines utilisent `$this->db`, d'autres `$this->pdo`
+  - Certaines ont le type hint `string $tableName`, d'autres non
+  - Certaines retournent avec `return $exists;`, d'autres non
+  - Scolarite.php utilise `Throwable` pour le catch au lieu de `PDOException`
+
+SOLUTION RECOMMANDÉE : Créer un trait PHP `SchemaIntrospectionTrait` ou
+une classe utilitaire partagée.
+
+2b. columnExists() — PRÉSENT DANS 22 FICHIERS
+
+Même pattern que tableExists — quasi-identique partout.
+
+Fichiers concernés :
+  - models/Archive.php
+  - models/CritereEvaluation.php
+  - models/EvaluationRapport.php
+  - models/RapportEtudiant.php
+  - models/Scolarite.php
+  - Services/ArchivesDossiersSoutenanceService.php
+  - Services/DashboardCommissionService.php
+  - Services/DashboardDirectionService.php
+  - Services/EcheancierEtudiantService.php
+  - Services/EditionBulletinService.php
+  - Services/EvaluationDossiersService.php
+  - Services/EvaluationSoutenanceService.php
+  - Services/FicheFinanciereService.php
+  - Services/GestionDossiersCandidaturesService.php
+  - Services/MiseEnLigneMemoireService.php
+  - Services/ParametreService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+  - Services/RedactionCompteRenduService.php
+  - Services/ValidationMemoireService.php
+  - Services/VerificationRapportsService.php
+  - utils/PlanningDataUtils.php
+
+Note: Scolarite.php a une implémentation légèrement différente (pas de 
+vérification tableExists préalable). Les autres sont identiques.
+
+
+================================================================================
+3. DUPLICATION — Expressions SQL
+================================================================================
+
+Ces méthodes construisent des fragments SQL utilisés dans les requêtes. 
+Elles sont dupliquées à travers modèles et services.
+
+3a. studentJoinCondition() — 9 FICHIERS
+
+Logique identique : jointure entre étudiant et entité via num_carte_etud 
+OU num_ident_etud.
+
+  - models/EvaluationRapport.php
+  - models/RapportEtudiant.php
+  - models/Scolarite.php
+  - Services/EditionBulletinService.php
+  - Services/EvaluationDossiersService.php
+  - Services/EvaluationSoutenanceService.php
+  - Services/GestionDossiersCandidaturesService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3b. studentCarteExpr() — 6 FICHIERS
+
+IDENTIQUE dans tous les fichiers :
+  "COALESCE(NULLIF(%s.num_carte_etud, ''), NULLIF(%s.num_ident_etud, ''))"
+
+  - models/EvaluationRapport.php
+  - models/RapportEtudiant.php
+  - Services/EvaluationDossiersService.php
+  - Services/GestionDossiersCandidaturesService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3c. getFallbackStudentYearExpr() — 5 FICHIERS
+
+Sous-requête SQL IDENTIQUE pour récupérer l'année académique depuis 
+les inscriptions.
+
+  - models/EvaluationRapport.php
+  - models/RapportEtudiant.php
+  - Services/EvaluationDossiersService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3d. getAcademicYearFromDateExpr() — 5 FICHIERS
+
+Sous-requête SQL IDENTIQUE :
+  (SELECT aa.id_annee_acad FROM annee_academique aa 
+   WHERE DATE(expr) BETWEEN aa.date_deb AND aa.date_fin
+   ORDER BY aa.date_deb DESC LIMIT 1)
+
+  - models/EvaluationRapport.php
+  - models/RapportEtudiant.php
+  - Services/EvaluationDossiersService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3e. getReportAcademicYearExpr() — 5 FICHIERS
+
+Logique quasi-identique pour déterminer l'année d'un rapport.
+
+  - models/EvaluationRapport.php
+  - models/RapportEtudiant.php
+  - Services/EvaluationDossiersService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3f. rapportDateExpr() — 4 FICHIERS
+
+Logique IDENTIQUE : test columnExists pour date_rapport puis 
+date_redaction_rapport.
+
+  - models/EvaluationRapport.php
+  - Services/DashboardCommissionService.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3g. getReportDateColumn() — 2 FICHIERS (similaire à rapportDateExpr mais retourne colonne)
+
+  - models/RapportEtudiant.php
+  - models/Archive.php (vide/différente)
+
+3h. latestCandidatureJoin() — 4 FICHIERS
+
+  - models/EvaluationRapport.php
+  - models/RapportEtudiant.php
+  - Services/ProcessusValidationService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3i. getProgrammationTable() — 8 FICHIERS
+
+Logique similaire : test tableExists pour 'programmer_soutenance' puis 'programmer'.
+
+  - models/Archive.php (version simplifiée: ternaire)
+  - Services/EditionBulletinService.php
+  - Services/EvaluationSoutenanceService.php
+  - Services/GestionSallesService.php
+  - Services/PlanificationSoutenanceService.php
+  - Services/ProgrammationSoutenanceService.php
+  - Services/RepertoireEnseignantService.php
+  - utils/ExcelImportService.php
+
+3j. getJuryTable() — 7 FICHIERS
+
+Logique similaire : test tableExists pour 'enseignant_jury' puis 'composer_jury'.
+
+  - models/Archive.php (version ternaire simplifiée)
+  - Services/EvaluationSoutenanceService.php
+  - Services/PlanificationSoutenanceService.php
+  - Services/ProgrammationSoutenanceService.php
+  - Services/RepertoireEnseignantService.php
+  - utils/ExcelImportService.php
+  - utils/PlanningDataUtils.php
+
+3k. getProgrammationIdColumn() — 5 FICHIERS
+
+  - models/Archive.php
+  - Services/EditionBulletinService.php
+  - Services/EvaluationSoutenanceService.php
+  - Services/PlanificationSoutenanceService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3l. getProgrammationJuryColumn() — 6 FICHIERS
+
+  - models/Archive.php
+  - Services/EditionBulletinService.php
+  - Services/EvaluationSoutenanceService.php
+  - Services/PlanificationSoutenanceService.php
+  - Services/ProgrammationSoutenanceService.php
+  - Services/RepertoireEnseignantService.php
+
+3m. getJuryRefColumn() — 5 FICHIERS
+
+  - Services/EvaluationSoutenanceService.php
+  - Services/PlanificationSoutenanceService.php
+  - Services/ProgrammationSoutenanceService.php
+  - Services/RepertoireEnseignantService.php
+  - utils/PlanningDataUtils.php
+
+3n. getSelectedAcademicYearId() — 6 FICHIERS
+
+Logique similaire mais avec quelques variations :
+  - EditionBulletinService: via AcademicYear::getSelectedIdFromSession() + filtre null/0
+  - MiseEnLigneMemoireService: via $_SESSION directement (version différente)
+  - PlanificationSoutenanceService: via AcademicYear::getSelectedIdFromSession()
+  - ProgrammationSoutenanceService: via AcademicYear::getSelectedIdFromSession()
+  - EvaluationSoutenanceService: via AcademicYear::getSelectedIdFromSession() + filtre null/0
+  - GestionEtudiantService: via AcademicYear (non vérifié)
+
+3o. getStudentAcademicYearId() — 5 FICHIERS
+
+  - Services/CandidatureSoutenanceService.php
+  - Services/EvaluationSoutenanceService.php
+  - Services/GestionEtudiantService.php
+  - Services/GestionRapportService.php
+  - Services/ProgrammationSoutenanceService.php
+
+3p. yearCondition() — 2 FICHIERS (logique différente)
+
+  - Services/ProcessusValidationService.php
+  - Services/GestionDossiersCandidaturesService.php
+
+3q. normalizeSqlExpr() — 3 FICHIERS (IDENTIQUE)
+
+  LOWER(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE($expr, '')), ' ', ''), '-', ''), "'", ''), '.', ''))
+
+  - models/EvaluationRapport.php
+  - Services/ProcessusValidationService.php
+  - Services/ValidationMemoireService.php
+
+
+================================================================================
+4. DUPLICATION — Méthodes de résolution d'enseignant
+================================================================================
+
+4a. resolveEnseignantIdFromSession() — 2 FICHIERS (TRÈS SIMILAIRE)
+
+  - Services/ProcessusValidationService.php (public)
+  - Services/ValidationMemoireService.php (private)
+
+Logique quasi-identique : cherche dans $_SESSION['id_enseignant'],
+$_SESSION['enseignant_id'], puis par login et par id_utilisateur.
+La différence est que ProcessusValidationService utilise 
+$this->verifierIdEnseignant() en plus.
+
+4b. findEnseignantIdByLogin() — 2 FICHIERS (SIMILAIRE)
+
+  - Services/ProcessusValidationService.php
+  - Services/ValidationMemoireService.php
+
+Même requête SQL : "SELECT id_enseignant FROM enseignants WHERE 
+LOWER(mail_enseignant) = LOWER(?)", mais gestion d'erreur différente.
+
+4c. findEnseignantIdByUtilisateurId() — 2 FICHIERS (SIMILAIRE)
+
+  - Services/ProcessusValidationService.php
+  - Services/ValidationMemoireService.php
+
+4d. getAdminLikeGroupIds() — 2 FICHIERS (IDENTIQUE)
+
+  - Services/ProcessusValidationService.php
+  - Services/ValidationMemoireService.php
+
+4e. enseignantResolutionSubquery() — 2 FICHIERS (SIMILAIRE)
+
+  - models/EvaluationRapport.php
+  - Services/ValidationMemoireService.php
+
+4f. verifierIdEnseignant() — 2 FICHIERS
+
+  - Services/ProcessusValidationService.php
+  - controllers/ (via la méthode dans le contrôleur)
+
+
+================================================================================
+5. DUPLICATION — calculerMention()
+================================================================================
+
+Méthode présente dans 3 fichiers avec une logique PRESQUE IDENTIQUE :
+
+  - Services/Document/PvFinalGeneratorService.php (private)
+    if ($note >= 18.0) return 'Honorable';
+    if ($note >= 16.0) return 'Très Bien';
+    if ($note >= 14.0) return 'Bien';
+    if ($note >= 12.0) return 'Assez Bien';
+    if ($note >= 10.0) return 'Passable';
+    return 'Insuffisant';
+
+  - Services/EditionBulletinService.php (private)
+    if ($moyenne >= 18) return 'Honorable';
+    if ($moyenne >= 16) return 'Tres Bien';
+    if ($moyenne >= 14) return 'Bien';
+    if ($moyenne >= 12) return 'Assez Bien';
+    if ($moyenne >= 10) return 'Passable';
+    return 'Insuffisant';
+
+  - Services/EvaluationSoutenanceService.php (public)
+    if ($noteTotale >= 18) return 'Honorable';
+    if ($noteTotale >= 16) return 'Tres Bien';
+    if ($noteTotale >= 14) return 'Bien';
+    if ($noteTotale >= 12) return 'Assez Bien';
+    if ($noteTotale >= 10) return 'Passable';
+    return 'Insuffisant';
+
+Note : PvFinalGeneratorService utilise 'Très Bien' avec accent,
+les deux autres utilisent 'Tres Bien' sans accent (incohérence).
+
+SOLUTION RECOMMANDÉE : Déplacer dans un helper partagé, par exemple
+app/utils/MentionHelper.php
+
+
+================================================================================
+6. DUPLICATION — Notifications par email
+================================================================================
+
+De nombreux services implémentent leurs propres méthodes de notification 
+avec des patterns très similaires :
+
+6a. Pattern de récupération de l'étudiant (dupliqué ~8 fois) :
+    $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants 
+                          WHERE num_carte_etud = ? OR num_ident_etud = ?");
+
+    Utilisé dans :
+      - InscriptionService.php (notifierInscription, notifierInscriptionValidee)
+      - EditionBulletinService.php (notifierBulletinDisponible)
+      - GestionReclamationsService.php (notifierReclamationSoumise)
+      - GestionReclamationsService.php (notifierReclamationReponse)
+      - Et potentiellement d'autres
+
+6b. Services avec méthodes de notification :
+  - AuthService.php : notifierMdpChange, notifierEmailModifie, notifierCompteVerrouille
+  - EditionBulletinService.php : notifierBulletinDisponible
+  - GestionCandidaturesService.php : notifierSoumissionCandidature, envoyerEmailResultat
+  - GestionRapportService.php : notifierDepotRapport
+  - GestionReclamationsService.php : notifierReclamationSoumise, notifierReclamationStatut,
+    notifierReclamationReponse
+  - GestionUtilisateurService.php : envoyerEmailInscriptionPHPMailer
+  - InscriptionService.php : notifierInscription, notifierPaiement, notifierInscriptionValidee,
+    notifierRelanceImpaye
+  - ProgrammationSoutenanceService.php : notifierAjoutJury, notifierRetraitJury,
+    notifierProgrammationSoutenance
+  - RedactionCompteRenduService.php : sendNotificationEmails, notifyStudents,
+    notifyGenericRecipients
+
+Toutes ces méthodes utilisent EmailService ou PHPMailer avec des templates
+d'email, mais la logique d'envoi est réimplémentée à chaque fois.
+
+SOLUTION RECOMMENDÉE : Centraliser via un NotificationService déjà existant
+mais sous-utilisé (app/utils/NotificationService.php).
+
+
+================================================================================
+7. DUPLICATION — Pattern CRUD dans ParametreService.php (2701 lignes)
+================================================================================
+
+ParametreService.php contient 21 méthodes `gestion*` qui suivent TOUTES 
+le même pattern quasi-identique :
+
+  public function gestionXXX(array $post, array $get, string $userId): array
+  {
+      $xxx_a_modifier = null;
+      $messageErreur = '';
+      $messageSuccess = '';
+
+      if (isset($post['btn_add_xxx']) || isset($post['btn_modifier_xxx'])) {
+          $lib_xxx = $post['xxx'];
+
+          if (!empty($post['id_xxx'])) {
+              // UPDATE
+              if ($this->xxx->updateXXX($post['id_xxx'], $lib_xxx)) {
+                  $messageSuccess = "XXX modifié(e) avec succès.";
+                  $this->auditLog->logModification($userId, 'xxx', 'Succès');
+              } else {
+                  $messageErreur = "Erreur lors de la modification du/de la XXX.";
+                  $this->auditLog->logModification($userId, 'xxx', 'Erreur');
+              }
+          } else {
+              // CREATE
+              if ($this->xxx->ajouterXXX($lib_xxx)) {
+                  $messageSuccess = "XXX ajouté(e) avec succès.";
+                  $this->auditLog->logCreation($userId, 'xxx', 'Succès');
+              } else {
+                  $messageErreur = "Erreur lors de l'ajout du/de la XXX.";
+                  $this->auditLog->logCreation($userId, 'xxx', 'Erreur');
+              }
+          }
+      }
+
+      if (isset($post['submit_delete_multiple']) && isset($post['selected_ids'])) {
+          $success = true;
+          foreach ($post['selected_ids'] as $id) {
+              if (!$this->xxx->deleteXXX($id)) {
+                  $success = false; break;
+              }
+          }
+          // ... log success/error
+      }
+
+      // Suite : listing, pagination, etc.
+  }
+
+Méthodes concernées (21) :
+  gestionAnnees, gestionGrade, gestionFonctionUtilisateur, gestionSpecialite,
+  gestionNiveauEtude, gestionStatutJury, gestionNiveauApprobation, gestionSemestre,
+  gestionNiveauAccesDonnees, gestionTraitement, gestionEntreprise, gestionAction,
+  gestionFonction, gestionMessagerie, gestionAttribution, gestionMenus,
+  gestionReferentielSimple, gestionBaremeCritere, gestionFraisInscription,
+  gestionProgrammationSessionsSoutenance, gestionSchemaTables
+
+Le fichier fait 2701 lignes pour essentiellement 21 variantes du même CRUD.
+La méthode `gestionReferentielSimple` (200 lignes) est un cas extrême de 
+cette duplication car elle gère plusieurs entités différentes via 
+`getManagedTableActionMap()` et `getManagedTableColumnsMap()`.
+
+82 appels à AuditLog sont faits dans ce seul fichier.
+
+SOLUTION RECOMMENDÉE : Extraire le pattern CRUD générique dans une classe
+ou un trait, et réduire chaque gestion* à quelques lignes de configuration.
+
+
+================================================================================
+8. DUPLICATION — Pattern CRUD dans les modèles
+================================================================================
+
+26 modèles sur 48 suivent le même pattern CRUD de base :
+  - ajouterXXX / createXXX
+  - updateXXX / modifierXXX
+  - deleteXXX / supprimerXXX
+  - getXXXById / getByXXX
+
+Modèles concernés :
+  Action, AnneeAcademique, Attribution, CritereEvaluation, Echeance,
+  Enseignant, Entreprise, Etudiant, Fonction, Grade, GroupeUtilisateur,
+  Inscription, Message, NiveauAccesDonnees, NiveauApprobation, NiveauEtude,
+  PersAdmin, QualiteJury, RapportEtudiant, Salle, Scolarite, Semestre,
+  Specialite, StatutJury, Traitement, TypeUtilisateur
+
+Chaque modèle réimplémente ses propres requêtes SQL pour ces opérations
+de base, alors que le schéma est toujours le même :
+  - ajouter : INSERT INTO table (colonnes) VALUES (?, ?, ...)
+  - update  : UPDATE table SET colonne=?, ... WHERE id=?
+  - delete  : DELETE FROM table WHERE id=?
+  - getById : SELECT * FROM table WHERE id=?
+
+8a. Getters/Setters manuels (modèles Enseignant, PersAdmin, Fonction, Specialite)
+
+Ces modèles définissent manuellement des getters/setters pour chaque 
+propriété, ce qui est redondant avec PHP (propriétés publiques ou 
+méthodes magiques __get/__set pourraient être utilisés).
+
+  Enseignant.php  : 15 getters/setters (getIdEnseignant, setNomEnseignant, etc.)
+  PersAdmin.php   : 14 getters/setters
+  Fonction.php    : 4 getters/setters
+  Specialite.php  : 4 getters/setters
+
+La logique est toujours : return $this->propriete;
+
+SOLUTION RECOMMENDÉE : BaseModel abstraite avec CRUD générique utilisant 
+des métadonnées de table + générateur de requêtes.
+
+
+================================================================================
+9. DUPLICATION — require_once et connexions à la base
+================================================================================
+
+9a. require_once __DIR__ . '/../config/database.php' : 40 contrôleurs sur 53
+
+Quasi tous les contrôleurs incluent le même fichier de configuration 
+de base de données. Cela devrait être fait une seule fois dans un 
+point d'entrée central (Bootstrap ou index.php).
+
+9b. require_once __DIR__ . '/../utils/permissions_helper.php' : 39 contrôleurs
+
+Même problème — inclusion massive et redondante.
+
+9c. Services avec beaucoup de require_once :
+  - ParametreService.php : 24 require_once
+  - EditionBulletinService.php : 16 require_once
+  - GestionRapportService.php : 13 require_once
+  - AuthService.php : 12 require_once
+  - EtudiantFicheService.php : 11 require_once
+  - ...
+
+L'absence d'autoloader (ou un autoloader incomplet dans Core/Autoload.php)
+oblige chaque fichier à faire ses propres require_once.
+
+SOLUTION RECOMMENDÉE : Implémenter un véritable autoloader PSR-4 via 
+Composer et supprimer tous les require_once redondants.
+
+9d. Database::getConnection() dans les constructeurs de contrôleurs
+
+47 contrôleurs sur 53 appellent `Database::getConnection()` dans leur
+constructeur. Beaucoup répètent le même pattern :
+    public function __construct()
+    {
+        $db = Database::getConnection();
+        $this->service = new XxxService($db);
+    }
+
+
+================================================================================
+10. DUPLICATION — logAction() dans les contrôleurs
+================================================================================
+
+Au moins 3 contrôleurs implémentent leur propre méthode logAction()
+avec une logique quasi-identique :
+
+  - ArchiveHubController.php
+  - ArchiveEtudiantController.php
+  - FicheEtudiantController.php
+
+Insertion dans la table `pister` :
+  INSERT INTO pister (id_utilisateur, action, statut_action, contexte, date_creation)
+  VALUES (?, ?, ?, 'archives', NOW())
+
+Chaque version a des différences mineures :
+  - ArchiveHubController : utilise $_SESSION['user_id'], catch vide
+  - ArchiveEtudiantController : utilise $_SESSION['user_id'], pas de try/catch
+  - FicheEtudiantController : utilise $_SESSION['id_utilisateur'], contexte différent
+    'fiche_etudiant_complete', try/catch avec error_log
+
+Note: Il existe aussi un service AuditService dédié mais ces contrôleurs 
+n'y ont pas recours.
+
+
+================================================================================
+11. DUPLICATION — Constructeurs de contrôleurs
+================================================================================
+
+Pattern très répété : 
+    public function __construct()
+    {
+        $db = Database::getConnection();
+        $this->service = new NomService($db);
+    }
+
+Mais avec beaucoup de variations inutiles :
+  - Certains reçoivent $db en paramètre : __construct($db = null)
+  - Certains utilisent une injection : __construct($pdo)
+  - D'autres initialisent des modèles supplémentaires : new AnneeAcademique($this->db)
+
+Les incohérences dans les signatures (null par défaut, type-hint, appel direct)
+sont un signe supplémentaire de duplication non maîtrisée.
+
+
+================================================================================
+12. DUPLICATION — Fichiers utils
+================================================================================
+
+12a. RecuDataUtils.php (317 lignes, 11 fonctions) vs ReceiptUtils.php (146 lignes, 4 fonctions)
+
+Ces deux fichiers dans app/utils/ traitent des reçus mais ont des 
+approches différentes :
+  - ReceiptUtils : statique, utilitaires de calcul (nombre en lettres, dates)
+  - RecuDataUtils : basé sur Database, persistance des données de reçu
+  
+La fonction `intToWords` (RecuDataUtils) et `numberToWords` (ReceiptUtils) 
+font la même chose — conversion d'un nombre en lettres — mais avec des 
+implémentations différentes. Fonctionnellement ce sont des duplicatas.
+
+12b. PlanningDataUtils.php (1059 lignes) — Utilitaire surdimensionné
+
+Contient ses propres méthodes tableExists() et columnExists() alors qu'il 
+y a déjà 32 et 22 duplicatas respectivement.
+
+12c. ComponentHelper.php (2719 lignes, 135 fonctions) — Méga-fichier
+
+Le plus gros fichier de la codebase. Mélange de rendu HTML, helpers de 
+composants, et fonctions utilitaires disparates. Son nom "Helper" cache 
+une accumulation de responsabilités.
+
+
+================================================================================
+13. AUTRES DUPLICATIONS NOTABLES
+================================================================================
+
+13a. Services avec AuditLog
+  - 82 appels dans ParametreService.php
+  - 19 appels dans AuthService.php
+  - 10 appels dans SauvegardeRestaurationService.php
+  - Des appels dispersés dans ~15 autres services
+  
+  L'AuditLog est utilisé partout mais sans pattern cohérent. Parfois 
+  l'audit est fait dans le service, parfois dans le contrôleur, parfois 
+  via la méthode AuditService, parfois directement via AuditLog.
+
+13b. logAction/AuditLog dans les modèles
+  - Plusieurs modèles (AuditLog, Archive, etc.) ont leurs propres méthodes 
+    logAction, logModification, logSuppression, etc.
+  - ArchiveService utilise `logAction` ET `logModification`
+  - GestionCandidaturesService a logValidation, logRejet, ET logAction
+
+13c. Core/Router.php (51 lignes)
+  - Très petit comparé au reste. Pourrait indiquer que le routing 
+    n'est pas vraiment utilisé (legacy non migré).
+
+13d. Security/ classes
+  - LegacyActionResolver a des méthodes map/sparse qui semblent 
+    incomplètes par rapport à RouteActionResolver
+  - RoutePermissionService et AuthorizationService ont des logiques 
+    qui se chevauchent (resolveLegacy pour l'un, resolveLegacyRequest 
+    pour l'autre)
+
+13e. Document/StudentInfoTrait.php
+  - Ce trait (1378 bytes) n'est utilisé par rien dans Services/Document/.
+  - Il est présent mais potentiellement orphelin ou inutilisé.
+
+13f. SilentTcpdf.php vs BrandedTcpdf.php
+  - Tous deux étendent TCPDF avec des méthodes Header/Footer.
+  - BrandedTcpdf est plus complet (setHeaderFooterData, Header, Footer)
+  - SilentTcpdf n'a que __construct, Header, Footer.
+  - Pourquoi deux classes ? L'une pourrait étendre l'autre ou partager 
+    une classe de base commune.
+
+
+================================================================================
+14. STATISTIQUES GÉNÉRALES
+================================================================================
+
+Total fichiers PHP : 205
+Total fichiers analysés : 205
+
+Par dossier :
+  - controllers/     : 53 fichiers
+  - models/          : 48 fichiers
+  - Services/        : 41 fichiers (Services/ + Services/Document/)
+  - utils/           : 17 fichiers
+  - config/          : 4 fichiers
+  - Security/        : 7 fichiers
+  - Core/            : 7 fichiers
+  - Support/         : 1 fichier
+  - middlewares/     : 1 fichier
+
+Top 10 des plus gros fichiers (lignes) :
+  1. utils/ComponentHelper.php                      : 2719
+  2. Services/ParametreService.php                  : 2701
+  3. Services/EvaluationSoutenanceService.php       : 1516
+  4. config/permission_registry.php                 : 1482
+  5. models/Etudiant.php                            : 1450
+  6. Services/GestionRapportService.php             : 1285
+  7. Services/ProgrammationSoutenanceService.php    : 1225
+  8. Services/ProcessusValidationService.php        : 1222
+  9. models/RapportEtudiant.php                     : 1209
+  10. config/email_templates.php                    : 1201
+
+Duplications critiques (priorité haute) :
+  - tableExists()              : 32 implémentations
+  - columnExists()             : 22 implémentations
+  - studentJoinCondition()     : 9 implémentations
+  - getProgrammationTable()    : 8 implémentations
+  - getJuryTable()             : 7 implémentations
+  - studentCarteExpr()         : 6 implémentations (identical)
+  - getProgrammationJuryColumn(): 6 implémentations
+  - CRUD géré par ParametreService : 21 méthodes identiques
+  - Pattern CRUD modèle       : 26 modèles
+
+Duplications modérées (priorité moyenne) :
+  - calculerMention()          : 3 implémentations
+  - normalizeSqlExpr()         : 3 implémentations
+  - resolveEnseignant...()     : 2-3 implémentations
+  - logAction()                : 3 implémentations
+  - Notifications email        : ~10 services
+  - require_once database.php  : 40 contrôleurs
+  - require_once permissions_helper.php : 39 contrôleurs
+
+Incohérences notables :
+  - "Très Bien" vs "Tres Bien" (accent) dans calculerMention
+  - $this->db vs $this->pdo selon le fichier
+  - try/catch vs pas de try/catch dans logAction
+  - $_SESSION['user_id'] vs $_SESSION['id_utilisateur']
+  - Signature __construct($db=null) vs __construct() vs __construct($pdo)
+
+================================================================================
+FIN DU RAPPORT
+================================================================================

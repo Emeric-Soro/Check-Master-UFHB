@@ -1,6 +1,8 @@
 <?php
 namespace CheckMaster\Services;
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
 use Exception;
 use PDO;
 

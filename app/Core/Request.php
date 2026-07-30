@@ -28,12 +28,19 @@ final class Request
     {
         // Mode sans rewrite: /public/index.php?_path=/login
         if (isset($query['_path']) && is_string($query['_path']) && $query['_path'] !== '') {
+            // Protection contre la traversée de répertoire
+            if (str_contains($query['_path'], '..') || str_contains($query['_path'], "\0")) {
+                return '/';
+            }
             $p = '/' . ltrim($query['_path'], '/');
             return rtrim($p, '/') ?: '/';
         }
 
         // PATH_INFO (si configuré): /public/index.php/login
         if (isset($server['PATH_INFO']) && is_string($server['PATH_INFO']) && $server['PATH_INFO'] !== '') {
+            if (str_contains($server['PATH_INFO'], '..') || str_contains($server['PATH_INFO'], "\0")) {
+                return '/';
+            }
             $p = '/' . ltrim($server['PATH_INFO'], '/');
             return rtrim($p, '/') ?: '/';
         }
@@ -41,6 +48,10 @@ final class Request
         $uri = (string) ($server['REQUEST_URI'] ?? '/');
         $path = parse_url($uri, PHP_URL_PATH);
         if (!is_string($path) || $path === '') {
+            return '/';
+        }
+        // Protection contre la traversée de répertoire et les null bytes
+        if (str_contains($path, "\0")) {
             return '/';
         }
 

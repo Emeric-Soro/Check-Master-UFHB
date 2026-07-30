@@ -1,6 +1,9 @@
 <?php
 namespace CheckMaster\Services;
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 require_once __DIR__ . '/../utils/EmailService.php';

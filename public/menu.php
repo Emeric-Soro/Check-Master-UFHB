@@ -16,6 +16,22 @@ class MenuView
         return ucwords($code);
     }
 
+    /**
+     * Valider qu'une URL est sûre pour un attribut href (pas de javascript:, data:, vbscript:)
+     */
+    private function safeUrl(string $url): string
+    {
+        $trimmed = trim($url);
+        if ($trimmed === '' || $trimmed === '#') {
+            return '#';
+        }
+        // Autoriser uniquement les URLs relatives (?, /) ou les schémas http/https
+        if (preg_match('/^(https?:\/\/|\/|\?|#)/i', $trimmed)) {
+            return $trimmed;
+        }
+        return '#';
+    }
+
     private function displayLabel($fonc): string
     {
         $label = isset($fonc->label_fonctionnalite) ? (string)$fonc->label_fonctionnalite : '';
@@ -106,7 +122,7 @@ class MenuView
                     foreach ($children as $child) {
                         $childActive = $this->isPageActiveExact($currentPage, (string)($child->url_fonctionnalite ?? ''));
                         $childActiveClass = $childActive ? ' is-active-blue' : '';
-                        $html .= '<a href="' . htmlspecialchars((string)($child->url_fonctionnalite ?? '#')) . '" class="cm-sidebar__menu-link' . $childActiveClass . '">';
+                        $html .= '<a href="' . htmlspecialchars($this->safeUrl((string)($child->url_fonctionnalite ?? '#')), ENT_QUOTES, 'UTF-8') . '" class="cm-sidebar__menu-link' . $childActiveClass . '">';
                         $html .= '<i class="fas ' . htmlspecialchars((string)($child->icone_fonctionnalite ?? 'fa-circle')) . ' cm-sidebar__menu-icon"></i>';
                         $html .= '<span>' . htmlspecialchars($this->displayLabel($child)) . '</span>';
                         $html .= '</a>';
@@ -116,7 +132,7 @@ class MenuView
                 else {
                     // Simple menu link
                     $activeClass = $isActive ? ' is-active-blue' : '';
-                    $html .= '<a href="' . htmlspecialchars((string)($fonc->url_fonctionnalite ?? '#')) . '" class="cm-sidebar__menu-link' . $activeClass . '">';
+                    $html .= '<a href="' . htmlspecialchars($this->safeUrl((string)($fonc->url_fonctionnalite ?? '#')), ENT_QUOTES, 'UTF-8') . '" class="cm-sidebar__menu-link' . $activeClass . '">';
                     $html .= '<i class="fas ' . htmlspecialchars((string)($fonc->icone_fonctionnalite ?? 'fa-circle')) . ' cm-sidebar__menu-icon"></i>';
                     $html .= '<span>' . htmlspecialchars($this->displayLabel($fonc)) . '</span>';
                     $html .= '</a>';

@@ -1,6 +1,9 @@
 <?php
 namespace CheckMaster\Services;
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
@@ -17,7 +20,7 @@ class SauvegardeRestaurationService
 
     public function __construct($db)
     {
-        $this->backupDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'ressources' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'backups' . DIRECTORY_SEPARATOR;
+        $this->backupDir = AppConfig::uploadPath() . DIRECTORY_SEPARATOR . 'backups' . DIRECTORY_SEPARATOR;
 
         if (!is_dir($this->backupDir)) {
             mkdir($this->backupDir, 0750, true);

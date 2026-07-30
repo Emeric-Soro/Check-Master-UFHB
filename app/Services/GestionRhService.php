@@ -223,7 +223,7 @@ class GestionRhService
     {
         $listeTypeEnseignants = [];
         $reflection = new \ReflectionObject($this->enseignantModel);
-        $dbProperty = $reflection->getProperty('db');
+        $dbProperty = $reflection->getProperty('pdo');
         $dbProperty->setAccessible(true);
         $db = $dbProperty->getValue($this->enseignantModel);
         $stmt = $db->query('SELECT id_type_enseignant, libelle FROM type_enseignant ORDER BY libelle ASC');

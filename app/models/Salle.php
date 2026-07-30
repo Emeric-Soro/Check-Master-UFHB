@@ -1,13 +1,11 @@
 <?php
 
-class Salle
-{
-    private $db;
+use CheckMaster\Models\BaseModel;
 
-    public function __construct($db)
-    {
-        $this->db = $db;
-    }
+class Salle extends BaseModel
+{
+    protected const TABLE = 'salles';
+    protected const PRIMARY_KEY = 'id_salle';
 
     /**
      * Récupérer toutes les salles
@@ -16,7 +14,7 @@ class Salle
     {
         try {
             $query = "SELECT * FROM salles ORDER BY lib_salle";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -32,7 +30,7 @@ class Salle
     {
         try {
             $query = "SELECT * FROM salles WHERE id_salle = ?";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute([$id_salle]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -48,7 +46,7 @@ class Salle
     {
         try {
             $query = "SELECT * FROM salles WHERE lib_salle = ?";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute([$lib_salle]);
             return $stmt->fetch(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
@@ -64,7 +62,7 @@ class Salle
     {
         try {
             $query = "INSERT INTO salles (lib_salle) VALUES (?)";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             return $stmt->execute([$lib_salle]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la création de la salle : " . $e->getMessage());
@@ -79,7 +77,7 @@ class Salle
     {
         try {
             $query = "UPDATE salles SET lib_salle = ? WHERE id_salle = ?";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             return $stmt->execute([$lib_salle, $id_salle]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la modification de la salle : " . $e->getMessage());
@@ -94,7 +92,7 @@ class Salle
     {
         try {
             $query = "DELETE FROM salles WHERE id_salle = ?";
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             return $stmt->execute([$id_salle]);
         } catch (PDOException $e) {
             error_log("Erreur lors de la suppression de la salle : " . $e->getMessage());
@@ -108,9 +106,9 @@ class Salle
     public function verifierDisponibilite($id_salle, $date_soutenance, $heure_soutenance, $num_soutenance_exclure = null)
     {
         try {
-            $query = "SELECT COUNT(*) as count FROM programmer_soutenance 
-                     WHERE id_salle = ? 
-                     AND date_soutenance = ? 
+            $query = "SELECT COUNT(*) as count FROM programmer_soutenance
+                     WHERE id_salle = ?
+                     AND date_soutenance = ?
                      AND heure_soutenance = ?";
 
             $params = [$id_salle, $date_soutenance, $heure_soutenance];
@@ -120,7 +118,7 @@ class Salle
                 $params[] = $num_soutenance_exclure;
             }
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute($params);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -140,13 +138,13 @@ class Salle
             $query = "SELECT s.* FROM salles s
                      WHERE s.id_salle NOT IN (
                          SELECT ps.id_salle FROM programmer_soutenance ps
-                         WHERE ps.date_soutenance = ? 
+                         WHERE ps.date_soutenance = ?
                          AND ps.heure_soutenance = ?
                          AND ps.id_salle IS NOT NULL
                      )
                      ORDER BY s.lib_salle";
 
-            $stmt = $this->db->prepare($query);
+            $stmt = $this->pdo->prepare($query);
             $stmt->execute([$date_soutenance, $heure_soutenance]);
             return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {

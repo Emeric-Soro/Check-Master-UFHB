@@ -1,6 +1,9 @@
 <?php
 namespace CheckMaster\Services;
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
@@ -995,8 +998,8 @@ class ProcessusValidationService
                         require_once __DIR__ . '/../Utils/PlanningDataUtils.php';
 
                         $pdfGenerator = new \App\Services\Document\PdfGeneratorService(
-                            __DIR__ . '/../../storage/documents',
-                            __DIR__ . '/../../public/image/logo_ufhb.png'
+                            AppConfig::storageDocumentsPath(),
+                            AppConfig::imagePath() . '/logo_ufhb.png'
                         );
                         $dbWrapper = new \App\Support\Database();
                         $dataUtils = new \App\Utils\PlanningDataUtils($dbWrapper);

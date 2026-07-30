@@ -11,7 +11,7 @@ class GestionReclamationsScolariteController {
     private $service;
     public function __construct() {
         $db = Database::getConnection();
-        $reclamationModel = new Reclamation();
+        $reclamationModel = new Reclamation($db);
         $auditLog = new AuditLog($db);
         $this->service = new GestionReclamationsScolariteService($reclamationModel, $auditLog);
     }

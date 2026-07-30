@@ -1,5 +1,8 @@
 <?php
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/PersAdmin.php';

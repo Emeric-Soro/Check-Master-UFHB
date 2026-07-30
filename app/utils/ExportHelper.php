@@ -1,4 +1,7 @@
 <?php
+
+use CheckMaster\Core\Messages;
+
 /**
  * ExportHelper — utilitaire d'export CSV et Excel pour CheckMaster
  *

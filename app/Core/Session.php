@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace CheckMaster\Core;
 
 final class Session
@@ -10,15 +12,16 @@ final class Session
             return;
         }
 
-        // Durcissement minimal; Secure sera réellement efficace sous HTTPS.
-        $params = session_get_cookie_params();
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
         session_set_cookie_params([
-            'lifetime' => 0,
-            'path' => $params['path'] ?? '/',
-            'domain' => $params['domain'] ?? '',
-            'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-            'httponly' => true,
-            'samesite' => 'Lax',
+            'lifetime' => (int) AppConfig::get('session.lifetime', 0),
+            'path'     => '/',
+            'domain'   => '',
+            'secure'   => $isHttps,
+            'httponly'  => true,
+            'samesite'  => (string) AppConfig::get('session.samesite', 'Lax'),
         ]);
 
         if (@session_start()) {
@@ -47,7 +50,7 @@ final class Session
         $fallbackPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'sessions';
 
         if (!is_dir($fallbackPath)) {
-            @mkdir($fallbackPath, 0775, true);
+            @mkdir($fallbackPath, 0700, true);
         }
 
         clearstatcache(true, $fallbackPath);

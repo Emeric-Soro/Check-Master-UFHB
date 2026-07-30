@@ -1,6 +1,9 @@
 <?php
 namespace CheckMaster\Services;
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/Scolarite.php';
@@ -31,21 +34,21 @@ use PDO;
  */
 class GestionCandidaturesService
 {
-    private $db;
+    private $pdo;
     private $etudiant;
     private $scolarite;
     private $emailService;
     private $persAdmin;
     private $auditLog;
 
-    public function __construct($db)
+    public function __construct($pdo)
     {
-        $this->db = $db;
-        $this->etudiant = new Etudiant($this->db);
-        $this->scolarite = new Scolarite($this->db);
+        $this->pdo = $pdo;
+        $this->etudiant = new Etudiant($this->pdo);
+        $this->scolarite = new Scolarite($this->pdo);
         $this->emailService = new EmailService();
-        $this->persAdmin = new PersAdmin($this->db);
-        $this->auditLog = new AuditLog($this->db);
+        $this->persAdmin = new PersAdmin($this->pdo);
+        $this->auditLog = new AuditLog($this->pdo);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -76,7 +79,7 @@ class GestionCandidaturesService
             ];
         }
 
-        $writeGuard = \AcademicYear::ensureWritableYear($this->db, $studentYearId, 'une candidature de soutenance');
+        $writeGuard = \AcademicYear::ensureWritableYear($this->pdo, $studentYearId, 'une candidature de soutenance');
         if (!$writeGuard['success']) {
             return [
                 'success' => false,
@@ -101,7 +104,7 @@ class GestionCandidaturesService
     public function getLastCandidatureByNumEtu(string $numEtu)
     {
         $sql = "SELECT * FROM candidature_soutenance WHERE num_etu = ? ORDER BY date_candidature DESC LIMIT 1";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$numEtu]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
@@ -196,7 +199,7 @@ class GestionCandidaturesService
         // Si la candidature est validée, mettre le rapport en attente de la commission
         if ($decision === 'Validée' && $idCandidature) {
             try {
-                $stmt = $this->db->prepare("UPDATE rapport_etudiants SET etape_validation = 'en_attente_commission' WHERE id_candidature = ?");
+                $stmt = $this->pdo->prepare("UPDATE rapport_etudiants SET etape_validation = 'en_attente_commission' WHERE id_candidature = ?");
                 $stmt->execute([$idCandidature]);
             } catch (\PDOException $e) {
                 error_log("Erreur lors de la transition vers commission : " . $e->getMessage());
@@ -416,7 +419,7 @@ class GestionCandidaturesService
             'num_etu' => htmlspecialchars($numEtu),
             'date_candidature' => $dateCandidature,
             'id_candidature' => $idCandidature,
-            'admin_url' => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/checkmaster/?page=gestion_dossiers_candidatures',
+            'admin_url' => AppConfig::appUrl() . '/?page=gestion_dossiers_candidatures',
         ]);
     }
 }

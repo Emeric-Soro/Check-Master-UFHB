@@ -1,17 +1,18 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/AuditService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
-        require_once __DIR__ . '/../utils/FormHelper.php';
+require_once __DIR__ . '/../utils/FormHelper.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use CheckMaster\Services\AuditService;
 
-class AuditController {
+class AuditController extends BaseController {
     private $service;
 
     public function __construct() {
-        $db = Database::getConnection();
-        $this->service = new AuditService($db);
+        parent::__construct(\Database::getConnection());
+        $this->service = new AuditService($this->pdo);
     }
 
     public function index() {
@@ -30,17 +31,17 @@ class AuditController {
 
             // Paramètres de filtrage
             $filters = $this->service->extractFilters($_GET);
-            
+
             // Récupérer les logs avec filtres et pagination
             $auditLog = $this->service->getFilteredAuditLog($filters, $offset, $perPage);
             $totalLogs = $this->service->getTotalFilteredLogs($filters);
-            
+
             // Calculer la pagination
             $totalPages = ceil($totalLogs / $perPage);
-            
+
             // Gérer les actions spéciales
             $this->handleSpecialActions();
-            
+
             // Passer les données à la vue
             $GLOBALS['auditLog'] = $auditLog;
             $GLOBALS['page'] = $page;
@@ -54,7 +55,7 @@ class AuditController {
             $GLOBALS['perPage'] = 10;
             $GLOBALS['totalPages'] = 1;
             $GLOBALS['totalLogs'] = 0;
-            $GLOBALS['error'] = "Une erreur s'est produite lors du chargement des logs d'audit.";
+            $GLOBALS['error'] = Messages::get('error.generic');
         }
     }
 
@@ -79,10 +80,7 @@ class AuditController {
 
     public function exportAuditLog() {
         if (!canView('piste_audit')) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => "Accès non autorisé."]);
-            exit;
+            $this->jsonError(Messages::get('error.permission_denied'), 403);
         }
         $filters = $this->service->extractFilters($_GET);
 
@@ -117,8 +115,8 @@ class AuditController {
         require_once __DIR__ . '/../Services/Document/PdfGeneratorService.php';
 
         $pdfGen = new \App\Services\Document\PdfGeneratorService(
-            __DIR__ . '/../../storage/documents',
-            __DIR__ . '/../../public/image/logo_ufhb.png'
+            $this->storagePath(),
+            $this->logoPath()
         );
 
         $pdf = $pdfGen->createDocument('P', 'A4', 'Piste audit - ' . date('Y-m-d'));
@@ -174,7 +172,7 @@ class AuditController {
         }
 
         if (!canDelete('piste_audit')) {
-            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error'] = Messages::get('error.permission_denied');
             header('Location: ?page=piste_audit&error=permission_denied');
             exit;
         }
@@ -214,7 +212,7 @@ class AuditController {
         }
 
         if (!canDelete('piste_audit')) {
-            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+            $_SESSION['error'] = Messages::get('error.permission_denied');
             header('Location: ?page=piste_audit&error=permission_denied');
             exit;
         }
@@ -243,4 +241,4 @@ class AuditController {
     public function getStatutsList() {
         return $this->service->getStatutsList();
     }
-} 
+}

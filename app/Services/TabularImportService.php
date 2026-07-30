@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/PersAdmin.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use DateTimeImmutable;
+use CheckMaster\Core\Messages;
 use Enseignant;
 use PersAdmin;
 use InvalidArgumentException;
@@ -273,7 +274,7 @@ final class TabularImportService
     {
         $handle = @fopen($path, 'rb');
         if ($handle === false) {
-            return ['success' => false, 'message' => 'Impossible de lire le fichier CSV.'];
+            return ['success' => false, 'message' => Messages::get('error.file_read_csv')];
         }
 
         $firstLine = fgets($handle);

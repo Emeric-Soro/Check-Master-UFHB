@@ -1,30 +1,29 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/GestionEtudiantService.php';
 require_once __DIR__ . '/../Services/TabularImportService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 require_once __DIR__ . '/../Core/Autoload.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use CheckMaster\Core\Session;
 use CheckMaster\Services\GestionEtudiantService;
 use CheckMaster\Services\TabularImportService;
 
 
-class GestionEtudiantController
+class GestionEtudiantController extends BaseController
 {
     /** @var GestionEtudiantService */
     private $service;
     /** @var TabularImportService */
     private $importService;
-    private $baseViewPath;
 
     public function __construct()
     {
-        Session::start();
+        parent::__construct(\Database::getConnection());
 
-        $this->baseViewPath = __DIR__ . '/../../ressources/views/';
-        $this->service = new GestionEtudiantService(Database::getConnection());
-        $this->importService = new TabularImportService(Database::getConnection());
+        $this->service = new GestionEtudiantService($this->pdo);
+        $this->importService = new TabularImportService($this->pdo);
     }
 
     public function index()
@@ -55,7 +54,7 @@ class GestionEtudiantController
             if (isset($_GET['num_etu']) && !empty($_GET['num_etu'])) {
                 $etudiant_a_modifier = $this->service->getEtudiantById($_GET['num_etu']);
                 if (!$etudiant_a_modifier) {
-                    $GLOBALS['messageErreur'] = "Étudiant non trouvé.";
+                    $GLOBALS['messageErreur'] = Messages::get('error.not_found');
                 }
             }
 
@@ -66,15 +65,14 @@ class GestionEtudiantController
                 // On la garde pour compatibilité rétroactive
                 $etudiant_a_modifier = $this->service->getEtudiantById($_GET['num_etu']);
                 if (!$etudiant_a_modifier) {
-                    $GLOBALS['messageErreur'] = "Étudiant non trouvé.";
+                    $GLOBALS['messageErreur'] = Messages::get('error.not_found');
                 } else {
                     $modalAction = 'edit';
                     // Enregistrer la consultation d'un étudiant spécifique
 
                     // Si c'est une requête AJAX, renvoyer les données en JSON
-                    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                        header('Content-Type: application/json');
-                        echo json_encode([
+                    if ($this->isAjax()) {
+                        $this->json([
                             'num_etu' => $etudiant_a_modifier->num_ident_etud ?? $etudiant_a_modifier->num_carte_etud,
                             'num_carte_etud' => $etudiant_a_modifier->num_carte_etud,
                             'num_ident_etud' => $etudiant_a_modifier->num_ident_etud ?? '',
@@ -85,7 +83,6 @@ class GestionEtudiantController
                             'email_etu' => $etudiant_a_modifier->email_etu,
                             'promotion_etu' => $etudiant_a_modifier->promotion_etu
                         ]);
-                        exit;
                     }
                 }
             }
@@ -95,12 +92,11 @@ class GestionEtudiantController
                 // Ajout d'un nouvel étudiant
                 if (isset($_POST['submit_add_etudiant'])) {
                     if (!canCreate('gestion_etudiants')) {
-                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                            http_response_code(403);
-                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                        if ($this->isAjax()) {
+                            $this->jsonError(Messages::get('error.permission_denied'), 403);
                             exit;
                         }
-                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = Messages::get('error.permission_denied');
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -124,12 +120,11 @@ class GestionEtudiantController
                 // Modification d'un étudiant
                 if (isset($_POST['submit_modifier_etudiant'])) {
                     if (!canEdit('gestion_etudiants')) {
-                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                            http_response_code(403);
-                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                        if ($this->isAjax()) {
+                            $this->jsonError(Messages::get('error.permission_denied'), 403);
                             exit;
                         }
-                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = Messages::get('error.permission_denied');
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -153,12 +148,11 @@ class GestionEtudiantController
                 // Suppression d'étudiants
                 if (isset($_POST['selected_ids']) && !empty($_POST['selected_ids'])) {
                     if (!canDelete('gestion_etudiants')) {
-                        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                            http_response_code(403);
-                            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
+                        if ($this->isAjax()) {
+                            $this->jsonError(Messages::get('error.permission_denied'), 403);
                             exit;
                         }
-                        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                        $_SESSION['error'] = Messages::get('error.permission_denied');
                         $_SESSION['error_type'] = 'permission_denied';
                         header('Location: layout.php?page=access_denied');
                         exit;
@@ -198,7 +192,7 @@ class GestionEtudiantController
 
         } catch (Exception $e) {
             error_log("Erreur dans GestionEtudiantController::index : " . $e->getMessage());
-            $GLOBALS['messageErreur'] = "Une erreur est survenue. Veuillez réessayer.";
+            $GLOBALS['messageErreur'] = Messages::get('error.generic');
         }
     }
 
@@ -215,7 +209,7 @@ class GestionEtudiantController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!canCreate('gestion_etudiants')) {
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 $_SESSION['error_type'] = 'permission_denied';
                 header('Location: layout.php?page=access_denied');
                 exit;
@@ -228,22 +222,22 @@ class GestionEtudiantController
                     $importFilename = (string) ($parseResult['filename'] ?? '');
                     $messageSuccess = (string) ($parseResult['message'] ?? '');
                 } else {
-                    $messageErreur = (string) ($parseResult['message'] ?? 'Le fichier n\'a pas pu être analysé.');
+                    $messageErreur = (string) ($parseResult['message'] ?? Messages::get('error.import_failed'));
                 }
             } elseif (isset($_POST['submit_import_commit'])) {
                 $decodedRows = json_decode((string) ($_POST['import_payload'] ?? '[]'), true);
                 if (!is_array($decodedRows) || $decodedRows === []) {
-                    $messageErreur = 'Aucune ligne à importer.';
+                    $messageErreur = Messages::get('error.selection_required');
                 } else {
                     $importRows = $decodedRows;
                     $importFilename = (string) ($_POST['import_filename'] ?? '');
                     $result = $this->importService->importRows('etudiants', $decodedRows, (int) ($_SESSION['id_utilisateur'] ?? 0));
                     $importSummary = $result['summary'] ?? null;
                     if ($result['success'] ?? false) {
-                        $messageSuccess = (string) ($result['message'] ?? 'Import terminé.');
+                        $messageSuccess = (string) ($result['message'] ?? Messages::get('success.imported'));
                         $importRows = [];
                     } else {
-                        $messageErreur = (string) ($result['message'] ?? 'Des erreurs sont survenues pendant l\'import.');
+                        $messageErreur = (string) ($result['message'] ?? Messages::get('error.import_failed'));
                     }
                 }
             }

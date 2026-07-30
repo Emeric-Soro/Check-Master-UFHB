@@ -16,6 +16,8 @@ use CheckMaster\Core\Router;
 use CheckMaster\Core\Session;
 use CheckMaster\Core\Csrf;
 use CheckMaster\Core\Bootstrap;
+use CheckMaster\Core\Messages;
+use CheckMaster\Core\AppConfig;
 
 Bootstrap::init();
 Session::start();
@@ -28,7 +30,7 @@ $router = new Router();
 function renderAccessDenied(string $message = ''): Response
 {
     $libGU = htmlspecialchars((string)($_SESSION['lib_GU'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $msg = $message !== '' ? htmlspecialchars($message, ENT_QUOTES, 'UTF-8') : '';
+    $msg = $message !== '' ? htmlspecialchars($message, ENT_QUOTES, 'UTF-8') : htmlspecialchars(Messages::get('auth.unauthorized'), ENT_QUOTES, 'UTF-8');
 
     ob_start();
     ?>
@@ -37,7 +39,7 @@ function renderAccessDenied(string $message = ''): Response
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Accès refusé</title>
+        <title><?php echo Messages::get('error.permission_denied'); ?></title>
         <link rel="stylesheet" href="../css/output.css">
         <link rel="stylesheet" href="../assets/vendor/font-awesome/css/all.min.css">
     </head>
@@ -114,7 +116,7 @@ $router->post('/login', function (Request $req): Response {
     require_once __DIR__ . '/../../app/controllers/AuthController.php';
 
     if (!Csrf::validate($req->post['csrf_token'] ?? null)) {
-        $_SESSION['error'] = 'Session expirée. Veuillez réessayer.';
+        $_SESSION['error'] = Messages::get('auth.session_expired');
         return Response::redirect('index.php?_path=/login');
     }
 
@@ -126,7 +128,7 @@ $router->post('/login', function (Request $req): Response {
         return Response::redirect('index.php?_path=/app');
     }
 
-    $_SESSION['error'] = 'Login ou mot de passe incorrect';
+    $_SESSION['error'] = Messages::get('auth.login_failed');
     return Response::redirect('index.php?_path=/login');
 });
 
@@ -135,7 +137,7 @@ $router->post('/logout', function (Request $req): Response {
     require_once __DIR__ . '/../../app/controllers/AuthController.php';
 
     if (!Csrf::validate($req->post['csrf_token'] ?? null)) {
-        $_SESSION['error'] = 'Session expirée. Veuillez réessayer.';
+        $_SESSION['error'] = Messages::get('auth.session_expired');
         return Response::redirect('index.php?_path=/app');
     }
 

@@ -1,6 +1,9 @@
 <?php
 namespace CheckMaster\Services;
 
+use CheckMaster\Core\AppConfig;
+use CheckMaster\Core\Messages;
+
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Reclamation.php';
 require_once __DIR__ . '/../models/AuditLog.php';
@@ -131,15 +134,15 @@ class GestionReclamationsService
         $erreurs = [];
 
         if (empty($donnees['titre']) || strlen(trim($donnees['titre'])) < 5) {
-            $erreurs['titre'] = 'Le titre doit contenir au moins 5 caractères.';
+            $erreurs['titre'] = Messages::get('validation.min_length', ['min' => 5]);
         }
 
         if (empty($donnees['description']) || strlen(strip_tags(trim($donnees['description']))) < 20) {
-            $erreurs['description'] = 'La description doit contenir au moins 20 caractères.';
+            $erreurs['description'] = Messages::get('validation.min_length', ['min' => 20]);
         }
 
         if (empty($donnees['type']) || !in_array($donnees['type'], self::VALID_TYPES)) {
-            $erreurs['type'] = 'Veuillez sélectionner un type de réclamation valide.';
+            $erreurs['type'] = Messages::get('error.invalid_input');
         }
 
         return $erreurs;
@@ -211,7 +214,7 @@ class GestionReclamationsService
             return [
                 'success'        => true,
                 'reclamationId'  => $reclamationId,
-                'message'        => 'Réclamation soumise avec succès. Numéro de référence : REC-' . $reclamationId,
+                'message'        => Messages::get('business.claim_submitted') . ' Référence : REC-' . $reclamationId,
             ];
         }
 
@@ -219,7 +222,7 @@ class GestionReclamationsService
         return [
             'success'        => false,
             'reclamationId'  => null,
-            'message'        => 'Erreur lors de la soumission de la réclamation. Veuillez réessayer.',
+            'message'        => Messages::get('error.generic'),
         ];
     }
 
@@ -407,7 +410,7 @@ class GestionReclamationsService
             return [
                 'success'      => false,
                 'reclamation'  => null,
-                'error'        => 'Réclamation non trouvée',
+                'error'        => Messages::get('error.not_found'),
                 'httpCode'     => 404,
             ];
         }
@@ -416,7 +419,7 @@ class GestionReclamationsService
             return [
                 'success'      => false,
                 'reclamation'  => null,
-                'error'        => 'Accès non autorisé',
+                'error'        => Messages::get('auth.unauthorized'),
                 'httpCode'     => 403,
             ];
         }
@@ -444,7 +447,7 @@ class GestionReclamationsService
                 'objet' => htmlspecialchars($objet, ENT_QUOTES, 'UTF-8'),
                 'type' => htmlspecialchars($type, ENT_QUOTES, 'UTF-8'),
                 'id' => $idReclamation,
-                'admin_url' => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/checkmaster/?page=gestion_reclamations_scolarite',
+                'admin_url' => AppConfig::appUrl() . '/?page=gestion_reclamations_scolarite',
             ]);
         } catch (\Exception $e) {
             error_log('Erreur notifierReclamationSoumise: ' . $e->getMessage());

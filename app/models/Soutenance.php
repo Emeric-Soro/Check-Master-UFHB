@@ -1,13 +1,11 @@
 <?php
 
-class Soutenance
-{
-    private $db;
+use CheckMaster\Models\BaseModel;
 
-    public function __construct($db)
-    {
-        $this->db = $db;
-    }
+class Soutenance extends BaseModel
+{
+    protected const TABLE = 'programmer_soutenance';
+    protected const PRIMARY_KEY = 'num_soutenance';
 
     /**
      * @return array{date_deb: string, date_fin: string, label: string}|null
@@ -19,7 +17,7 @@ class Soutenance
         }
 
         try {
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     date_deb,
                     date_fin,
@@ -151,7 +149,7 @@ class Soutenance
         ";
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
@@ -212,7 +210,7 @@ class Soutenance
             WHERE " . implode(' AND ', $where);
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             foreach ($params as $key => $value) {
                 $stmt->bindValue($key, $value);
             }
@@ -231,7 +229,7 @@ class Soutenance
     public function getById($num_soutenance)
     {
         try {
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     ps.*,
                     s.lib_salle,
@@ -260,7 +258,7 @@ class Soutenance
     public function getJuryBySoutenance($num_soutenance)
     {
         try {
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     en.id_enseignant,
                     en.nom_enseignant,
@@ -307,7 +305,7 @@ class Soutenance
         }
 
         try {
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     ce.lib_critere,
                     ev.note,
@@ -341,7 +339,7 @@ class Soutenance
         }
 
         try {
-            $stmt = $this->db->prepare("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     DATE(ps.date_soutenance) AS jour,
                     COUNT(*) AS total_soutenances

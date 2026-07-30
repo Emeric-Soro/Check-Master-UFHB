@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../app/Core/Autoload.php';
 \CheckMaster\Core\Session::start();
 
 $csrfToken = \CheckMaster\Core\Csrf::token();
-$errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION['error']) : '';
+$errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION['error'], ENT_QUOTES, 'UTF-8') : '';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -28,10 +28,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
                 <img src="../image/logo_cm_sbg.png" alt="UFHB">
                 <span>Retourner sur l'accueil UFHB</span>
             </a>
-
             <h1>Accédez à votre espace CheckMaster</h1>
-            <p>Retrouvez toutes les fonctionnalités de gestion des soutenances MIAGE dans une interface unifiée.</p>
-
             <div class="cm-login-features">
                 <article class="cm-login-feature-card">
                     <i class="fas fa-shield-alt" aria-hidden="true"></i>
@@ -45,7 +42,6 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
                 </article>
             </div>
         </section>
-
         <section class="cm-login-card">
             <div class="cm-login-card__header">
                 <img src="../image/logo_cm_sbg.png" alt="Logo CheckMaster">
@@ -68,7 +64,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
                 <div class="cm-form-group is-required">
                     <label for="login" class="cm-form-label">Nom d'utilisateur (login) <span class="cm-required-star">*</span></label>
                     <div class="cm-login-input-icon">
-                        <input id="login" name="login" type="text" required class="cm-form-control" placeholder="Votre login (ex: jdupont)">
+                        <input id="login" name="login" type="text" required class="cm-form-control" placeholder="Votre login (ex: rlatyfa)">
                         <i class="fas fa-user" aria-hidden="true"></i>
                     </div>
                 </div>

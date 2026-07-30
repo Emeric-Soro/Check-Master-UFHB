@@ -1,9 +1,10 @@
 <?php
 
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../Services/ArchiveService.php';
 require_once __DIR__ . '/../utils/permissions_helper.php';
 
+use CheckMaster\Controllers\BaseController;
+use CheckMaster\Core\Messages;
 use CheckMaster\Services\ArchiveService;
 
 /**
@@ -11,14 +12,14 @@ use CheckMaster\Services\ArchiveService;
  *
  * HTTP / session concerns only – all business logic lives in ArchiveService.
  */
-class ArchiveController
+class ArchiveController extends BaseController
 {
     private $service;
 
     public function __construct()
     {
-        $db = Database::getConnection();
-        $this->service = new ArchiveService($db);
+        parent::__construct(\Database::getConnection());
+        $this->service = new ArchiveService($this->pdo);
     }
 
     /**
@@ -50,7 +51,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::index: " . $e->getMessage());
-            $_SESSION['error'] = "Une erreur est survenue lors du chargement de l'historique.";
+            $_SESSION['error'] = Messages::get('error.generic');
             header('Location: ?page=dashboard');
             exit;
         }
@@ -65,7 +66,7 @@ class ArchiveController
             $numEtu = $_GET['num_etu'] ?? null;
 
             if (!$numEtu) {
-                $_SESSION['error'] = "Matricule étudiant manquant.";
+                $_SESSION['error'] = Messages::get('error.invalid_input');
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -73,7 +74,7 @@ class ArchiveController
             $studentFile = $this->service->getStudentFile($numEtu);
 
             if (!$studentFile) {
-                $_SESSION['error'] = "Étudiant non trouvé.";
+                $_SESSION['error'] = Messages::get('error.not_found');
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -87,7 +88,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::viewStudentFile: " . $e->getMessage());
-            $_SESSION['error'] = "Une erreur est survenue lors du chargement du dossier étudiant.";
+            $_SESSION['error'] = Messages::get('error.generic');
             header('Location: ?page=admin_historique');
             exit;
         }
@@ -100,7 +101,7 @@ class ArchiveController
     {
         try {
             if (!canEdit('admin_historique')) {
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -113,7 +114,7 @@ class ArchiveController
             $numEtu = $_POST['num_etu'] ?? null;
 
             if (!$numEtu) {
-                $_SESSION['error'] = "Matricule étudiant manquant.";
+                $_SESSION['error'] = Messages::get('error.invalid_input');
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -131,9 +132,9 @@ class ArchiveController
                     );
                 }
 
-                $_SESSION['success'] = "Dossier étudiant mis à jour avec succès.";
+                $_SESSION['success'] = Messages::get('success.updated');
             } else {
-                $_SESSION['error'] = "Erreur lors de la mise à jour du dossier.";
+                $_SESSION['error'] = Messages::get('error.generic');
             }
 
             header("Location: ?page=admin_historique&action=view_student&num_etu=$numEtu");
@@ -141,7 +142,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::updateStudentFile: " . $e->getMessage());
-            $_SESSION['error'] = "Une erreur est survenue lors de la mise à jour.";
+            $_SESSION['error'] = Messages::get('error.generic');
             header('Location: ?page=admin_historique');
             exit;
         }
@@ -154,7 +155,7 @@ class ArchiveController
     {
         try {
             if (!canCreate('admin_historique')) {
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -189,9 +190,9 @@ class ArchiveController
             $_SESSION['import_summary'] = $summary;
 
             if ($summary['total_errors'] > 0) {
-                $_SESSION['error'] = "Import terminé avec {$summary['total_errors']} erreur(s). Consultez les détails ci-dessous.";
+                $_SESSION['error'] = Messages::get('error.import_failed') . " ({$summary['total_errors']} erreur(s))";
             } else {
-                $_SESSION['success'] = "Import réussi! {$summary['total_success']} enregistrement(s) importé(s).";
+                $_SESSION['success'] = Messages::get('success.imported') . " ({$summary['total_success']} enregistrement(s))";
             }
 
             header('Location: ?page=admin_historique&action=import_result');
@@ -199,7 +200,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::importArchive: " . $e->getMessage());
-            $_SESSION['error'] = "Une erreur est survenue lors de l'import: " . $e->getMessage();
+            $_SESSION['error'] = Messages::get('error.import_failed') . ' : ' . $e->getMessage();
             header('Location: ?page=admin_historique');
             exit;
         }
@@ -234,7 +235,7 @@ class ArchiveController
     {
         try {
             if (!canCreate('admin_historique')) {
-                $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+                $_SESSION['error'] = Messages::get('error.permission_denied');
                 header('Location: ?page=admin_historique');
                 exit;
             }
@@ -259,10 +260,10 @@ class ArchiveController
             $headers = [];
             switch ($tab) {
                 case 'students':
-                    $headers = ['Matricule', 'Nom', 'Prenom', 'Email', 'Promotion', 'Statut', 'Thème'];
+                    $headers = ['Matricule', 'Nom', 'Prenom', 'Email', 'Promotion', 'Statut', 'Thème'];
                     break;
                 case 'jury':
-                    $headers = ['Enseignant', 'Rôle', 'Soutenance', 'Date'];
+                    $headers = ['Enseignant', 'Rôle', 'Soutenance', 'Date'];
                     break;
                 case 'vue_ensemble':
                 case 'stats':
@@ -280,7 +281,7 @@ class ArchiveController
 
         } catch (Exception $e) {
             error_log("Error in ArchiveController::exportHistory: " . $e->getMessage());
-            $_SESSION['error'] = "Erreur lors de l'export: " . $e->getMessage();
+            $_SESSION['error'] = Messages::get('error.export_failed') . ' : ' . $e->getMessage();
             header('Location: ?page=admin_historique');
             exit;
         }

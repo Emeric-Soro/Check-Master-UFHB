@@ -1,40 +1,60 @@
 <?php
 
+/**
+ * Configuration de la base de données.
+ * Les valeurs sont lues depuis AppConfig (fichier .env).
+ * La classe Database est maintenue pour compatibilité ascendante.
+ */
+
 if (!class_exists('Database', false)) {
     class Database
     {
-        // Configuration de la base de données (sans Docker)
-        private static $host = 'localhost';
-        private static $db = 'ufrmi1802974_2q2mpf';
-        private static $user = 'root';
-        private static $pass = '';
-        private static $charset = 'utf8';
+        private static ?PDO $instance = null;
 
         public static function getConfig(): array
         {
             return [
-                'host' => self::$host,
-                'db' => self::$db,
-                'user' => self::$user,
-                'pass' => self::$pass,
-                'charset' => self::$charset,
+                'host'    => \CheckMaster\Core\AppConfig::dbHost(),
+                'db'      => \CheckMaster\Core\AppConfig::dbName(),
+                'user'    => \CheckMaster\Core\AppConfig::dbUser(),
+                'pass'    => \CheckMaster\Core\AppConfig::dbPass(),
+                'charset' => \CheckMaster\Core\AppConfig::dbCharset(),
             ];
         }
 
-        public static function getConnection()
+        public static function getConnection(): PDO
         {
+            if (self::$instance !== null) {
+                return self::$instance;
+            }
+
             try {
-                $dsn = "mysql:host=" . self::$host . ";dbname=" . self::$db . ";charset=" . self::$charset;
-                $pdo = new PDO($dsn, self::$user, self::$pass);
+                $host    = \CheckMaster\Core\AppConfig::dbHost();
+                $db      = \CheckMaster\Core\AppConfig::dbName();
+                $user    = \CheckMaster\Core\AppConfig::dbUser();
+                $pass    = \CheckMaster\Core\AppConfig::dbPass();
+                $charset = \CheckMaster\Core\AppConfig::dbCharset();
+                $tz      = \CheckMaster\Core\AppConfig::dbTimezone();
+
+                $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+                $pdo = new PDO($dsn, $user, $pass);
                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                // Aligner la session MySQL sur le fuseau utilisé par l'application.
-                $pdo->exec("SET time_zone = '+00:00'");
+                $pdo->exec("SET time_zone = '$tz'");
+
+                self::$instance = $pdo;
                 return $pdo;
             } catch (PDOException $e) {
-                // Ne pas exposer les détails techniques (DSN, creds, etc.)
                 error_log("Erreur de connexion DB: " . $e->getMessage());
-                die("Erreur de connexion à la base de données.");
+                throw new \RuntimeException("Erreur de connexion à la base de données.", 0, $e);
             }
+        }
+
+        /**
+         * Réinitialiser la connexion (utile en tests).
+         */
+        public static function reset(): void
+        {
+            self::$instance = null;
         }
     }
 }
