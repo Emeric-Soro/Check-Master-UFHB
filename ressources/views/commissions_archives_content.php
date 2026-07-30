@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../app/utils/permissions_helper.php';
 /**
  * Hub Commissions & Archives — Navigation par onglets
  * Regroupe : Archives documents, Archives étudiants, Archives comptes rendus,
@@ -13,6 +14,7 @@ $hubTabs = [
     ['id' => 'fiche_commission',        'label' => 'Fiche commission'],
     ['id' => 'workflow_validation',     'label' => 'Workflow'],
 ];
+
 
 $requestedTab = (string) ($_GET['tab'] ?? 'archives_documents');
 $allowedIds = array_column($hubTabs, 'id');
@@ -123,6 +125,7 @@ $currentMeta = $hubMeta[$currentTab] ?? $hubMeta['archives_documents'];
         case 'archives_memoires':
             include $partialsPath . 'v2/archives/archives_memoires.php';
             break;
+
     }
     ?>
     </div>

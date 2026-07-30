@@ -459,4 +459,84 @@ HTML;
 
         return "rapport_{$matricule}_{$year}_{$timestamp}";
     }
+
+    /**
+     * Génère un aperçu PDF du modèle rapport de stage avec des données fictives.
+     * N'effectue aucune écriture en base ni sur le disque.
+     *
+     * @return string Contenu PDF binaire
+     */
+    public function generatePreview(): string
+    {
+        $fakeRapport = [
+            'theme_rapport'        => 'Conception et développement d\'une plateforme de suivi académique intégrée',
+            'matricule_etudiant'   => 'CM-2026-00042',
+            'libelle_annee'        => '2025-2026',
+            'id_annee_acad'        => '2025-2026',
+            'contenu_html'         => '',
+            'chemin_fichier'       => '',
+            'id_rapport'           => 0,
+        ];
+
+        $fakeEtudiant = [
+            'nom_etu'              => 'KOUASSI',
+            'prenom_etu'           => 'Jean-Baptiste',
+            'num_ident_etud'       => 'CM-2026-00042',
+            'num_carte_etud'       => 'CM-2026-00042',
+            'matricule_etudiant'   => 'CM-2026-00042',
+        ];
+
+        $fakeInfoStage = [
+            'nom_entreprise'       => 'SOCIÉTÉ IVOIRIENNE DES NOUVELLES TECHNOLOGIES',
+            'nom_maitre_stage'     => 'KONAN',
+            'prenom_maitre_stage'  => 'Etienne',
+        ];
+
+        $pdf = $this->pdfGenerator->createDocument('P', 'A4', 'Rapport de Stage', 'CheckMaster UFRMI');
+        $pdf->AddPage();
+
+        // Vraie page de couverture avec données fictives
+        $coverHtml = $this->generateCoverPageHTML($fakeRapport, $fakeEtudiant, $fakeInfoStage);
+
+        // Corps fictif représentatif
+        $bodyHtml = <<<HTML
+<div style="page-break-before:always;"></div>
+<div style="font-family:'dejavuserif', serif; padding:10mm 0; color:#111827;">
+    <h2 style="color:#0f4666; border-bottom:2px solid #0f4666; padding-bottom:6px;">SOMMAIRE</h2>
+    <p style="line-height:2;">
+        Introduction ....................................................................................................1<br/>
+        Chapitre I : Présentation de l'entreprise d'accueil ................................................3<br/>
+        Chapitre II : Analyse et conception du système .................................................10<br/>
+        Chapitre III : Réalisation et tests ....................................................................22<br/>
+        Conclusion .....................................................................................................35<br/>
+        Bibliographie ...................................................................................................37<br/>
+        Annexes ...........................................................................................................38<br/>
+    </p>
+    <br/><br/>
+    <h2 style="color:#0f4666; border-bottom:2px solid #0f4666; padding-bottom:6px;">INTRODUCTION</h2>
+    <p style="text-align:justify; line-height:1.7;">
+        Dans le cadre de notre formation en Master 2 MIAGE-GI à l'UFR Mathématiques et Informatique
+        de l'Université Félix Houphouët-Boigny, nous avons effectué un stage de fin d'études au sein
+        de la Société Ivoirienne des Nouvelles Technologies (SINT). Ce stage, d'une durée de trois mois,
+        nous a permis de mettre en pratique les connaissances théoriques acquises tout au long de notre cursus.
+    </p>
+    <p style="text-align:justify; line-height:1.7;">
+        Le présent rapport rend compte des différentes activités menées et des résultats obtenus
+        durant cette période de stage. Il s'articule autour de trois chapitres principaux :
+        la présentation de l'entreprise d'accueil, l'analyse et la conception du système développé,
+        et enfin la phase de réalisation et de tests.
+    </p>
+</div>
+HTML;
+
+        $fullHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>'
+            . $coverHtml
+            . $bodyHtml
+            . '</body></html>';
+
+        $this->pdfGenerator->writeHtml($pdf, $fullHtml);
+        $this->addFooterToAllPages($pdf);
+
+        return (string) $pdf->Output('', 'S');
+    }
 }

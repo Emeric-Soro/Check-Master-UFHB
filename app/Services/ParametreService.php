@@ -2736,4 +2736,163 @@ class ParametreService
             exit;
         }
     }
+    /**
+     * Catalogue fonctionnel des documents PDF generes par l'application.
+     *
+     * Pour chaque type, on cherche d'abord dans document_genere un exemplaire
+     * stocke, puis on tombe sur la table source pour obtenir un id de preview.
+     * La preview utilise l'endpoint catalogue_preview qui genere a la volee
+     * sans stocker.
+     */
+    public function getPdfTemplatesCatalog(): array
+    {
+        $templates = [
+            [
+                'type'        => 'rapport',
+                'title'       => 'Rapport de stage',
+                'description' => "Rapport etudiant exporte en PDF.",
+                'stage'       => 'Gestion des rapports -> export / validation',
+                'generator'   => 'RapportPdfGeneratorService',
+                'source'      => 'app/Services/Document/RapportPdfGeneratorService.php',
+                'query'       => 'SELECT id_rapport AS id FROM rapport_etudiants ORDER BY id_rapport DESC LIMIT 1',
+            ],
+            [
+                'type'        => 'fiche_inscription',
+                'title'       => "Fiche d'inscription",
+                'description' => "Fiche administrative d'inscription d'un etudiant.",
+                'stage'       => "Inscription -> edition de la fiche",
+                'generator'   => 'DocumentRegistry / fiche inscription',
+                'source'      => 'app/Services/Document/DocumentRegistry.php',
+                'query'       => "SELECT CONCAT(num_carte_etud,'|',id_annee_acad,'|',num_versement) AS id FROM inscriptions WHERE num_carte_etud IS NOT NULL AND num_carte_etud <> '' ORDER BY num_carte_etud DESC, id_annee_acad DESC, num_versement DESC LIMIT 1",
+            ],
+            [
+                'type'        => 'recu',
+                'title'       => 'Recu de paiement',
+                'description' => "Recu genere apres l'enregistrement d'un versement.",
+                'stage'       => 'Inscription -> paiement -> impression',
+                'generator'   => 'RecuGeneratorService',
+                'source'      => 'app/Services/Document/RecuGeneratorService.php',
+                'query'       => 'SELECT CONCAT(num_carte_etud,"|",id_annee_acad,"|",num_versement) AS id FROM inscriptions ORDER BY num_carte_etud DESC, id_annee_acad DESC, num_versement DESC LIMIT 1',
+            ],
+            [
+                'type'        => 'memoire',
+                'title'       => 'Memoire',
+                'description' => 'Memoire depose dans le cycle etudiant.',
+                'stage'       => 'Mise en ligne du memoire -> consultation',
+                'generator'   => 'DocumentRegistry / memoire',
+                'source'      => 'app/Services/Document/DocumentRegistry.php',
+                'query'       => null,
+            ],
+            [
+                'type'        => 'pv_commission',
+                'title'       => 'PV de commission',
+                'description' => 'Proces-verbal produit lors de la validation en commission.',
+                'stage'       => 'Processus de validation -> finalisation commission',
+                'generator'   => 'PvCommissionGeneratorService',
+                'source'      => 'app/Services/Document/PvCommissionGeneratorService.php',
+                'query'       => 'SELECT id_CR AS id FROM compte_rendu ORDER BY id_CR DESC LIMIT 1',
+            ],
+            [
+                'type'        => 'pv_final',
+                'title'       => 'PV final de soutenance',
+                'description' => 'Proces-verbal final associe a une soutenance.',
+                'stage'       => "Evaluation de soutenance -> impression du PV",
+                'generator'   => 'PvFinalGeneratorService',
+                'source'      => 'app/Services/Document/PvFinalGeneratorService.php',
+                'query'       => 'SELECT num_soutenance AS id FROM programmer_soutenance ORDER BY num_soutenance DESC LIMIT 1',
+            ],
+            [
+                'type'        => 'planning',
+                'title'       => 'Planning de soutenance',
+                'description' => 'Planning des jurys et des soutenances.',
+                'stage'       => 'Programmation des soutenances -> generation du planning',
+                'generator'   => 'PlanningGeneratorService',
+                'source'      => 'app/Services/Document/PlanningGeneratorService.php',
+                'query'       => 'SELECT num_soutenance AS id FROM programmer_soutenance ORDER BY num_soutenance DESC LIMIT 1',
+            ],
+            [
+                'type'        => 'bulletin',
+                'title'       => 'Bulletin de notes',
+                'description' => 'Bulletin de notes etudiant au format PDF.',
+                'stage'       => 'Edition des bulletins -> export PDF',
+                'generator'   => 'EditionBulletinService',
+                'source'      => 'app/Services/EditionBulletinService.php',
+                'query'       => "SELECT num_etud AS id FROM programmer_soutenance WHERE num_etud IS NOT NULL AND num_etud <> '' ORDER BY num_soutenance DESC LIMIT 1",
+            ],
+            [
+                'type'        => 'compte_rendu',
+                'title'       => 'Compte rendu',
+                'description' => 'Compte rendu de soutenance consultable et telechargeable.',
+                'stage'       => 'Redaction du compte rendu -> generation PDF',
+                'generator'   => 'RedactionCompteRenduService',
+                'source'      => 'app/Services/RedactionCompteRenduService.php',
+                'query'       => 'SELECT id_CR AS id FROM compte_rendu ORDER BY id_CR DESC LIMIT 1',
+            ],
+            [
+                'type'        => 'releve_notes',
+                'title'       => 'Releve de notes',
+                'description' => "Releve de notes individuel telecharge par l'etudiant.",
+                'stage'       => "Resultats -> edition du releve",
+                'generator'   => 'NotesResultatsService',
+                'source'      => 'app/Services/NotesResultatsService.php',
+                'query'       => null,
+            ],
+            [
+                'type'        => 'dossier_candidature',
+                'title'       => 'Dossier de candidature',
+                'description' => 'Dossier candidat exporte pour instruction.',
+                'stage'       => 'Candidature -> consultation / telechargement',
+                'generator'   => 'GestionDossiersCandidaturesController',
+                'source'      => 'app/controllers/GestionDossiersCandidaturesController.php',
+                'query'       => null,
+            ],
+            [
+                'type'        => 'archives_soutenances',
+                'title'       => 'Archives de soutenances',
+                'description' => 'Export PDF des archives de soutenances filtrees.',
+                'stage'       => 'Archives -> export PDF',
+                'generator'   => 'ArchiveSoutenanceController',
+                'source'      => 'app/controllers/ArchiveSoutenanceController.php',
+                'query'       => null,
+            ],
+            [
+                'type'        => 'piste_audit',
+                'title'       => "Piste d'audit",
+                'description' => "Export PDF des evenements d'audit.",
+                'stage'       => "Securite -> audit -> export",
+                'generator'   => 'AuditController',
+                'source'      => 'app/controllers/AuditController.php',
+                'query'       => null,
+            ],
+        ];
+
+        foreach ($templates as &$template) {
+            $template['sample_id'] = null;
+
+            if (is_string($template['query']) && $template['query'] !== '') {
+                try {
+                    $value = $this->db->query($template['query'])->fetchColumn();
+                    if ($value !== false && $value !== null && (string) $value !== '') {
+                        $template['sample_id'] = (string) $value;
+                    }
+                } catch (Throwable $e) {
+                    error_log('Catalogue PDF: sample_id indisponible pour ' . $template['type'] . ': ' . $e->getMessage());
+                }
+            }
+
+            // L'aperçu du modèle ne dépend jamais d'une donnée réelle en base.
+            // Le contrôleur génère un exemplaire fictif, non stocké, si aucun
+            // document réel n'est disponible pour ce type.
+            $previewId = $template['sample_id'] ?? '__template__';
+            $template['preview_url'] = '?page=docviewer&action=catalogue_preview&type='
+                . rawurlencode($template['type']) . '&id=' . rawurlencode($previewId);
+            // Le téléchargement reste réservé à un document réellement stocké.
+            $template['download_url'] = $template['sample_id'] !== null
+                ? '?page=docviewer&type=' . rawurlencode($template['type']) . '&id=' . rawurlencode($template['sample_id']) . '&action=download'
+                : null;
+        }
+        unset($template);
+
+        return $templates;
+    }
 }

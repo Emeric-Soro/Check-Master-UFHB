@@ -19,6 +19,10 @@ if (isset($_GET['page']) && $_GET['page'] === 'docviewer') {
             $controller->download();
             break;
 
+        case 'catalogue_preview':
+            $controller->cataloguePreview();
+            break;
+
         default:
             http_response_code(400);
             echo 'Action invalide';

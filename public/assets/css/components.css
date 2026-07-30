@@ -1404,17 +1404,17 @@ table .cm-clickable-row:focus-visible td {
   border: 1px solid var(--cm-card-border);
   border-radius: var(--cm-card-radius);
   box-shadow: var(--cm-card-shadow);
-  padding: var(--cm-spacing-md);
+  padding: 8px var(--cm-spacing-md);
 }
 
 .cm-stat-card__icon {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--cm-border-radius);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--cm-font-size-lg);
+  font-size: 15px;
   background: var(--cm-primary-lightest);
   color: var(--cm-primary);
 }
@@ -1426,13 +1426,13 @@ table .cm-clickable-row:focus-visible td {
 }
 
 .cm-stat-card__value {
-  font-size: var(--cm-font-size-2xl);
+  font-size: 1.35rem;
   font-weight: var(--cm-font-weight-bold);
-  line-height: var(--cm-line-height-tight);
+  line-height: 1.2;
 }
 
 .cm-stat-card__label {
-  font-size: var(--cm-font-size-sm);
+  font-size: 0.8rem;
   color: var(--cm-text-muted);
 }
 

@@ -335,4 +335,57 @@ HTML;
 
         return $html;
     }
+
+    /**
+     * Génère un aperçu PDF du modèle PV de commission avec des données fictives.
+     * N'effectue aucune écriture en base ni sur le disque.
+     *
+     * @return string Contenu PDF binaire
+     */
+    public function generatePreview(): string
+    {
+        $fakeReference = 'PVC-2026-00001';
+
+        $fakeCompteRendu = [
+            'date_CR'    => date('Y-m-d'),
+            'contenu_CR' => '',
+        ];
+
+        $fakeSession = ['lib_session' => 'MIAGE-GI'];
+
+        $fakeMembres = [
+            ['nom_complet' => 'Prof. YAPI Gnagne Serge'],
+            ['nom_complet' => 'M. ASSI Kouamé'],
+        ];
+
+        $fakeRapports = [
+            [
+                'nom_etudiant'         => 'KOUASSI',
+                'prenom_etudiant'      => 'Jean-Baptiste',
+                'theme_rapport'        => 'Conception et développement d\'une plateforme de suivi académique',
+                'directeur_nom'        => 'Dr. BROU Kofi Emmanuel',
+                'encadreur_nom'        => 'M. KONAN Etienne',
+                'decision_evaluation'  => 'OUI',
+                'note_moyenne'         => '15.50',
+            ],
+            [
+                'nom_etudiant'         => 'DIALLO',
+                'prenom_etudiant'      => 'Mariama',
+                'theme_rapport'        => 'Automatisation des processus de gestion RH avec un système expert',
+                'directeur_nom'        => 'Dr. AKA Sylvie',
+                'encadreur_nom'        => 'Mme. COULIBALY Awa',
+                'decision_evaluation'  => 'OUI',
+                'note_moyenne'         => '14.00',
+            ],
+        ];
+
+        $pdf = $this->pdfGenerator->createDocument('P', 'A4', 'Procès-Verbal Commission', 'CheckMaster UFRMI');
+        $pdf->AddPage();
+
+        $html = $this->buildPvContent($fakeReference, $fakeCompteRendu, $fakeSession, $fakeMembres, $fakeRapports);
+        $this->pdfGenerator->writeHtml($pdf, $html);
+
+        return (string) $pdf->Output('', 'S');
+    }
 }
+

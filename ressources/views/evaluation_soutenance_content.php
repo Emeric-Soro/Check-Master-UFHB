@@ -95,13 +95,147 @@ foreach ($soutenances as $soutenance) {
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
 
+<style>
+    /* Mise en page locale : mêmes composants et même DA, meilleure hiérarchie. */
+    #cmEvalSoutForm .cm-grid-4,
+    #cmEvalSoutForm .cm-grid-3,
+    #cmEvalSoutForm .cm-grid-2 {
+        gap: 0.5rem var(--cm-spacing-md, 1rem) !important;
+        margin-bottom: 0.35rem !important;
+    }
+
+    #cmEvalSoutForm .cm-form-group {
+        margin-bottom: 0.35rem !important;
+        min-width: 0;
+    }
+
+    #cmEvalSoutForm .cm-form-label {
+        margin-bottom: 0.15rem !important;
+    }
+
+    /* Le champ de recherche doit profiter de l'espace de sa colonne. */
+    #cmEvalSoutForm .cm-eval-sout-intro {
+        grid-template-columns: minmax(0, 3fr) minmax(200px, 1fr) !important;
+        align-items: start;
+    }
+
+    #cmEvalSoutForm .cm-eval-sout-student,
+    #cmEvalSoutForm .cm-eval-sout-promotion {
+        min-width: 0;
+    }
+
+    #cmEvalSoutForm .cm-eval-sout-student,
+    #cmEvalSoutForm .cm-eval-sout-student .cm-form-group,
+    #cmEvalSoutForm .cm-eval-sout-student .cm-select-search,
+    #cmEvalSoutForm .cm-eval-sout-student .cm-select-search__input,
+    #cmEvalSoutForm .cm-eval-sout-student .cm-select-search__trigger,
+    #cmEvalSoutForm .cm-eval-sout-student .cm-size-personne,
+    #cmEvalSoutForm .cm-eval-sout-student .cm-form-control,
+    #cmEvalSoutForm .cm-eval-sout-promotion > .cm-form-group {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    #cmEvalSoutForm .cm-eval-grid {
+        margin: 0.5rem 0 !important;
+    }
+
+    /* Cinq critères tiennent sur une ligne large, sans placement aléatoire. */
+    #cmEvalSoutForm .cm-eval-grid__fields-wrap {
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 0.4rem 0.75rem !important;
+    }
+
+    #cmEvalSoutForm .cm-eval-grid__row {
+        min-width: 0;
+        padding: 0.2rem 0.5rem !important;
+    }
+
+    #cmEvalSoutForm .cm-eval-grid__label {
+        min-width: 0;
+    }
+
+    #cmEvalSoutForm .cm-eval-grid__total-row {
+        justify-self: end;
+        width: min(100%, 520px);
+        max-width: 520px;
+        margin-top: 0.35rem !important;
+        padding-top: 0.35rem !important;
+        box-sizing: border-box;
+    }
+
+    /* Résumé : deux champs courts et un commentaire confortable. */
+    #cmEvalSoutForm .cm-eval-summary-grid {
+        grid-template-columns: minmax(170px, 1fr) minmax(160px, 1fr) minmax(320px, 2fr) !important;
+        align-items: start;
+    }
+
+    #cmEvalSoutForm .cm-eval-summary-comment,
+    #cmEvalSoutForm #cmEvalComment {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    #cmEvalSoutForm .cm-size-theme,
+    #cmEvalSoutForm .cm-size-commentaire {
+        min-height: auto !important;
+    }
+
+    @media (max-width: 1200px) {
+        #cmEvalSoutForm .cm-eval-grid__fields-wrap {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+    }
+
+    @media (max-width: 900px) {
+        #cmEvalSoutForm .cm-eval-grid__fields-wrap {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        #cmEvalSoutForm .cm-eval-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        #cmEvalSoutForm .cm-eval-summary-comment {
+            grid-column: 1 / -1 !important;
+        }
+    }
+
+    @media (max-width: 767px) {
+        #cmEvalSoutForm .cm-eval-sout-intro,
+        #cmEvalSoutForm .cm-eval-summary-grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        #cmEvalSoutForm .cm-eval-grid__fields-wrap {
+            grid-template-columns: 1fr !important;
+        }
+
+        #cmEvalSoutForm .cm-eval-summary-comment {
+            grid-column: auto !important;
+        }
+
+        #cmEvalSoutForm .cm-eval-grid__total-row {
+            justify-self: stretch;
+            width: 100%;
+            max-width: none;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        #cmEvalSoutForm .cm-eval-grid__mention-display {
+            flex: 1 1 100px;
+            min-width: 100px;
+        }
+    }
+</style>
 <form id="cmEvalSoutForm" method="POST" action="?page=evaluation_soutenance" data-cm-ajax-form="true">
                 <?php cm_component('form/csrf-token'); ?>
                 <input type="hidden" name="action" value="evaluerSoutenance">
                 <input type="hidden" name="num_etu" id="cmEvalNumEtu" value="">
 
-                <div class="cm-grid-4">
-                    <div style="grid-column: span 3;">
+                <div class="cm-grid-4 cm-eval-sout-intro">
+                    <div class="cm-eval-sout-student">
                         <?php
                         cm_component('form/select-search', [
                             'name' => 'cm_eval_soutenance',
@@ -116,7 +250,7 @@ foreach ($soutenances as $soutenance) {
                         ]);
                         ?>
                     </div>
-                    <div>
+                    <div class="cm-eval-sout-promotion">
                         <?php
                         cm_component('form/input-text', [
                             'name' => 'cm_eval_promotion',
@@ -206,7 +340,7 @@ foreach ($soutenances as $soutenance) {
                 ]);
                 ?>
 
-                <div class="cm-grid-4">
+                <div class="cm-grid-4 cm-eval-summary-grid">
                     <div class="cm-form-group">
                         <?php cm_component('form/select', [
                             'name' => 'cm_eval_decision',
@@ -217,7 +351,14 @@ foreach ($soutenances as $soutenance) {
                         ]); ?>
                     </div>
 
-                    <div class="cm-form-group" style="grid-column: span 3;">
+                    <div class="cm-form-group">
+                        <label class="cm-form-label" for="cmEvalDecisionMention">Mention</label>
+                        <input type="text" id="cmEvalDecisionMention" class="cm-form-control cm-field-sm"
+                            style="background-color: var(--cm-field-readonly-bg, #f3f4f6); font-weight: bold; text-align: center; color: var(--cm-primary-dark, #12395c); height: 32px;"
+                            readonly value="—">
+                    </div>
+
+                    <div class="cm-form-group cm-eval-summary-comment">
                         <label class="cm-form-label" for="cmEvalComment">Commentaire général</label>
                         <textarea id="cmEvalComment" name="commentaire_general" class="cm-form-control cm-field-full cm-size-commentaire"
                             rows="2"></textarea>
@@ -232,11 +373,11 @@ foreach ($soutenances as $soutenance) {
                     <div class="cm-form-buttons__right">
                         <button class="cm-btn is-light" type="button" id="cmEvalResetBtn">
                             <i class="fas fa-rotate-left" aria-hidden="true"></i>
-                            Reinitialiser
+                            Réinitialiser
                         </button>
                         <button class="cm-btn is-success" type="submit" id="cmEvalSubmitBtn">
                             <i class="fas fa-check" aria-hidden="true"></i>
-                            Enregistrer evaluation
+                            Enregistrer l’évaluation
                         </button>
                     </div>
                 </div>
@@ -274,7 +415,7 @@ foreach ($soutenances as $soutenance) {
                             </th>
                             <th class="cm-data-table__th">N</th>
                             <th class="cm-data-table__th">Etudiant</th>
-                            <th class="cm-data-table__th">Date sout.</th>
+                            <th class="cm-data-table__th">Date de soutenance</th>
                             <th class="cm-data-table__th">Moyenne</th>
                             <th class="cm-data-table__th">Mention</th>
                             <th class="cm-data-table__th">Commentaire</th>
@@ -390,10 +531,18 @@ foreach ($soutenances as $soutenance) {
 
 <script>
     (function () {
-        var _soutenanceMap = <?php echo json_encode(array_combine(
+        const _soutenanceMap = <?php echo json_encode(array_combine(
     array_map(static fn(array $r) => (string) ($r['num_etu'] ?? ''), $soutenances),
     array_map(static function (array $r): array {
         return [
+            'nom_etudiant' => $r['nom_etudiant'] ?? '',
+            'matricule_etudiant' => $r['matricule_etudiant'] ?? $r['num_etu'] ?? '',
+            'date_soutenance' => $r['date_soutenance'] ?? '',
+            'heure_soutenance' => $r['heure_soutenance'] ?? '',
+            'est_evalue' => (int) ($r['est_evalue'] ?? 0),
+            'decision' => $r['decision'] ?? '',
+            'commentaire_general' => $r['commentaire_general'] ?? '',
+            'note_finale' => $r['note_finale'] ?? null,
             'promotion_label' => $r['promotion_label'] ?? $r['promotion_etu'] ?? '',
             'theme_soutenance' => $r['theme_soutenance'] ?? '',
             'president_nom' => $r['president_nom'] ?? '',
@@ -428,6 +577,7 @@ foreach ($soutenances as $soutenance) {
         const selectAllBtn = document.getElementById('cmEvalSoutSelectAllBtn');
         const deselectBtn = document.getElementById('cmEvalSoutDeselectBtn');
         const deleteBtn = document.getElementById('cmEvalSoutDeleteBtn');
+        let evaluationLoadVersion = 0;
 
         function setAlert(type, message) {
             if (!alertBox) {
@@ -592,6 +742,10 @@ foreach ($soutenances as $soutenance) {
                     mentionDisplay.className = 'cm-eval-grid__mention-display';
                 }
             }
+            const decisionMentionInput = document.getElementById('cmEvalDecisionMention');
+            if (decisionMentionInput) {
+                decisionMentionInput.value = allFilled ? getMentionLabel(total) : '—';
+            }
         }
 
         function getSoutenanceByNumEtu(numEtu) {
@@ -599,6 +753,7 @@ foreach ($soutenances as $soutenance) {
         }
 
         function fillSoutenanceInfo(numEtu) {
+            const loadVersion = ++evaluationLoadVersion;
             const info = getSoutenanceByNumEtu(numEtu);
             if (!info) {
                 resetSoutenanceInfo();
@@ -635,8 +790,16 @@ foreach ($soutenances as $soutenance) {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     credentials: 'same-origin'
                 })
-                    .then(function (response) { return response.json(); })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Chargement de l’évaluation impossible');
+                        }
+                        return response.json();
+                    })
                     .then(function (payload) {
+                        if (loadVersion !== evaluationLoadVersion) {
+                            return;
+                        }
                         const rows = Array.isArray(payload) ? payload : (Array.isArray(payload && payload.rows) ? payload.rows : []);
                         if (!Array.isArray(rows)) {
                             return;
@@ -654,6 +817,13 @@ foreach ($soutenances as $soutenance) {
                         if (decisionSelect && payload && payload.decision) {
                             decisionSelect.value = payload.decision;
                         }
+                    })
+                    .catch(function (error) {
+                        if (loadVersion !== evaluationLoadVersion) {
+                            return;
+                        }
+                        console.error('Erreur de chargement de l’évaluation :', error);
+                        setAlert('error', 'Les notes de cette évaluation n’ont pas pu être chargées.');
                     });
             } else {
                 clearEvaluationGrid();
@@ -753,10 +923,13 @@ foreach ($soutenances as $soutenance) {
                     window.open(url, '_blank');
                     return;
                 }
+                const selectedInfo = getSoutenanceByNumEtu(numEtu);
                 if (soutenanceSelect) soutenanceSelect.value = numEtu;
                 var searchEl = document.getElementById('cmEvalSoutenanceSelect_search');
-                if (searchEl && _soutenanceMap[numEtu]) {
-                    searchEl.value = (_soutenanceMap[numEtu].nom_etudiant || '');
+                if (searchEl && selectedInfo) {
+                    searchEl.value = [selectedInfo.nom_etudiant, selectedInfo.matricule_etudiant]
+                        .filter(Boolean)
+                        .join(' - ');
                 }
                 if (numEtuInput) numEtuInput.value = numEtu;
                 fillSoutenanceInfo(numEtu);

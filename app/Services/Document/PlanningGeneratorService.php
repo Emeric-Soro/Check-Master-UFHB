@@ -49,9 +49,10 @@ final class PlanningGeneratorService
      * @param string|null $dateFrom Date de début (YYYY-MM-DD format)
      * @param string|null $dateTo Date de fin (YYYY-MM-DD format)
      * @param int $userId ID de l'utilisateur générant le document
+     * @param bool $skipNotifications Si true, aucun email n'est envoyé aux étudiants (mode aperçu)
      * @return array{success: bool, reference?: string, path?: string, filename?: string, size?: int|null, error?: string, error_code?: string}
      */
-    public function generate(?int $sessionId, ?string $dateFrom, ?string $dateTo, int $userId): array
+    public function generate(?int $sessionId, ?string $dateFrom, ?string $dateTo, int $userId, bool $skipNotifications = false): array
     {
         try {
             $soutenances = $this->planningDataUtils->getSoutenancesForPlanning($sessionId, $dateFrom, $dateTo);
@@ -59,6 +60,7 @@ final class PlanningGeneratorService
                 'id_session_soutenance' => $sessionId,
                 'date_debut' => $dateFrom,
                 'date_fin' => $dateTo,
+                'skip_notifications' => $skipNotifications,
             ]);
         } catch (Throwable $e) {
             $this->logFailure('generate', $e, [
@@ -150,6 +152,7 @@ final class PlanningGeneratorService
     private function generateFromSoutenances(array $soutenances, int $userId, array $metadataContext): array
     {
         $pdo = $this->db->pdo();
+        $skipNotifications = (bool) ($metadataContext['skip_notifications'] ?? false);
 
         try {
             if (count($soutenances) === 0) {
@@ -212,7 +215,9 @@ final class PlanningGeneratorService
                 'id_utilisateur_generation' => $userId,
             ]);
 
-            $this->notifyStudentsOfPlanning($soutenances, $userId);
+            if (!$skipNotifications) {
+                $this->notifyStudentsOfPlanning($soutenances, $userId);
+            }
             $pdo->commit();
 
             return [
@@ -718,5 +723,85 @@ HTML;
             json_encode($invalidSoutenances, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
         ));
+    }
+
+    /**
+     * Génère un aperçu PDF du modèle planning de soutenance avec des données fictives.
+     * Utilise le vrai rendu (en-tête institutionnel + tableau complet) sans aucune écriture.
+     *
+     * @return string Contenu PDF binaire
+     */
+    public function generatePreview(): string
+    {
+        $today = date('Y-m-d');
+
+        $fakeSoutenances = [
+            [
+                'date_soutenance'     => $today,
+                'heure_soutenance'    => '08:00',
+                'heure_debut'         => '08:00',
+                'nom_etudiant'        => 'KOUASSI',
+                'prenom_etudiant'     => 'Jean-Baptiste',
+                'theme_soutenance'    => 'Conception d\'une plateforme de suivi académique',
+                'entreprise_accueil'  => 'SINT',
+                'lib_salle'           => 'Amphi A',
+                'id_salle'            => '1',
+                'jury_details'        => [
+                    'president'             => 'Prof. YAPI Gnagne Serge',
+                    'examinateur'           => 'Dr. AKA Sylvie',
+                    'directeur_memoire'     => 'Dr. BROU Kofi',
+                    'encadreur_pedagogique' => 'M. KONAN Etienne',
+                    'maitre_stage'          => 'M. ASSI Kouamé',
+                ],
+            ],
+            [
+                'date_soutenance'     => $today,
+                'heure_soutenance'    => '10:00',
+                'heure_debut'         => '10:00',
+                'nom_etudiant'        => 'DIALLO',
+                'prenom_etudiant'     => 'Mariama',
+                'theme_soutenance'    => 'Automatisation des processus RH par système expert',
+                'entreprise_accueil'  => 'ORANGE CI',
+                'lib_salle'           => 'Salle 201',
+                'id_salle'            => '2',
+                'jury_details'        => [
+                    'president'             => 'Prof. YAPI Gnagne Serge',
+                    'examinateur'           => 'Dr. AKA Sylvie',
+                    'directeur_memoire'     => 'Dr. BROU Kofi',
+                    'encadreur_pedagogique' => 'Mme. COULIBALY Awa',
+                    'maitre_stage'          => 'M. TRAORE Boubacar',
+                ],
+            ],
+            [
+                'date_soutenance'     => $today,
+                'heure_soutenance'    => '14:00',
+                'heure_debut'         => '14:00',
+                'nom_etudiant'        => 'N\'GORAN',
+                'prenom_etudiant'     => 'Serge Aubin',
+                'theme_soutenance'    => 'Développement d\'une application mobile de gestion des stocks',
+                'entreprise_accueil'  => 'MTN CI',
+                'lib_salle'           => 'Amphi A',
+                'id_salle'            => '1',
+                'jury_details'        => [
+                    'president'             => 'Dr. AKA Sylvie',
+                    'examinateur'           => 'M. KONAN Etienne',
+                    'directeur_memoire'     => 'Prof. YAPI Gnagne Serge',
+                    'encadreur_pedagogique' => 'Dr. BROU Kofi',
+                    'maitre_stage'          => 'Mme. DOUMBIA Aminata',
+                ],
+            ],
+        ];
+
+        $pdf = $this->pdfGenerator->createDocument('L', 'A4', 'Composition de Jury de Soutenance MIAGE-GI', 'CheckMaster UFRMI');
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 15);
+
+        $pdf->AddPage();
+        $this->addInstitutionalHeader($pdf, $today, $fakeSoutenances);
+        $html = $this->buildDatePlanningContent($fakeSoutenances);
+        $this->pdfGenerator->writeHtml($pdf, $html);
+        $this->pdfGenerator->addFooter($pdf);
+
+        return (string) $pdf->Output('', 'S');
     }
 }

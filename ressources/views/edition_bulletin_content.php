@@ -52,12 +52,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
     ]); ?>
 <?php else: ?>
     <div class="cm-prd3-screen cm-prd3-crud-screen">
-        <?php if ($selectedYearLabel !== ''): ?>
-            <?php cm_component('ui/alert-box', [
-                'type' => 'info',
-                'message' => 'Édition des PV finaux - année académique : ' . $selectedYearLabel,
-            ]); ?>
-        <?php endif; ?>
+
 
         <div id="cmBulletinAlert"></div>
         <form id="cmBulletinApiForm" style="display:none;">
@@ -94,10 +89,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                             <th class="cm-data-table__th cm-data-table__th--check">
                                 <input type="checkbox" id="cmBulletinCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                             </th>
-                            <th class="cm-data-table__th">Matricule</th>
-                            <th class="cm-data-table__th">Nom</th>
-                            <th class="cm-data-table__th">Prénom</th>
-                            <th class="cm-data-table__th">Promotion</th>
+                            <th class="cm-data-table__th">Nom &amp; Prénom</th>
                             <th class="cm-data-table__th">Thème</th>
                             <th class="cm-data-table__th">Moyenne</th>
                             <th class="cm-data-table__th">Mention</th>
@@ -109,7 +101,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                         <?php if (empty($rowsToShow)): ?>
                             <?php cm_component('ui/empty-state', [
                                 'in_table' => true,
-                                'colspan' => 10,
+                                'colspan' => 7,
                                 'title' => '',
                                 'message' => $selectedYearId !== null
                                     ? 'Aucune soutenance programmée trouvée pour cette année.'
@@ -156,10 +148,15 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                                                value="<?php echo htmlspecialchars((string) ($row['num_etu'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                aria-label="Sélectionner étudiant">
                                     </td>
-                                    <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['matricule'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['nom'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['prenom'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['promotion'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="cm-data-table__td" style="line-height: 1.4;">
+                                        <div style="font-weight: 700; color: var(--cm-primary-dark, #12395c); font-size: 0.93rem;">
+                                            <?php echo htmlspecialchars((string) ($row['nom'] ?? ''), ENT_QUOTES, 'UTF-8') . ' ' . htmlspecialchars((string) ($row['prenom'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                        <div style="color: var(--cm-text-muted, #5f7890); font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.2rem;">
+                                            <span>Matricule : <strong style="font-weight: 700; color: #334155;"><?php echo htmlspecialchars((string) ($row['matricule'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></span>
+                                            <span>Promotion : <strong style="font-weight: 700; color: #334155;"><?php echo htmlspecialchars((string) ($row['promotion'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></span>
+                                        </div>
+                                    </td>
                                     <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['theme'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="cm-data-table__td"><?php echo htmlspecialchars($displayMoyenne, ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="cm-data-table__td"><?php echo htmlspecialchars((string) ($row['mention'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>

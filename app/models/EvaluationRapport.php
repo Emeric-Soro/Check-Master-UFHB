@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/CommissionValidationMembre.php';
 
 class EvaluationRapport
 {
@@ -229,7 +230,7 @@ class EvaluationRapport
             ");
             $result = $stmt->execute([$id_rapport, $id_evaluateur, $decision, $commentaire]);
 
-            // Auto-finalisation : si 4+ votes 'valider', insérer automatiquement dans valider
+            // Auto-finalisation selon la composition active de la commission.
             if ($result && $decision === 'valider') {
                 $this->autoFinaliserSiNecessaire($id_rapport, $id_evaluateur);
             }
@@ -254,12 +255,22 @@ class EvaluationRapport
                 return;
             }
 
-            // Compter les votes 'valider'
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM evaluations_rapports WHERE id_rapport = ? AND decision_evaluation = 'valider'");
+            // La règle historique était fixée à 4 votes. Elle dépend désormais
+            // du nombre de membres actifs votants configuré par la commission.
+            $membreModel = new CommissionValidationMembre($this->pdo);
+            $nombreMembres = $membreModel->getNombreActifs();
+            if ($nombreMembres <= 0) {
+                return;
+            }
+
+            $stmt = $this->pdo->prepare("SELECT COUNT(DISTINCT er.id_evaluateur) FROM evaluations_rapports er
+                INNER JOIN commission_validation_membres cvm ON cvm.id_utilisateur = er.id_evaluateur
+                WHERE er.id_rapport = ? AND er.decision_evaluation = 'valider'
+                  AND cvm.actif_votant = 1");
             $stmt->execute([$id_rapport]);
             $totalValide = (int) $stmt->fetchColumn();
 
-            if ($totalValide >= 4) {
+            if ($totalValide >= $nombreMembres) {
                 $idEnseignant = $this->resolveEnseignantIdFromVoteActor($id_evaluateur);
                 if ($idEnseignant === null || $idEnseignant === '') {
                     error_log("Auto-finalisation ignorée pour le rapport {$id_rapport}: impossible de résoudre l'enseignant finalisateur.");
@@ -268,7 +279,7 @@ class EvaluationRapport
                 $this->pdo->beginTransaction();
                 try {
                     $insertValider = $this->pdo->prepare("INSERT INTO valider (id_enseignant, id_rapport, date_validation, commentaire_validation, decision_validation) VALUES (?, ?, NOW(), ?, 'valider')");
-                    $insertValider->execute([$idEnseignant, $id_rapport, 'Validation automatique (4 votes atteints)']);
+                    $insertValider->execute([$idEnseignant, $id_rapport, 'Validation automatique (' . $nombreMembres . ' votes atteints)']);
                     $this->pdo->commit();
                     error_log("Auto-finalisation effectuée pour le rapport $id_rapport");
                 } catch (Exception $e) {
@@ -347,23 +358,41 @@ class EvaluationRapport
     /**
      * Récupère le statut des votes pour un rapport
      */
-    public function getStatutVotes($id_rapport, $nombreMembresCommission = 4)
+    public function getStatutVotes($id_rapport, $nombreMembresCommission = null)
     {
         try {
+            if ($nombreMembresCommission === null && $this->tableExists('commission_validation_membres')) {
+                $nombreMembresCommission = (new CommissionValidationMembre($this->pdo))->getNombreActifs();
+            }
+            $nombreMembresCommission = max(0, (int) $nombreMembresCommission);
+            if ($nombreMembresCommission === 0) {
+                return [
+                    'statut' => 'commission_non_configuree',
+                    'message' => 'Aucun membre votant actif n’est configuré.',
+                    'peut_finaliser' => false,
+                    'votes_valider' => 0,
+                    'votes_rejeter' => 0,
+                    'total_votes' => 0,
+                    'total_membres' => 0,
+                ];
+            }
             $stmt = $this->pdo->prepare("
                 SELECT 
-                    COUNT(*) as total_votes,
-                    COUNT(CASE WHEN decision_evaluation = 'valider' THEN 1 END) as votes_valider,
-                    COUNT(CASE WHEN decision_evaluation = 'rejeter' THEN 1 END) as votes_rejeter
-                FROM evaluations_rapports 
-                WHERE id_rapport = ?
+                    COUNT(DISTINCT er.id_evaluateur) as total_votes,
+                    COUNT(DISTINCT CASE WHEN er.decision_evaluation = 'valider' THEN er.id_evaluateur END) as votes_valider,
+                    COUNT(DISTINCT CASE WHEN er.decision_evaluation = 'rejeter' THEN er.id_evaluateur END) as votes_rejeter
+                FROM evaluations_rapports er
+                INNER JOIN commission_validation_membres cvm
+                    ON cvm.id_utilisateur = er.id_evaluateur
+                   AND cvm.actif_votant = 1
+                WHERE er.id_rapport = ?
             ");
             $stmt->execute([$id_rapport]);
             $resultats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $totalVotes = $resultats['total_votes'];
-            $votesValider = $resultats['votes_valider'];
-            $votesRejeter = $resultats['votes_rejeter'];
+            $totalVotes = (int) $resultats['total_votes'];
+            $votesValider = (int) $resultats['votes_valider'];
+            $votesRejeter = (int) $resultats['votes_rejeter'];
 
             // Si tous les membres ont voté
             if ($totalVotes >= $nombreMembresCommission) {
@@ -418,6 +447,7 @@ class EvaluationRapport
             $hasEtape = $this->columnExists('rapport_etudiants', 'etape_validation');
             $hasDeposer = $this->tableExists('deposer');
             $hasValider = $this->tableExists('valider');
+            $hasCommissionMembres = $this->tableExists('commission_validation_membres');
 
             $joinDeposer = $hasDeposer
                 ? "LEFT JOIN deposer d ON r.id_rapport = d.id_rapport"
@@ -439,6 +469,18 @@ class EvaluationRapport
             $whereSql = empty($where) ? '' : ('WHERE ' . implode(' AND ', $where));
 
             $orderSql = $hasDeposer ? 'ORDER BY d.date_depot DESC' : 'ORDER BY ' . $dateExpr . ' DESC';
+            $joinCommissionMembres = $hasCommissionMembres
+                ? "LEFT JOIN commission_validation_membres cvm ON cvm.id_utilisateur = ev.id_evaluateur AND cvm.actif_votant = 1"
+                : '';
+            $voteCountExpr = $hasCommissionMembres
+                ? "COUNT(DISTINCT CASE WHEN cvm.id_membre IS NOT NULL THEN ev.id_evaluateur END)"
+                : 'COUNT(DISTINCT ev.id_evaluateur)';
+            $voteValideExpr = $hasCommissionMembres
+                ? "COUNT(DISTINCT CASE WHEN cvm.id_membre IS NOT NULL AND ev.decision_evaluation = 'valider' THEN ev.id_evaluateur END)"
+                : "COUNT(DISTINCT CASE WHEN ev.decision_evaluation = 'valider' THEN ev.id_evaluateur END)";
+            $voteRejeteExpr = $hasCommissionMembres
+                ? "COUNT(DISTINCT CASE WHEN cvm.id_membre IS NOT NULL AND ev.decision_evaluation = 'rejeter' THEN ev.id_evaluateur END)"
+                : "COUNT(DISTINCT CASE WHEN ev.decision_evaluation = 'rejeter' THEN ev.id_evaluateur END)";
 
             $sql = "
                 SELECT 
@@ -454,15 +496,16 @@ class EvaluationRapport
                     e.promotion_etu,
                     " . $this->getReportAcademicYearExpr('r', 'e', $hasDeposer ? 'd' : null) . " AS id_annee_acad,
                     " . ($hasDeposer ? "d.date_depot" : "$dateExpr") . " AS date_depot,
-                    COUNT(ev.id_evaluation) as total_votes,
-                    COUNT(CASE WHEN ev.decision_evaluation = 'valider' THEN 1 END) as votes_valider,
-                    COUNT(CASE WHEN ev.decision_evaluation = 'rejeter' THEN 1 END) as votes_rejeter
+                    $voteCountExpr as total_votes,
+                    $voteValideExpr as votes_valider,
+                    $voteRejeteExpr as votes_rejeter
                 FROM rapport_etudiants r
                 JOIN etudiants e ON " . $this->studentJoinCondition('r', 'e') . "
                 $joinDeposer
                 $joinValider
                 $joinCandidature
                 LEFT JOIN evaluations_rapports ev ON r.id_rapport = ev.id_rapport
+                $joinCommissionMembres
                 $whereSql
                 GROUP BY r.id_rapport, nom_rapport, r.theme_rapport, date_rapport, 
                          etape_validation, r.statut_rapport, e.nom_etu, e.prenom_etu, 

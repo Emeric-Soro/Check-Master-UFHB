@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/RapportEtudiant.php';
 require_once __DIR__ . '/../models/Valider.php';
 require_once __DIR__ . '/../models/Etudiant.php';
 require_once __DIR__ . '/../models/EvaluationRapport.php';
+require_once __DIR__ . '/../models/CommissionValidationMembre.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 require_once __DIR__ . '/../utils/EmailService.php';
@@ -54,6 +55,13 @@ class EvaluationDossiersService
         $this->rapportEtudiant = new RapportEtudiant($db);
         $this->evaluationRapport = new EvaluationRapport($db);
         $this->auditLog = new AuditLog($db);
+    }
+
+    private function peutModifierDecisionCommission(int $idUtilisateur): bool
+    {
+        $membresCommission = new \CommissionValidationMembre($this->db);
+        return $membresCommission->estAdministrateur($idUtilisateur)
+            || $membresCommission->estVotantActif($idUtilisateur);
     }
 
     private function tableExists($tableName)
@@ -424,6 +432,9 @@ class EvaluationDossiersService
     public function validerDossier($id_rapport, $id_utilisateur)
     {
         try {
+            if (!$this->peutModifierDecisionCommission((int) $id_utilisateur)) {
+                return ['success' => false, 'message' => 'Vous êtes en lecture seule pour la commission.'];
+            }
             $this->ensureWritableRapport($id_rapport, 'une validation de dossier');
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
             if (!$id_enseignant) {
@@ -455,6 +466,9 @@ class EvaluationDossiersService
     public function rejeterDossier($id_rapport, $commentaire, $id_utilisateur)
     {
         try {
+            if (!$this->peutModifierDecisionCommission((int) $id_utilisateur)) {
+                return ['success' => false, 'message' => 'Vous êtes en lecture seule pour la commission.'];
+            }
             $this->ensureWritableRapport($id_rapport, 'un rejet de dossier');
             $id_enseignant = $this->getEnseignantIdFromAdmin($id_utilisateur);
             if (!$id_enseignant) {
@@ -487,6 +501,10 @@ class EvaluationDossiersService
     public function traiterDecisionCommission($id_rapport, $decision, $commentaire, $id_utilisateur)
     {
         try {
+            $membresCommission = new \CommissionValidationMembre($this->db);
+            if (!$membresCommission->estVotantActif((int) $id_utilisateur)) {
+                return ['success' => false, 'message' => 'Vous êtes en lecture seule : vous n\'êtes pas membre votant actif de la commission.'];
+            }
             $this->ensureWritableRapport($id_rapport, 'une evaluation de commission');
             $idEvaluateur = (int) $id_utilisateur;
             if ($idEvaluateur <= 0) {
@@ -544,6 +562,9 @@ class EvaluationDossiersService
     public function finaliserDecisionCommission($id_rapport, $id_utilisateur)
     {
         try {
+            if (!$this->peutModifierDecisionCommission((int) $id_utilisateur)) {
+                return ['success' => false, 'message' => 'Vous êtes en lecture seule pour la commission.'];
+            }
             $this->ensureWritableRapport($id_rapport, 'une finalisation de decision de commission');
             $evaluationRapport = new EvaluationRapport();
 

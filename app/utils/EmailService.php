@@ -27,6 +27,9 @@ class EmailService
             $this->mailer->Password = $config['smtp']['password'];
             $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $this->mailer->Port = $config['smtp']['port'];
+            // Une panne réseau SMTP ne doit jamais monopoliser la requête PHP.
+            $smtpTimeout = (int) ($config['smtp']['timeout'] ?? 15);
+            $this->mailer->Timeout = max(5, min($smtpTimeout, 60));
             $this->mailer->CharSet = 'UTF-8';
             $this->mailer->setFrom($config['smtp']['from_email'], $config['smtp']['from_name']);
 

@@ -1035,6 +1035,7 @@ $addFeature([
     'existing_codes' => ['PARAM_SPEC'],
     'routes' => [
         ['pattern' => 'page=parametres_specifiques', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=parametres_specifiques&action=modeles_pdf', 'method' => 'GET', 'crud' => 'voir'],
     ],
     'permissions' => [
         $groups['administrateur'] => $full,
@@ -1426,6 +1427,22 @@ $addFeature([
     'permissions' => [
         $groups['administrateur'] => $full,
         $groups['commission'] => $full,
+    ],
+]);
+
+$addFeature([
+    'slug' => 'commission_membres',
+    'code' => 'COM_MEMBRES',
+    'label' => 'Membres votants de la commission',
+    'category_code' => 'COMMISSION',
+    'menu_url' => '?page=membres_commission',
+    'routes' => [
+        ['pattern' => 'page=membres_commission', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=membres_commission&action=sauvegarder_membres', 'method' => 'POST', 'crud' => 'modifier'],
+    ],
+    'permissions' => [
+        $groups['administrateur'] => $full,
+        $groups['admin_responsable_filiere'] => $full,
     ],
 ]);
 

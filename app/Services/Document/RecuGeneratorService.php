@@ -358,4 +358,45 @@ HTML;
             return '—';
         }
     }
+
+    /**
+     * Génère un aperçu PDF du modèle reçu de paiement avec des données fictives.
+     * N'effectue aucune écriture en base ni sur le disque.
+     *
+     * @return string Contenu PDF binaire
+     */
+    public function generatePreview(): string
+    {
+        $fakeReference = 'REC-2026-00042';
+
+        $fakeVersement = [
+            'montant_versement'   => 150000,
+            'date_versement'      => date('Y-m-d'),
+            'type_versement'      => 'inscription',
+            'methode_paiement'    => 'especes',
+        ];
+
+        $fakeInscription = [
+            'libelle_annee'  => '2025-2026',
+            'code_niveau'    => 'M2',
+            'code_filiere'   => 'MIAGE-GI',
+            'reste_a_payer'  => 75000,
+            'date_inscription' => date('Y-m-d'),
+        ];
+
+        $fakeEtudiant = [
+            'nom_etudiant'    => 'KOUASSI',
+            'prenom_etudiant' => 'Jean-Baptiste',
+        ];
+
+        $pdf = $this->pdfGenerator->createDocument('L', 'A5', 'Reçu de Paiement', 'CheckMaster UFRMI');
+        $pdf->SetMargins(8, 8, 8);
+        $pdf->SetAutoPageBreak(true, 8);
+        $pdf->AddPage();
+
+        $html = $this->buildRecuContent($fakeReference, $fakeVersement, $fakeInscription, $fakeEtudiant);
+        $this->pdfGenerator->writeHtml($pdf, $html);
+
+        return (string) $pdf->Output('', 'S');
+    }
 }

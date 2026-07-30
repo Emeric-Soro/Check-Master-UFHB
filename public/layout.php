@@ -202,7 +202,11 @@ if (!isset($_SESSION['id_utilisateur'])) {
         );
 
     $legacyAccessAllowed = true;
-    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate) {
+    // Les routes de service avec leur propre securite interne (docviewer, etc.)
+    // sont exemptees du controle de permissions legacy. Elles gerent elles-memes
+    // l'authentification et les droits (session + DocumentRegistry::canView()).
+    $bypassLegacyPermissionCheck = in_array($currentMenuSlugForGate, ['docviewer'], true);
+    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$bypassLegacyPermissionCheck) {
         $legacyAccessAllowed = $routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method);
         if ($isCandidatureStagePost) {
             cm_candidature_debug_log('permission_check', [
@@ -324,6 +328,7 @@ $canonicalPageLabels = [
     'fiche_etudiant_complete' => 'Fiche Étudiante Complete',
     'suivi_scolarite' => 'Suivi & Scolarité',
     'commissions_archives' => 'Commissions & Archives',
+    'membres_commission' => 'Membres votants de la commission',
     'enseignant_gestion' => 'Gestion des Enseignants',
     'outils_direction' => 'Outils & Direction',
     'gestion_notes' => 'Gestion des Notes',
@@ -415,8 +420,8 @@ switch ($currentMenuSlug) {
 
         $profileContactEmail = '';
         try {
-            $authController = $container->get('AuthService');
-            $profileContactEmail = (string) ($authController->getContactEmail() ?? '');
+            $authService = $container->get('AuthService');
+            $profileContactEmail = (string) ($authService->getContactEmail($_SESSION['id_utilisateur'] ?? null) ?? '');
         } catch (\Throwable $e) {
             error_log('Layout profil: récupération email de contact impossible: ' . $e->getMessage());
         }
@@ -437,8 +442,22 @@ switch ($currentMenuSlug) {
         if ($isEmailUpdateRequest) {
             $newEmail = (string) ($_POST['newEmail'] ?? $_POST['new_email'] ?? '');
             $confirmEmail = (string) ($_POST['confirmEmail'] ?? $_POST['confirm_email'] ?? '');
-            $authController = $container->get('AuthService');
-            $emailUpdated = $authController->updateEmail($newEmail, $confirmEmail);
+            $authService = $container->get('AuthService');
+            $idUtilisateur = $_SESSION['id_utilisateur'] ?? null;
+            $emailResult = $authService->updateEmail($idUtilisateur, $newEmail, $confirmEmail);
+            $emailUpdated = is_array($emailResult) && !empty($emailResult['success']);
+            if (is_array($emailResult)) {
+                if ($emailUpdated) {
+                    $GLOBALS['messageSuccess'] = $emailResult['message'] ?? '';
+                    try {
+                        $authService->notifierEmailModifie($idUtilisateur, $profileContactEmail, $newEmail);
+                    } catch (\Throwable $e) {
+                        error_log('Erreur notif email modifie: ' . $e->getMessage());
+                    }
+                } else {
+                    $GLOBALS['messageErreur'] = $emailResult['message'] ?? '';
+                }
+            }
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
             if ($emailUpdated) {
@@ -483,12 +502,26 @@ switch ($currentMenuSlug) {
             $currentPassword = (string) ($_POST['currentPassword'] ?? $_POST['current_password'] ?? '');
             $newPassword = (string) ($_POST['newPassword'] ?? $_POST['new_password'] ?? '');
             $confirmPassword = (string) ($_POST['confirmPassword'] ?? $_POST['confirm_password'] ?? '');
-            $authController = $container->get('AuthService');
-            $passwordUpdated = $authController->updatePassword(
+            $authService = $container->get('AuthService');
+            $passwordResult = $authService->updatePassword(
+                $_SESSION['id_utilisateur'] ?? null,
                 $currentPassword,
                 $newPassword,
                 $confirmPassword
             );
+            $passwordUpdated = is_array($passwordResult) && !empty($passwordResult['success']);
+            if (is_array($passwordResult)) {
+                if ($passwordUpdated) {
+                    $GLOBALS['messageSuccess'] = $passwordResult['message'] ?? '';
+                    try {
+                        $authService->notifierMdpChange((int) ($_SESSION['id_utilisateur'] ?? 0));
+                    } catch (\Throwable $e) {
+                        error_log('Erreur notif mdp change: ' . $e->getMessage());
+                    }
+                } else {
+                    $GLOBALS['messageErreur'] = $passwordResult['message'] ?? '';
+                }
+            }
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
             if ($passwordUpdated) {
@@ -598,6 +631,11 @@ switch ($currentMenuSlug) {
             // Ces pages ont leurs propres contrôleurs et vues.
             // ════════════════════════════════════════════════════════
             switch ($currentAction) {
+                case 'modeles_pdf':
+                    $pdfTemplates = $paramController->getPdfTemplatesCatalog();
+                    $contentFile = $partialsBasePath . 'parametres_specifiques_modeles_pdf.php';
+                    $currentPageLabel = 'Modèles PDF';
+                    break 2;
                 case 'suivi_scolarite':
                     $hubTab = (string) ($_GET['tab'] ?? 'fiche_financiere_annee');
                     switch ($hubTab) {
@@ -1035,6 +1073,17 @@ switch ($currentMenuSlug) {
     case 'consultation_cr_etud':
         $contentFile = $partialsBasePath . 'consultation_cr_etud_content.php';
         $currentPageLabel = 'Mon Compte Rendu';
+        break;
+    case 'membres_commission':
+        require_once __DIR__ . '/../app/controllers/CommissionValidationMembresController.php';
+        $membresCommissionController = new CommissionValidationMembresController();
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_GET['action'] ?? '') === 'sauvegarder_membres') {
+            $membresCommissionController->sauvegarder();
+            exit;
+        }
+        $membresCommissionData = $membresCommissionController->index();
+        $contentFile = $partialsBasePath . 'membres_commission_content.php';
+        $currentPageLabel = 'Membres votants';
         break;
     case 'redaction_compte_rendu':
         $contentFile = $partialsBasePath . 'redaction_compte_rendu_content.php';
@@ -1776,6 +1825,12 @@ $cardPSpecifiques = [
         'description' => 'Couverture tables/colonnes dans les écrans paramètres.',
         'link' => '?page=parametres_specifiques&action=schema_tables',
         'icon' => 'fa-database'
+    ],
+    [
+        'title' => 'Modèles PDF',
+        'description' => 'Catalogue des documents PDF, aperçu et téléchargement.',
+        'link' => '?page=parametres_specifiques&action=modeles_pdf',
+        'icon' => 'fa-file-pdf'
     ]
 ];
 $cardReclamation = [

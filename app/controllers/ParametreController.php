@@ -528,6 +528,18 @@ class ParametreController
         $controller->index();
     }
     //==============================FIN GESTION PURGE CYCLE ETUDIANT==============================
+
+
+    //==============================CATALOGUE MODÈLES PDF==============================
+    /**
+     * Retourne le catalogue fonctionnel des modèles PDF générés par l'application.
+     * Délègue au ParametreService.
+     */
+    public function getPdfTemplatesCatalog(): array
+    {
+        return $this->service->getPdfTemplatesCatalog();
+    }
+    //==============================FIN CATALOGUE MODÈLES PDF==============================
 }
 
 

@@ -116,6 +116,35 @@ foreach ($membresCommission as $membre) {
 }
 ?>
 <div class="cm-prd3-screen cm-prd3-crud-screen">
+    <style>
+        .cm-process-votes {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 190px;
+        }
+        .cm-process-votes__summary {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .cm-process-votes__list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px 8px;
+            color: var(--cm-text-muted, #6b7280);
+            font-size: 0.78rem;
+            line-height: 1.25;
+        }
+        .cm-process-vote {
+            white-space: nowrap;
+        }
+        .cm-process-vote.is-valid {
+            color: var(--cm-success, #16a34a);
+        }
+        .cm-process-vote.is-rejected {
+            color: var(--cm-danger, #dc2626);
+        }
+    </style>
     <div id="cmProcessAlert"></div>
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur">
@@ -200,9 +229,7 @@ foreach ($membresCommission as $membre) {
                 <table class="cm-data-table" id="cmProcessTable">
                     <thead>
                         <tr>
-                            <th class="cm-data-table__th">N° Rapport</th>
                             <th class="cm-data-table__th">Nom &amp; Prénom</th>
-                            <th class="cm-data-table__th">Promotion</th>
                             <th class="cm-data-table__th">Statut global</th>
                             <th class="cm-data-table__th">Votes</th>
                             <th class="cm-data-table__th">Date approbation</th>
@@ -213,7 +240,7 @@ foreach ($membresCommission as $membre) {
                         <?php if (empty($rowsToShow)): ?>
                             <?php cm_component('ui/empty-state', [
                                 'in_table' => true,
-                                'colspan' => 7,
+                                'colspan' => 5,
                                 'title' => '',
                                 'message' => 'Aucune ligne disponible pour ces filtres.',
                             ]); ?>
@@ -239,7 +266,9 @@ foreach ($membresCommission as $membre) {
                                 $etudiant = trim((string) ($rapport['nom_etu'] ?? '') . ' ' . (string) ($rapport['prenom_etu'] ?? ''));
                                 $searchText = strtolower((string) ($rapport['nom_rapport'] ?? '') . ' ' . $etudiant . ' ' . (string) ($rapport['theme_rapport'] ?? ''));
                                 $dateApprob = !empty($rapport['date_approv']) ? date('d/m/Y H:i', strtotime((string) $rapport['date_approv'])) : '-';
-                                $votesText = (int) ($vote['votes_valider'] ?? 0) . ' val. / ' . (int) ($vote['votes_rejeter'] ?? 0) . ' rej. (' . (int) ($vote['total_votes'] ?? 0) . '/4)';
+                                $votesValider = (int) ($vote['votes_valider'] ?? 0);
+                                $votesRejeter = (int) ($vote['votes_rejeter'] ?? 0);
+                                $totalVotes = (int) ($vote['total_votes'] ?? 0);
                                 $canFinalize = !empty($vote['total_votes']) && (int) $vote['total_votes'] >= 4 && empty($vote['finalise']);
                                 $adminUserId = (int) ($_SESSION['id_utilisateur'] ?? 0);
                                 $hasAdminVote = false;
@@ -257,18 +286,48 @@ foreach ($membresCommission as $membre) {
                                 ?>
                                 <tr class="cm-data-table__row"
                                     data-search="<?php echo htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8'); ?>">
-                                    <td class="cm-data-table__td">#<?php echo $idRapport; ?></td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?>
-                                    </td>
-                                    <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars(\FormattingUtils::formatPromotion((string) ($rapport['promotion_etu'] ?? '-')), ENT_QUOTES, 'UTF-8'); ?>
+                                        <div style="font-weight: 600;"><?php echo htmlspecialchars($etudiant, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <div style="font-size: 0.85em; color: var(--cm-text-muted); margin-top: 3px;">
+                                            Promotion : <?php echo htmlspecialchars(\FormattingUtils::formatPromotion((string) ($rapport['promotion_etu'] ?? '-')), ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
                                     </td>
                                     <td class="cm-data-table__td">
                                         <?php cm_component('ui/badge', ['text' => $statutLabel, 'type' => $badgeType]); ?>
                                     </td>
                                     <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars($votesText, ENT_QUOTES, 'UTF-8'); ?>
+                                        <div class="cm-process-votes">
+                                            <span class="cm-process-votes__summary">
+                                                <?php echo $votesValider; ?> validé<?php echo $votesValider > 1 ? 's' : ''; ?>
+                                                <span aria-hidden="true">·</span>
+                                                <?php echo $votesRejeter; ?> rejeté<?php echo $votesRejeter > 1 ? 's' : ''; ?>
+                                                <span aria-hidden="true">(<?php echo $totalVotes; ?>/4)</span>
+                                            </span>
+                                            <?php if (!empty($rapport['evaluations'])): ?>
+                                                <div class="cm-process-votes__list" aria-label="Personnes ayant voté">
+                                                    <?php 
+                                                    // Trier par ordre chronologique (du plus ancien vote au plus récent)
+                                                    $evaluationsChronologiques = array_reverse((array) $rapport['evaluations']);
+                                                    foreach ($evaluationsChronologiques as $index => $evaluation): 
+                                                    ?>
+                                                        <?php
+                                                        $votant = trim((string) ($evaluation['nom_enseignant'] ?? '') . ' ' . (string) ($evaluation['prenom_enseignant'] ?? ''));
+                                                        if ($votant === '') {
+                                                            $votant = trim((string) ($evaluation['login_utilisateur'] ?? 'Membre de la commission'));
+                                                        }
+                                                        $decision = strtolower((string) ($evaluation['decision_evaluation'] ?? ''));
+                                                        $decisionLabel = $decision === 'valider' ? '✓' : ($decision === 'rejeter' ? '✕' : '•');
+                                                        $decisionClass = $decision === 'valider' ? 'is-valid' : ($decision === 'rejeter' ? 'is-rejected' : '');
+                                                        ?>
+                                                        <span class="cm-process-vote <?php echo $decisionClass; ?>" title="<?php echo htmlspecialchars($decision === 'valider' ? 'Validation' : ($decision === 'rejeter' ? 'Rejet' : 'Vote'), ENT_QUOTES, 'UTF-8'); ?>">
+                                                            <span style="font-weight: bold; opacity: 0.8; margin-right: 2px; color: var(--cm-text-muted, #6b7280);"><?php echo $index + 1; ?>.</span><?php echo $decisionLabel; ?> <?php echo htmlspecialchars($votant, ENT_QUOTES, 'UTF-8'); ?>
+                                                        </span>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="cm-process-votes__list">Aucun votant</span>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                     <td class="cm-data-table__td">
                                         <?php echo htmlspecialchars($dateApprob, ENT_QUOTES, 'UTF-8'); ?>
@@ -362,23 +421,21 @@ foreach ($membresCommission as $membre) {
         }
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['N° Rapport', 'Nom & Prénom', 'Promotion', 'Statut', 'Votes', 'Date approbation'];
+                const headers = ['Nom & Prénom', 'Statut', 'Votes', 'Date approbation'];
                 const csvRows = [headers.join(';')];
                 tableRows.forEach(function (row) {
                     if (row.style.display === 'none') {
                         return;
                     }
                     const cols = row.querySelectorAll('.cm-data-table__td');
-                    if (cols.length < 6) {
+                    if (cols.length < 4) {
                         return;
                     }
                     const line = [
                         cols[0].innerText.trim(),
                         cols[1].innerText.trim(),
                         cols[2].innerText.trim(),
-                        cols[3].innerText.trim(),
-                        cols[4].innerText.trim(),
-                        cols[5].innerText.trim()
+                        cols[3].innerText.trim()
                     ].map(function (v) {
                         return '"' + v.replace(/"/g, '""') + '"';
                     });

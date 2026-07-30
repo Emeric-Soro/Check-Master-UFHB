@@ -168,6 +168,10 @@ foreach ($criteria as $c) {
             mentionField.textContent = allFilled ? getMentionFromNote(total) : '—';
             mentionField.className = 'cm-eval-grid__mention-display' + (allFilled ? ' cm-eval-grid__mention-display--' + getMentionFromNote(total).toLowerCase().replace(/\s/g, '-').replace('é', 'e').replace('è', 'e') : '');
         }
+        var decisionMention = document.getElementById('cmEvalDecisionMention');
+        if (decisionMention) {
+            decisionMention.value = allFilled ? getMentionFromNote(total) : '—';
+        }
     }
 
     grid.querySelectorAll('.cm-eval-grid__note-field').forEach(function (input) {

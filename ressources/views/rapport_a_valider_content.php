@@ -55,7 +55,7 @@ foreach ($allRapports as $rapport) {
         'num_etu' => (string) ($rapport->num_etu ?? ''),
         'nom_rapport' => (string) ($rapport->nom_rapport ?? 'Rapport'),
         'theme_rapport' => (string) ($rapport->theme_rapport ?? ''),
-        'date_rapport' => (string) ($rapport->date_rapport ?? ''),
+        'date_rapport' => (string) ($rapport->date_depot ?? $rapport->date_rapport ?? ''),
         'statut_rapport' => strtolower((string) ($rapport->statut_rapport ?? 'en_attente')),
         'nom_etu' => (string) ($rapport->nom_etu ?? ''),
         'prenom_etu' => (string) ($rapport->prenom_etu ?? ''),
@@ -215,14 +215,6 @@ $statusOptions = [
                                                     href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
                                                     title="Voir rapport">
                                                     <i class="fas fa-eye" aria-hidden="true"></i>
-                                                </a>
-                                            <?php endif; ?>
-                                            <?php if (canEdit()): ?>
-                                                <a class="cm-btn is-info is-sm"
-                                                    href="?page=evaluation_dossiers&detail=<?php echo urlencode((string) $idRapport); ?>"
-                                                    title="Transmettre à l'évaluation">
-                                                    <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                                                    <span>Transmettre</span>
                                                 </a>
                                             <?php endif; ?>
                                         </div>

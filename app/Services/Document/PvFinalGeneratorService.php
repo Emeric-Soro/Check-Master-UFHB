@@ -856,4 +856,65 @@ final class PvFinalGeneratorService
 
         return $clean !== '' ? $clean : 'etudiant';
     }
+
+    /**
+     * Génère un aperçu PDF du modèle PV final de soutenance avec des données fictives.
+     * Utilise les vraies 3 annexes du modèle sans aucune écriture en base ni sur disque.
+     *
+     * @return string Contenu PDF binaire
+     */
+    public function generatePreview(): string
+    {
+        $fakeData = [
+            'reference'          => 'PVF-2026-00042',
+            'numero_pv'          => 'PVF-2026-00042',
+            'date_soutenance'    => date('d/m/Y'),
+            'date_deliberation'  => date('d/m/Y'),
+            'niveau'             => 'Master 2',
+            'classe'             => 'MIAGE-GI',
+            'theme'              => 'Conception d\'une plateforme de suivi académique intégrée pour les filières professionnalisées',
+            'nom_etudiant'       => 'KOUASSI Jean-Baptiste',
+            'matricule'          => 'CM-2026-00042',
+            'annee_academique'   => '2025-2026',
+            'annexe1_rows'       => [
+                ['label' => '1. Exposé',                        'note' => 3.50, 'bareme' => 4.0],
+                ['label' => '2. Réponses aux questions posées', 'note' => 4.25, 'bareme' => 5.0],
+                ['label' => '3. Présentation du mémoire',       'note' => 1.75, 'bareme' => 2.0],
+                ['label' => '4. Contenu du mémoire',            'note' => 3.50, 'bareme' => 4.0],
+                ['label' => '5. Résolution du problème',        'note' => 4.00, 'bareme' => 5.0],
+            ],
+            'annexe1_total'      => 17.00,
+            'annexe2_rows'       => [
+                ['label' => '1. Moyenne Générale Master1',              'note' => 13.50, 'coeff' => 2, 'moyenne_coeff' => 27.00],
+                ['label' => '2. Moyenne Générale Semestre 1 Master2',   'note' => 14.25, 'coeff' => 3, 'moyenne_coeff' => 42.75],
+                ['label' => '3. Memoire de fin de cycle',               'note' => 17.00, 'coeff' => 3, 'moyenne_coeff' => 51.00],
+            ],
+            'annexe2_total'      => 120.75,
+            'annexe3_rows'       => [
+                ['label' => '1. Moyenne Générale', 'note' => 13.50, 'coeff' => 3, 'moyenne_coeff' => 40.50],
+                ['label' => '2. Memoire',           'note' => 17.00, 'coeff' => 3, 'moyenne_coeff' => 51.00],
+            ],
+            'annexe3_total'      => 91.50,
+            'note_finale'        => 15.09,
+            'decision'           => 'ADMIS',
+            'mention'            => 'Bien',
+            'jury_members'       => [
+                'president'            => 'Prof. YAPI Gnagne Serge',
+                'examinateur'          => 'Dr. AKA Sylvie',
+                'directeur_memoire'    => 'Dr. BROU Kofi Emmanuel',
+                'encadreur_pedagogique'=> 'M. KONAN Etienne',
+                'maitre_stage'         => 'M. ASSI Kouamé',
+            ],
+        ];
+
+        $pdf = $this->pdfGenerator->createDocument('P', 'A4', 'PV Final de Soutenance', 'CheckMaster UFRMI');
+        $pdf->SetAutoPageBreak(false, 0);
+
+        $this->addPageAnnexe1($pdf, $fakeData);
+        $this->addPageAnnexe2($pdf, $fakeData);
+        $this->addPageAnnexe3($pdf, $fakeData);
+        $this->applyFooters($pdf, 3);
+
+        return (string) $pdf->Output('', 'S');
+    }
 }
