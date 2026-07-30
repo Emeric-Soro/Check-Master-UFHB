@@ -184,17 +184,49 @@
 @media (max-width: 1024px) {
     .cm-login-shell {
         grid-template-columns: 1fr;
-        max-width: 760px;
-        padding: 16px;
+        max-width: 580px;
+        gap: 32px;
+        padding: 32px 20px;
+    }
+
+    .cm-login-brand {
+        align-items: center;
+        text-align: center;
     }
 
     .cm-login-brand h1 {
-        font-size: 1.9rem;
+        font-size: 1.85rem;
+        margin-top: 16px;
+    }
+
+    .cm-login-brand > p {
+        max-width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .cm-login-features {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .cm-login-feature-card {
+        padding: 16px;
+        align-items: center;
+        text-align: center;
     }
 }
 
-@media (max-width: 768px) {
-    .cm-login-features {
-        grid-template-columns: 1fr;
+@media (max-width: 480px) {
+    .cm-login-shell {
+        padding: 24px 16px;
+        gap: 24px;
+    }
+
+    .cm-login-brand h1 {
+        font-size: 1.60rem;
+    }
+
+    .cm-login-card {
+        padding: 24px 20px;
     }
 }

@@ -25,7 +25,7 @@ $errorMessage = isset($_SESSION['error']) ? htmlspecialchars((string) $_SESSION[
     <main class="cm-login-shell">
         <section class="cm-login-brand">
             <a href="../site/index.php" class="cm-login-back-link">
-                <img src="../image/logo_cm_sbg.png" alt="UFHB">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
                 <span>Retourner sur l'accueil UFHB</span>
             </a>
             <h1>Accédez à votre espace CheckMaster</h1>
