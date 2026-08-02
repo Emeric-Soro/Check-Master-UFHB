@@ -20,11 +20,37 @@ spl_autoload_register(function (string $class): void {
     }
 
     $relative = substr($class, strlen($prefix));
-    $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, $relative) . '.php';
+    
+    // Split the relative path to handle lowercase directories with capitalized class filenames
+    $parts = explode('\\', $relative);
+    $className = array_pop($parts);
+    $subDirs = array_map('strtolower', $parts);
+    
+    $subPath = implode(DIRECTORY_SEPARATOR, $subDirs);
+    if ($subPath !== '') {
+        $subPath .= DIRECTORY_SEPARATOR;
+    }
+    
     $baseDir = dirname(__DIR__); // app/
-    $file = $baseDir . DIRECTORY_SEPARATOR . $relativePath;
+    $file = $baseDir . DIRECTORY_SEPARATOR . $subPath . $className . '.php';
 
     if (is_file($file)) {
         require_once $file;
+        return;
+    }
+
+    // Fallback 1: Exact case matching
+    $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, $relative) . '.php';
+    $fileAlt = $baseDir . DIRECTORY_SEPARATOR . $relativePath;
+    if (is_file($fileAlt)) {
+        require_once $fileAlt;
+        return;
+    }
+
+    // Fallback 2: Full lowercase
+    $fileLower = $baseDir . DIRECTORY_SEPARATOR . strtolower($relativePath);
+    if (is_file($fileLower)) {
+        require_once $fileLower;
+        return;
     }
 });
