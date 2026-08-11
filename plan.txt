@@ -1,734 +1,282 @@
-================================================================================
-PLAN DE REDUCTION DES DUPLICATIONS -- CheckMaster UFRMI-UFHB
-================================================================================
-
-Date       : 4 juin 2026
-Objectif   : Eliminer ~2 700 lignes de code duplique sur ~3 300 identifiees
-Methode    : 9 refactorings cibles, du plus facile au plus complexe
-
-================================================================================
-SOMMAIRE
-================================================================================
-
-  1. requirePermission()            -- Eliminer 670 lignes (priorite haute)
-  2. gestionReferentielSimple()     -- Eliminer 500 lignes (priorite haute)
-  3. logCrud() helper               -- Centraliser 121 appels d'audit
-  4. Template impression            -- Eliminer 135 lignes
-  5. Export XLSX unique             -- Eliminer 230 lignes
-  6. AbstractFicheController        -- Factoriser 4 controleurs (-240 lignes)
-  7. Config declarative layout.php  -- Eliminer 300 lignes
-  8. Composant stat-grid            -- Eliminer 320 lignes
-  9. Tables -> data-table           -- Eliminer 200 lignes
-
-  RESUME DES GAINS :
-  | Action                        | Gain        | Difficulte |
-  |-------------------------------|-------------|------------|
-  | requirePermission()           | -670 lignes | Facile     |
-  | gestionReferentielSimple()    | -500 lignes | Facile     |
-  | logCrud() helper              | -120 appels | Facile     |
-  | Template impression           | -135 lignes | Facile     |
-  | Export XLSX unique            | -230 lignes | Moyen      |
-  | AbstractFicheController       | -240 lignes | Moyen      |
-  | Config declarative layout.php | -300 lignes | Moyen      |
-  | Composant stat-grid           | -320 lignes | Facile     |
-  | Tables -> data-table          | -200 lignes | Facile     |
-  | TOTAL                         | ~2 700 lignes|            |
-
-
-================================================================================
-1. requirePermission() -- Eliminer 670 lignes
-================================================================================
-
-CONTEXTE :
-Le bloc de verification de permission AJAX est copie 67 fois dans les
-controleurs (ParametreController: 23x, GestionUtilisateurController: 7x,
-GestionRhController: 5x, etc.). Chaque bloc fait ~10 lignes.
-
-FICHIERS CONCERNES :
-- app/controllers/ParametreController.php (23 occurrences)
-- app/controllers/GestionUtilisateurController.php (7 occurrences)
-- app/controllers/GestionRhController.php (5 occurrences)
-- app/controllers/SauvegardeRestaurationController.php (4 occurrences)
-- app/controllers/GestionEtudiantController.php (4 occurrences)
-- 16 autres controleurs (24 occurrences)
-
-SOLUTION :
-Ajouter la fonction requirePermission() dans app/utils/permissions_helper.php
-
-CODE A AJOUTER (a la fin de app/utils/permissions_helper.php) :
-
-    /**
-     * Verifie la permission et stoppe l'execution si refuse.
-     * Gere automatiquement AJAX (403 JSON) vs classique (redirect).
-     */
-    function requirePermission(string $slug, string $action = 'voir'): void
-    {
-        $fn = match($action) {
-            'creer'     => 'canCreate',
-            'modifier'  => 'canEdit',
-            'supprimer' => 'canDelete',
-            default     => 'canView',
-        };
-
-        if ($fn($slug)) {
-            return; // OK
-        }
-
-        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-            && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-        if ($isAjax) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."
-            ]);
-        } else {
-            $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
-            $_SESSION['error_type'] = 'permission_denied';
-            header('Location: layout.php?page=access_denied');
-        }
-        exit;
-    }
-
-REMPLACEMENT DANS LES CONTROLEURS :
-
-  AVANT (10 lignes, repete 67 fois) :
-    if (!canView('param_grades')) {
-        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => "Vous n'avez pas l'autorisation d'effectuer cette action."]);
-            exit;
-        }
-        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
-        $_SESSION['error_type'] = 'permission_denied';
-        header('Location: layout.php?page=access_denied');
-        exit;
-    }
-
-  APRES (1 ligne) :
-    requirePermission('param_grades');
-
-  Pour les actions creer/modifier/supprimer :
-    requirePermission('param_grades', 'creer');
-    requirePermission('param_grades', 'modifier');
-    requirePermission('param_grades', 'supprimer');
-
-
-================================================================================
-2. gestionReferentielSimple() -- Eliminer 500 lignes
-================================================================================
-
-CONTEXTE :
-ParametreService.php contient 11 methodes CRUD quasi identiques pour les
-entites de parametrage. Le service a DEJA une methode generique
-gestionReferentielSimple() et un config getReferentielSimpleConfig().
-Il suffit de migrer les 11 methodes redondantes.
-
-FICHIER CONCERNE :
-- app/Services/ParametreService.php (2739 lignes)
-
-METHODES A MIGRER :
-- gestionGrade()              (lignes 198-254)   ~56 lignes
-- gestionSpecialite()         (lignes 379-435)   ~56 lignes
-- gestionStatutJury()         (lignes 512-568)   ~56 lignes
-- gestionNiveauApprobation()  (lignes 572-628)   ~56 lignes
-- gestionSemestre()           (lignes 632-690)   ~58 lignes
-- gestionNiveauAccesDonnees() (lignes 694-750)   ~56 lignes
-- gestionTraitement()         (lignes 754-822)   ~68 lignes
-- gestionEntreprise()         (lignes 826-893)   ~67 lignes
-- gestionAction()             (lignes 897-953)   ~56 lignes
-- gestionFonction()           (lignes 957-1013)  ~56 lignes
-- gestionMessagerie()         (lignes 1017-1075) ~58 lignes
-
-ETAPE 1 : Ajouter les entrees dans getReferentielSimpleConfig()
-
-    'grades' => [
-        'table'       => 'grade',
-        'idCol'       => 'id_grade',
-        'labelCol'    => 'nom_grade',
-        'entityLabel' => 'Grade',
-        'formFields'  => [
-            'nom_grade' => ['label' => 'Nom du grade', 'required' => true],
-        ],
-    ],
-    'specialites' => [
-        'table'       => 'specialite',
-        'idCol'       => 'id_specialite',
-        'labelCol'    => 'nom_specialite',
-        'entityLabel' => 'Specialite',
-        'formFields'  => [
-            'nom_specialite' => ['label' => 'Nom', 'required' => true],
-        ],
-    ],
-    'statut_jury' => [
-        'table'       => 'statut_jury',
-        'idCol'       => 'id_statut_jury',
-        'labelCol'    => 'nom_statut_jury',
-        'entityLabel' => 'Statut jury',
-        'formFields'  => [
-            'nom_statut_jury' => ['label' => 'Nom', 'required' => true],
-        ],
-    ],
-    'niveau_approbation' => [
-        'table'       => 'niveau_approbation',
-        'idCol'       => 'id_niveau_approbation',
-        'labelCol'    => 'nom_niveau_approbation',
-        'entityLabel' => 'Niveau approbation',
-        'formFields'  => [
-            'nom_niveau_approbation' => ['label' => 'Nom', 'required' => true],
-        ],
-    ],
-    'semestres' => [
-        'table'       => 'semestre',
-        'idCol'       => 'id_semestre',
-        'labelCol'    => 'nom_semestre',
-        'entityLabel' => 'Semestre',
-        'formFields'  => [
-            'nom_semestre' => ['label' => 'Nom', 'required' => true],
-        ],
-    ],
-    'niveaux_acces' => [
-        'table'       => 'niveau_acces_donnees',
-        'idCol'       => 'id_niveau_acces_donnees',
-        'labelCol'    => 'nom_niveau_acces_donnees',
-        'entityLabel' => 'Niveau acces donnees',
-        'formFields'  => [
-            'nom_niveau_acces_donnees' => ['label' => 'Nom', 'required' => true],
-        ],
-    ],
-    'traitements' => [
-        'table'       => 'traitement',
-        'idCol'       => 'id_traitement',
-        'labelCol'    => 'nom_traitement',
-        'entityLabel' => 'Traitement',
-        'formFields'  => [
-            'nom_traitement' => ['label' => 'Nom', 'required' => true],
-            'description'    => ['label' => 'Description', 'required' => false],
-        ],
-    ],
-    'entreprises' => [
-        'table'       => 'entreprise',
-        'idCol'       => 'id_entreprise',
-        'labelCol'    => 'nom_entreprise',
-        'entityLabel' => 'Entreprise',
-        'formFields'  => [
-            'nom_entreprise' => ['label' => 'Nom', 'required' => true],
-            'adresse'        => ['label' => 'Adresse', 'required' => false],
-        ],
-    ],
-    'actions' => [
-        'table'       => 'action',
-        'idCol'       => 'id_action',
-        'labelCol'    => 'nom_action',
-        'entityLabel' => 'Action',
-        'formFields'  => [
-            'nom_action' => ['label' => 'Nom', 'required' => true],
-        ],
-    ],
-    'fonctions' => [
-        'table'       => 'fonction',
-        'idCol'       => 'id_fonction',
-        'labelCol'    => 'nom_fonction',
-        'entityLabel' => 'Fonction',
-        'formFields'  => [
-            'nom_fonction' => ['label' => 'Nom', 'required' => true],
-        ],
-    ],
-    'messages' => [
-        'table'       => 'message',
-        'idCol'       => 'id_message',
-        'labelCol'    => 'nom_message',
-        'entityLabel' => 'Message',
-        'formFields'  => [
-            'nom_message' => ['label' => 'Nom', 'required' => true],
-            'contenu'     => ['label' => 'Contenu', 'required' => false],
-        ],
-    ],
-
-ETAPE 2 : Remplacer les methodes dans les controleurs
-
-  AVANT :
-    $data = $this->parametreService->gestionGrade($_GET, $_POST, $userId);
-
-  APRES :
-    $data = $this->parametreService->gestionReferentielSimple('grades', $_GET, $_POST, $userId);
-
-ETAPE 3 : Supprimer les 11 methodes redondantes de ParametreService.php
-
-
-================================================================================
-3. logCrud() helper -- Centraliser 121 appels d'audit
-================================================================================
-
-CONTEXTE :
-Chaque operation CRUD dans ParametreService.php effectue des appels
-redondants a auditLog->logCreation/logModification/logSuppression
-avec le statut Succes/Erreur. 121 occurrences au total.
-
-FICHIER CONCERNE :
-- app/Services/ParametreService.php
-
-CODE A AJOUTER (methode dans ParametreService ou classe parente) :
-
-    /**
-     * Log une operation CRUD dans l'audit trail.
-     */
-    protected function logCrud(string $operation, int $userId, string $entity, bool $success): void
-    {
-        $status = $success ? 'Succes' : 'Erreur';
-        match($operation) {
-            'create' => $this->auditLog->logCreation($userId, $entity, $status),
-            'update' => $this->auditLog->logModification($userId, $entity, $status),
-            'delete' => $this->auditLog->logSuppression($userId, $entity, $status),
-        };
-    }
-
-REMPLACEMENT :
-
-  AVANT :
-    $this->auditLog->logCreation($userId, 'Grade', 'Succes');
-
-  APRES :
-    $this->logCrud('create', $userId, 'Grade', true);
-
-  AVANT :
-    $this->auditLog->logSuppression($userId, 'Grade', 'Erreur');
-
-  APRES :
-    $this->logCrud('delete', $userId, 'Grade', false);
-
-
-================================================================================
-4. Template impression -- Eliminer 135 lignes
-================================================================================
-
-CONTEXTE :
-Le code HTML/CSS/JS du template d'impression est integralement duplique
-entre cm_render_param_crud_view() et cm_toolbar() dans ComponentHelper.php.
-
-FICHIER CONCERNE :
-- app/utils/ComponentHelper.php
-
-CODE A AJOUTER :
-
-    /**
-     * Genere le template HTML/CSS/JS pour l'impression.
-     */
-    function cm_build_print_template(string $title, string $footerText = ''): string
-    {
-        $footerText = $footerText ?: 'UFR Mathematiques et Informatique -- UFHB';
-        $css = '<style>
-            @media print {
-                body * { visibility: hidden; }
-                .cm-print-area, .cm-print-area * { visibility: visible; }
-                .cm-print-area { position: absolute; left: 0; top: 0; width: 100%; }
-            }
-            .cm-print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #1a3c6e; padding-bottom: 10px; }
-            .cm-print-logo { height: 70px; }
-            .cm-print-footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
-        </style>';
-
-        $html = '<div class="cm-print-header">';
-        $html .= '<img src="public/images/logo_civ.png" class="cm-print-logo">';
-        $html .= '<h2 style="text-align:center;">' . htmlspecialchars($title) . '</h2>';
-        $html .= '<img src="public/images/logo_ufhb.png" class="cm-print-logo">';
-        $html .= '</div>';
-        $html .= '<div class="cm-print-footer">' . htmlspecialchars($footerText) . '</div>';
-
-        $js = '<script>
-            function printSection(selector) {
-                var content = document.querySelector(selector).innerHTML;
-                var win = window.open("", "_blank");
-                win.document.write("<html><head><title>Impression</title></head><body>" + content + "</body></html>");
-                win.document.close();
-                setTimeout(function() { win.print(); }, 250);
-            }
-        </script>';
-
-        return $css . $html . $js;
-    }
-
-REMPLACEMENT :
-Dans cm_render_param_crud_view() et cm_toolbar(), remplacer les ~70 lignes
-de template par :
-    $printTemplate = cm_build_print_template($titre);
-
-
-================================================================================
-5. Export XLSX unique -- Eliminer 230 lignes
-================================================================================
-
-CONTEXTE :
-Deux fonctions d'export XLSX quasi identiques dans ComponentHelper.php :
-cm_param_crud_export() (~124 lignes) et cm_handle_toolbar_xlsx_export()
-(~106 lignes). 80% de logique identique.
-
-FICHIER CONCERNE :
-- app/utils/ComponentHelper.php
-
-CODE A AJOUTER :
-
-    /**
-     * Telecharge un fichier XLSX.
-     */
-    function cm_xlsx_download(string $filename, array $headers, array $rows, ?string $title = null): void
-    {
-        while (ob_get_level()) { ob_end_clean(); }
-
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $col = 1;
-
-        if ($title) {
-            $sheet->setCellValue(chr(64 + $col) . '1', $title);
-            $sheet->mergeCells('A1:' . chr(64 + count($headers)) . '1');
-            $startRow = 2;
-        } else {
-            $startRow = 1;
-        }
-
-        foreach ($headers as $h) {
-            $sheet->setCellValue(chr(64 + $col) . $startRow, $h);
-            $col++;
-        }
-
-        $rowNum = $startRow + 1;
-        foreach ($rows as $row) {
-            $col = 1;
-            foreach ($row as $cell) {
-                $sheet->setCellValue(chr(64 + $col) . $rowNum, $cell);
-                $col++;
-            }
-            $rowNum++;
-        }
-
-        for ($i = 1; $i <= count($headers); $i++) {
-            $sheet->getColumnDimension(chr(64 + $i))->setAutoSize(true);
-        }
-
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '.xlsx"');
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        $writer->save('php://output');
-        exit;
-    }
-
-REMPLACEMENT :
-Les deux fonctions existantes deviennent de simples wrappers :
-
-    function cm_param_crud_export(string $filename, array $headers, array $rows): void
-    {
-        cm_xlsx_download($filename, $headers, $rows);
-    }
-
-    function cm_handle_toolbar_xlsx_export(string $filename, array $headers, array $rows, string $title): void
-    {
-        cm_xlsx_download($filename, $headers, $rows, $title);
-    }
-
-
-================================================================================
-6. AbstractFicheController -- Factoriser 4 controleurs
-================================================================================
-
-CONTEXTE :
-4 controleurs Fiche suivent le meme schema : constructeur avec
-Database::getConnection() + service, methode index() avec canView(),
-delegation au service.
-
-FICHIERS CONCERNES :
-- app/controllers/FicheEtudiantController.php (143 lignes)
-- app/controllers/FicheEnseignantController.php (127 lignes)
-- app/controllers/FichePersAdminController.php (67 lignes)
-- app/controllers/FicheCommissionController.php (68 lignes)
-
-CODE A CREER : app/controllers/AbstractFicheController.php
-
-    <?php
-
-    use CheckMaster\Support\Database;
-
-    abstract class AbstractFicheController
-    {
-        protected $service;
-
-        abstract protected function getServiceClass(): string;
-        abstract protected function getPermissionSlug(): string;
-        abstract protected function getMethodName(): string;
-
-        public function __construct()
-        {
-            $db = Database::getConnection();
-            $class = $this->getServiceClass();
-            $this->service = new $class($db);
-        }
-
-        public function index(): array
-        {
-            requirePermission($this->getPermissionSlug());
-            $method = $this->getMethodName();
-            return $this->service->$method($_GET, $_POST, $_SESSION['id_utilisateur'] ?? null);
-        }
-    }
-
-REMPLACEMENT -- Chaque controleur Fiche devient ~5 lignes :
-
-    <?php
-    // app/controllers/FicheEnseignantController.php
-    class FicheEnseignantController extends AbstractFicheController
-    {
-        protected function getServiceClass(): string { return FicheEnseignantService::class; }
-        protected function getPermissionSlug(): string { return 'fiche_enseignant'; }
-        protected function getMethodName(): string { return 'getFicheEnseignant'; }
-    }
-
-    <?php
-    // app/controllers/FicheEtudiantController.php
-    class FicheEtudiantController extends AbstractFicheController
-    {
-        protected function getServiceClass(): string { return EtudiantFicheService::class; }
-        protected function getPermissionSlug(): string { return 'fiche_etudiant'; }
-        protected function getMethodName(): string { return 'getFicheEtudiant'; }
-    }
-
-    <?php
-    // app/controllers/FichePersAdminController.php
-    class FichePersAdminController extends AbstractFicheController
-    {
-        protected function getServiceClass(): string { return FichePersAdminService::class; }
-        protected function getPermissionSlug(): string { return 'fiche_pers_admin'; }
-        protected function getMethodName(): string { return 'getFichePersAdmin'; }
-    }
-
-    <?php
-    // app/controllers/FicheCommissionController.php
-    class FicheCommissionController extends AbstractFicheController
-    {
-        protected function getServiceClass(): string { return FicheCommissionService::class; }
-        protected function getPermissionSlug(): string { return 'fiche_commission'; }
-        protected function getMethodName(): string { return 'getFicheCommission'; }
-    }
-
-
-================================================================================
-7. Config declarative layout.php -- Eliminer 300 lignes
-================================================================================
-
-CONTEXTE :
-Le switch/case principal de layout.php contient 40+ cases qui suivent
-tous le meme patron. La generation de recu est aussi dupliquee entre
-gestion_etudiants et gestion_scolarite.
-
-FICHIER CONCERNE :
-- public/layout.php (~2741 lignes)
-
-SOLUTION : Remplacer le switch par un tableau de configuration
-
-CODE A PLACER en haut de layout.php (apres les includes) :
-
-    $pageConfig = [
-        // Dashboards
-        'dashboard'               => ['route' => null,                              'view' => 'dashboard_content.php',               'label' => 'Tableau de bord'],
-        'dashboard_direction'     => ['route' => null,                              'view' => 'dashboard_direction_content.php',      'label' => 'Direction'],
-
-        // Etudiants
-        'gestion_etudiants'       => ['route' => 'gestionEtudiantRoutes.php',       'view' => 'gestion_scolarite_content.php',        'label' => 'Gestion etudiants'],
-        'fiche_etudiant'          => ['route' => 'ficheEtudiantRoutes.php',         'view' => 'visualisation_fiche_inscription_content.php', 'label' => 'Fiche etudiant'],
-        'inscription'             => ['route' => null,                              'view' => 'suivi_scolarite_content.php',          'label' => 'Inscriptions'],
-        'cycle_etudiant'          => ['route' => 'cycleEtudiantRoutes.php',         'view' => 'cycle_etudiant/cycle_etudiant_content.php', 'label' => 'Cycle etudiant'],
-        'historique_inscriptions' => ['route' => 'historiqueInscriptionsRoutes.php','view' => 'historique_inscriptions_content.php',  'label' => 'Historique inscriptions'],
-        'etudiants_non_inscrits'  => ['route' => 'listeEtudiantsRoutes.php',       'view' => 'etudiants_non_inscrits_content.php',   'label' => 'Non inscrits'],
-        'etudiants_sans_compte'   => ['route' => 'etudiantsSansCompteRoutes.php',  'view' => 'etudiants_sans_compte_content.php',    'label' => 'Sans compte'],
-        'etudiants_sans_rapport'  => ['route' => null,                              'view' => 'etudiants_sans_rapport_content.php',   'label' => 'Sans rapport'],
-
-        // Enseignants
-        'fiche_enseignant'        => ['route' => 'ficheEnseignantRoutes.php',       'view' => 'fiche_enseignante_content.php',        'label' => 'Fiche enseignant'],
-        'annuaire_enseignants'    => ['route' => 'annuaireEnseignantsRoutes.php',   'view' => 'annuaire_enseignants_content.php',     'label' => 'Annuaire enseignants'],
-        'repertoire_enseignant'   => ['route' => null,                              'view' => 'repertoire_enseignant_content.php',    'label' => 'Repertoire'],
-        'portfolio_enseignant'    => ['route' => null,                              'view' => 'portfolio_enseignant_content.php',     'label' => 'Portfolio'],
-        'stats_encadrement'       => ['route' => null,                              'view' => 'stats_encadrement_enseignant_content.php', 'label' => 'Stats encadrement'],
-        'planning_jurys'          => ['route' => null,                              'view' => 'planning_jurys_enseignant_content.php','label' => 'Planning jurys'],
-
-        // Personnel admin
-        'fiche_pers_admin'        => ['route' => 'fichePersAdminRoutes.php',        'view' => 'fiche_pers_admin_content.php',         'label' => 'Personnel admin'],
-        'gestion_rh'              => ['route' => 'gestionRhRoutes.php',             'view' => 'gestion_rh_content.php',               'label' => 'Ressources humaines'],
-
-        // Soutenances
-        'candidature_soutenance'  => ['route' => 'candidatureSoutenanceRoutes.php', 'view' => 'candidature_soutenance_content.php',   'label' => 'Candidatures'],
-        'gestion_candidatures'    => ['route' => 'gestionCandidaturesRoutes.php',   'view' => 'gestion_candidatures_soutenance_content.php', 'label' => 'Gestion candidatures'],
-        'plannification_soutenance' => ['route' => 'plannificationSoutenanceRoutes.php', 'view' => 'plannificaiton_soutenance_content.php', 'label' => 'Planification'],
-        'programmation_soutenance' => ['route' => 'programmationSoutenanceRoutes.php', 'view' => 'Programation_soutenance_content.php', 'label' => 'Programmation'],
-        'evaluation_soutenance'   => ['route' => 'evaluationSoutenanceRoutes.php',  'view' => 'evaluation_soutenance_content.php',    'label' => 'Evaluation soutenances'],
-        'validation_memoires'     => ['route' => 'workflowValidationRoutes.php',    'view' => 'validation_memoires_content.php',      'label' => 'Validation memoires'],
-        'mise_en_ligne_memoire'   => ['route' => null,                              'view' => 'mise_en_ligne_memoire_content.php',    'label' => 'Mise en ligne'],
-
-        // Notes et rapports
-        'gestion_notes'           => ['route' => 'gestionNotesRoutes.php',          'view' => 'gestion_notes_evaluations_content.php','label' => 'Notes'],
-        'notes_resultats'         => ['route' => 'notesResultatsRoutes.php',        'view' => 'notes_resultats_content.php',          'label' => 'Resultats'],
-        'gestion_rapports'        => ['route' => 'gestionRapportsRoutes.php',       'view' => 'gestion_rapports_content.php',         'label' => 'Rapports'],
-        'verification_rapports'   => ['route' => 'verificationRapportsRoutes.php',  'view' => 'rapport_a_valider_content.php',        'label' => 'Verification rapports'],
-        'edition_bulletin'        => ['route' => 'editionBulletinRoutes.php',       'view' => 'edition_bulletin_content.php',         'label' => 'Bulletins'],
-        'redaction_cr'            => ['route' => 'redactionCompteRenduRoutes.php',  'view' => 'redaction_compte_rendu_content.php',   'label' => 'Comptes rendus'],
-
-        // Documents
-        'documents'               => ['route' => 'documentsRoutes.php',             'view' => 'documents_content.php',                'label' => 'Documents'],
-        'export_masse'            => ['route' => 'exportMasseDocumentsRoutes.php',  'view' => 'export_masse_documents_content.php',   'label' => 'Export masse'],
-
-        // Finances
-        'fiche_financiere'        => ['route' => 'ficheFinanciereRoutes.php',       'view' => 'fiche_financiere_content.php',         'label' => 'Fiche financiere'],
-        'echeancier'              => ['route' => 'echeancierEtudiantRoutes.php',    'view' => 'echeancier_etudiant_content.php',      'label' => 'Echeancier'],
-
-        // Reclamations
-        'gestion_reclamations'    => ['route' => 'gestionReclamationsRouteur.php',  'view' => 'gestion_reclamations_content.php',     'label' => 'Reclamations'],
-
-        // Evaluation
-        'criteres_evaluation'     => ['route' => 'criteresEvaluationRoutes.php',   'view' => 'evaluations_dossiers_soutenance_content.php', 'label' => 'Criteres evaluation'],
-
-        // Administration
-        'gestion_utilisateurs'    => ['route' => 'gestionUtilisateurRoutes.php',   'view' => 'gestion_utilisateurs_content.php',     'label' => 'Utilisateurs'],
-        'parametres_generaux'     => ['route' => 'parametreGenerauxRouteur.php',   'view' => 'parametres_generaux_content.php',      'label' => 'Parametres'],
-        'audit'                   => ['route' => 'auditRoutes.php',                'view' => 'piste_audit_content.php',              'label' => 'Audit'],
-        'sauvegarde_restauration' => ['route' => 'sauvegardeRestaurationRoutes.php','view' => 'sauvegarde_restauration_content.php',  'label' => 'Sauvegarde'],
-
-        // Archives
-        'archives'                => ['route' => 'archiveRoutes.php',               'view' => 'archives_dossiers_soutenance_content.php', 'label' => 'Archives'],
-        'commissions_archives'    => ['route' => 'archivesCompteRenduRoutes.php',   'view' => 'commissions_archives_content.php',     'label' => 'Archives commissions'],
-        'historique_modifications' => ['route' => 'historiqueModificationsRoutes.php', 'view' => 'historique_modifications_content.php', 'label' => 'Historique modifications'],
-    ];
-
-CODE DE REMPLACEMENT (remplace le switch entier) :
-
-    $page = $_GET['page'] ?? 'dashboard';
-
-    if (isset($pageConfig[$page])) {
-        $cfg = $pageConfig[$page];
-        if ($cfg['route']) {
-            $routeFile = $partialsBasePath . '/../routes/' . $cfg['route'];
-            if (file_exists($routeFile)) {
-                include $routeFile;
-            }
-        }
-        $contentFile = $partialsBasePath . $cfg['view'];
-        $currentPageLabel = $cfg['label'];
-    } else {
-        $contentFile = $partialsBasePath . 'access_denied_content.php';
-        $currentPageLabel = 'Page introuvable';
-    }
-
-
-================================================================================
-8. Composant stat-grid -- Eliminer 320 lignes
-================================================================================
-
-CONTEXTE :
-Le pattern de grille de 4 widgets statistiques est repete dans 16 fichiers
-de vues. Chaque occurrence fait ~20 lignes.
-
-FICHIER A CREER : ressources/components/dashboard/stat-grid.php
-
-    <?php
-    $widgets = $props['widgets'] ?? [];
-    $cols = $props['cols'] ?? 4;
-    $gap = $props['gap'] ?? '1rem';
-    ?>
-    <div class="cm-grid-<?= htmlspecialchars((string)$cols) ?>" style="gap: <?= htmlspecialchars($gap) ?>">
-        <?php foreach ($widgets as $w): ?>
-            <?php cm_component('dashboard/stat-widget', $w); ?>
-        <?php endforeach; ?>
-    </div>
-
-FICHIER A MODIFIER : app/utils/ComponentHelper.php
-Ajouter le mapping dans cm_component() si necessaire.
-
-REMPLACEMENT DANS LES VUES :
-
-  AVANT (20 lignes x 16 fichiers) :
-    <div class="cm-grid-4">
-        <?php cm_component('dashboard/stat-widget', ['value' => $nb, 'label' => 'Etudiants', 'icon' => 'users', 'color' => 'blue']); ?>
-        <?php cm_component('dashboard/stat-widget', ['value' => $nb2, 'label' => 'Inscrits', 'icon' => 'check', 'color' => 'green']); ?>
-        <?php cm_component('dashboard/stat-widget', ['value' => $nb3, 'label' => 'En attente', 'icon' => 'clock', 'color' => 'orange']); ?>
-        <?php cm_component('dashboard/stat-widget', ['value' => $nb4, 'label' => 'Rejetes', 'icon' => 'x', 'color' => 'red']); ?>
-    </div>
-
-  APRES (6 lignes) :
-    <?php cm_component('dashboard/stat-grid', [
-        'widgets' => [
-            ['value' => $nb,  'label' => 'Etudiants',  'icon' => 'users', 'color' => 'blue'],
-            ['value' => $nb2, 'label' => 'Inscrits',    'icon' => 'check', 'color' => 'green'],
-            ['value' => $nb3, 'label' => 'En attente',  'icon' => 'clock', 'color' => 'orange'],
-            ['value' => $nb4, 'label' => 'Rejetes',     'icon' => 'x',     'color' => 'red'],
-        ]
-    ]); ?>
-
-
-================================================================================
-9. Tables HTML -> composant data-table -- Eliminer 200 lignes
-================================================================================
-
-CONTEXTE :
-Certaines vues construisent des tables HTML manuelles alors que le projet
-dispose du composant crud/data-table.
-
-FICHIERS CONCERNES :
-- ressources/views/fiche_pers_admin_content.php (3 tables manuelles, ~120 lignes)
-- ressources/views/fiche_commission_content.php (5 tables manuelles, ~150 lignes)
-
-REMPLACEMENT :
-
-  AVANT (40 lignes par table) :
-    <table class="cm-data-table">
-        <thead>
-            <tr>
-                <th>Nom</th>
-                <th>Prenom</th>
-                <th>Email</th>
-                <th>Grade</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($enseignants as $e): ?>
-            <tr>
-                <td><?= htmlspecialchars($e['nom']) ?></td>
-                <td><?= htmlspecialchars($e['prenom']) ?></td>
-                <td><?= htmlspecialchars($e['email']) ?></td>
-                <td><?= htmlspecialchars($e['grade']) ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-
-  APRES (8 lignes) :
-    <?php cm_component('crud/data-table', [
-        'columns' => ['Nom', 'Prenom', 'Email', 'Grade'],
-        'rows' => array_map(fn($e) => [$e['nom'], $e['prenom'], $e['email'], $e['grade']], $enseignants),
-        'id' => 'table-enseignants',
-    ]); ?>
-
-
-================================================================================
-ORDRE D'EXECUTION RECOMMANDE
-================================================================================
-
-PHASE 1 -- Facile, gain immediat (1 jour) :
-  [x] 1. requirePermission()           -> -670 lignes
-  [x] 2. gestionReferentielSimple()    -> -500 lignes
-  [x] 3. logCrud() helper              -> -120 appels
-
-PHASE 2 -- Facile, gains moyens (1 jour) :
-  [x] 4. Template impression           -> -135 lignes
-  [x] 8. Composant stat-grid           -> -320 lignes
-  [x] 9. Tables -> data-table          -> -200 lignes
-
-PHASE 3 -- Moyen, gains eleves (2 jours) :
-  [ ] 5. Export XLSX unique            -> -230 lignes
-  [ ] 6. AbstractFicheController       -> -240 lignes
-  [ ] 7. Config declarative layout.php -> -300 lignes
-
-TOTAL ESTIME : ~2 700 lignes eliminees en 4 jours de travail
-
-
-================================================================================
-FIN DU PLAN
-================================================================================
+# Plan d’implémentation — Évaluations M2/S3, import Excel et nouveaux modèles
+
+## Résumé
+
+Mettre en place un référentiel unique pour le semestre actuellement nommé S3, S9 ou M2 S1. Le nom interne sera `M2_S1`, avec les trois appellations comme alias.
+
+Le système permettra de :
+
+- gérer les UE, leurs crédits et leurs versions historiques ;
+- saisir les notes par étudiant et par UE ;
+- distinguer session normale et rattrapage ;
+- calculer automatiquement les totaux pondérés ;
+- déterminer automatiquement le statut Nouveau/Redoublant ;
+- importer les évaluations Excel avec prévisualisation et validation ;
+- produire le nouveau PV d’épreuves écrites ;
+- intégrer les modèles d’autorisation de soutenance et de suivi d’encadrement ;
+- afficher sur le tableau de bord les membres ayant réellement donné leurs observations.
+
+## 1. Modèle de données
+
+### Référentiel des semestres
+
+Conserver une seule occurrence physique du semestre M2/S1 et ajouter une table d’alias :
+
+- semestre canonique : `M2_S1` ;
+- alias acceptés : `S3`, `S9`, `M2 S1`.
+
+Les recherches, imports et éditions utiliseront toujours l’identifiant canonique. Les libellés affichés resteront configurables selon le document produit.
+
+### Table `ue`
+
+Créer une table référentielle contenant au minimum :
+
+- `id_ue` ;
+- `code_ue` ;
+- `libelle_ue` ;
+- `credit_ue` ;
+- `date_credit` ;
+- semestre canonique ;
+- niveau/parcours ;
+- numéro de version ;
+- dates d’effet ;
+- état actif/inactif.
+
+Une modification de libellé ou de crédit créera une nouvelle version. Une ancienne version ne sera jamais modifiée si elle a déjà été utilisée dans une évaluation. Chaque évaluation pointera vers la version exacte de l’UE applicable à sa période.
+
+Les codes officiels seront saisis par la scolarité avant tout import. Un code absent ou inconnu bloquera l’import concerné.
+
+### Table `evaluation_s3`
+
+Créer une table dédiée aux notes du semestre M2/S1 :
+
+- `id_evaluation` ;
+- identifiant étudiant ;
+- `id_ue` ;
+- année académique ;
+- `note_obtenue_ue` sur 20 ;
+- `date_note` ;
+- `session_normale` : booléen ;
+- utilisateur de création/modification ;
+- source et lot d’import éventuel ;
+- horodatage.
+
+Ajouter une contrainte d’unicité sur étudiant, UE, année académique et session afin d’éviter les doublons.
+
+Le total d’une UE sera calculé ainsi :
+
+`note / 20 × credit_ue`
+
+Les totaux ne seront pas saisis manuellement. Les crédits attendus seront calculés à partir du référentiel actif ; le système signalera toute maquette dont le total n’est pas égal à 30 crédits.
+
+La moyenne d’une session sera calculée par :
+
+`Σ(note × crédit) / Σ(crédits)`
+
+Les notes normales et de rattrapage seront conservées séparément. Par défaut, le PV utilisera la session demandée, normale par défaut, sans remplacer automatiquement une note normale par une note de rattrapage.
+
+### Statut étudiant
+
+Ajouter `nouveau` dans `etudiants` comme projection du statut M2 courant, affichée sous la forme `Nouveau` ou `Redoublant`.
+
+Pour conserver l’historique, ajouter également `nouveau_m2` dans la table de statut annuel existante ou dans une table dédiée par étudiant et année académique. Cette valeur sera la source métier ; `etudiants.nouveau` sera recalculé lors du changement d’année active.
+
+Règle automatique :
+
+- première inscription ou première trace M2 : `NOUVEAU = OUI` ;
+- inscription, évaluation ou historique M2 antérieur : `NOUVEAU = NON` ;
+- aucune saisie manuelle ne remplacera cette règle sans mécanisme d’audit.
+
+Les historiques incomplets devront être signalés à l’administrateur pour vérification.
+
+## 2. Services, interfaces et import Excel
+
+### Interface de saisie
+
+Créer une interface dédiée aux évaluations M2/S1, en remplacement ou extension de la saisie actuelle des moyennes globales :
+
+- sélection de l’année académique ;
+- recherche de l’étudiant ;
+- affichage de son statut Nouveau/Redoublant ;
+- grille des UE officielles ;
+- note normale, crédit, total ;
+- note de rattrapage, crédit, total ;
+- date d’évaluation ;
+- totaux et moyenne par session ;
+- contrôle du total de crédits ;
+- sauvegarde transactionnelle de toutes les lignes.
+
+Une cellule vide signifie « non évalué » ; la note `0` reste une note valide. Les anciennes années pourront être verrouillées selon les permissions.
+
+Créer un service central de calcul des résultats afin que l’interface, les relevés, les bulletins et les PV utilisent exactement les mêmes règles.
+
+Les anciennes moyennes M1/M2 de la table `notes` seront conservées pour compatibilité pendant la migration, mais les nouveaux résultats détaillés deviendront la source principale du M2/S1.
+
+### Import Excel
+
+Utiliser PhpSpreadsheet, déjà présent dans le projet.
+
+Le modèle d’import officiel contiendra les colonnes :
+
+- `annee_academique` ;
+- `semestre` ;
+- `identifiant_etudiant` ;
+- `code_ue` ;
+- `note` ;
+- `date_evaluation` ;
+- `session_normale`.
+
+Le traitement sera en quatre étapes :
+
+1. dépôt et analyse du fichier ;
+2. normalisation des dates, nombres décimaux et libellés de session ;
+3. résolution des étudiants, alias de semestre et codes UE ;
+4. prévisualisation avec erreurs, avertissements et doublons.
+
+La confirmation créera un lot d’import auditable et exécutera une transaction atomique. Aucun lot confirmé ne devra produire une importation partielle silencieuse.
+
+Contrôles obligatoires :
+
+- extension et taille du fichier ;
+- en-têtes attendus ;
+- note comprise entre 0 et 20 ;
+- étudiant existant ;
+- année académique valide ;
+- code UE officiel ;
+- semestre M2/S1 ;
+- date correcte ;
+- doublons dans le fichier ou déjà présents en base ;
+- cohérence entre l’UE et la version applicable.
+
+Le même lot pourra être rejoué sans créer de doublon. Les lignes rejetées resteront consultables avec leur motif.
+
+Le classeur de maquette servira uniquement à initialiser les UE et les crédits. Comme ses codes UE sont vides, il devra passer par une étape de correspondance avec les codes officiels avant utilisation.
+
+## 3. Nouveaux documents et modèles
+
+### PV d’épreuves écrites
+
+Créer un générateur dédié reproduisant le modèle fourni :
+
+- en-tête institutionnel ;
+- identité de l’étudiant ;
+- statut et identifiants ;
+- année de validation du S3/M2 S1 ;
+- tableau de 8 colonnes ;
+- codes et libellés UE ;
+- session normale : note, crédits, total ;
+- session de rattrapage : note, crédits, total ;
+- total de 30 crédits ;
+- moyenne sur 20 ;
+- partie soutenance du mémoire ;
+- résultat final ;
+- composition et signatures du jury.
+
+Le modèle sera enregistré dans le registre documentaire avec un code dédié, par exemple `PV_EPREUVES_ECRITES`. Il devra être prévisualisable, générable, téléchargé et historisé comme les autres documents.
+
+### Autorisation de soutenance
+
+Créer un modèle reprenant la première page du PDF fourni :
+
+- identité ;
+- niveau, année académique et option MIAGE/GI ;
+- contacts ;
+- entreprise d’accueil ;
+- période de stage ;
+- thème ;
+- maître de stage ;
+- encadreur pédagogique ;
+- directeur de mémoire ;
+- session demandée ;
+- avis et signatures.
+
+### Fiches de suivi d’encadrement
+
+Créer deux variantes :
+
+- suivi par le directeur de mémoire ;
+- suivi par l’encadreur pédagogique.
+
+Chaque fiche contiendra les informations de l’étudiant, du stage et un tableau de rendez-vous avec date et signatures. Ajouter une table de suivi des rendez-vous si aucune structure existante ne couvre ces informations.
+
+Le terme fonctionnel `Superviseur` sera harmonisé avec le rôle existant `Encadreur`. Aucun doublon de modèle ne sera créé.
+
+### Compte rendu de commission
+
+Remplacer les libellés de type « template » par « modèle » et rendre le modèle configurable :
+
+- ordre du jour avec décision « suivant » ou « adopté » ;
+- nombre variable de membres ;
+- ajout et retrait des membres ;
+- commentaire facultatif ;
+- affichage automatique de `RAS` lorsqu’aucune observation n’est fournie ;
+- mention claire de l’administrateur ;
+- mise en page conforme aux PV demandés par la scolarité.
+
+## 4. Tableau de bord de commission
+
+Ajouter un lien sur chaque membre de la commission vers une vue d’observations détaillée.
+
+Cette vue devra distinguer :
+
+- membre ayant reçu le dossier ;
+- membre ayant validé ou donné une observation ;
+- membre n’ayant encore rien renseigné ;
+- commentaire ;
+- décision ;
+- date de saisie ;
+- rapports concernés.
+
+Le lien devra filtrer automatiquement la commission et le membre sélectionnés. Les données seront en lecture seule et protégées par les permissions de commission.
+
+Le calcul utilisera les tables d’évaluation et de validation existantes, sans confondre la réception d’un dossier avec la fourniture d’une observation.
+
+## 5. Migration, sécurité et compatibilité
+
+Avant développement, vérifier le schéma réel de la base, car les exports SQL et certaines requêtes actuelles présentent des écarts.
+
+La migration devra :
+
+- créer les nouvelles tables, clés étrangères et index ;
+- être rejouable sans erreur ;
+- initialiser les alias du semestre M2/S1 ;
+- préserver la table `notes` et les anciennes évaluations ;
+- ne jamais inventer de notes par UE à partir d’une moyenne globale ;
+- journaliser les imports et modifications ;
+- appliquer les contrôles CSRF, permissions et audit déjà utilisés par l’application.
+
+Une phase de comparaison permettra de vérifier les résultats détaillés avec les anciennes moyennes avant de rendre le nouveau calcul officiel.
+
+## 6. Tests et critères d’acceptation
+
+Prévoir des tests automatisés et visuels pour :
+
+- création et versionnement des UE ;
+- correspondance S3/S9/M2 S1 ;
+- calcul note/crédit et moyenne pondérée ;
+- distinction normale/rattrapage ;
+- note zéro et UE non évaluée ;
+- contrôle des 30 crédits ;
+- détermination Nouveau/Redoublant ;
+- doublons et rejouabilité des imports ;
+- dates et décimales Excel ;
+- étudiants ou codes UE inconnus ;
+- rollback complet d’un import invalide ;
+- contrôle des droits et de la lecture seule ;
+- saisie et recalcul de la grille ;
+- génération du PV avec les 9 UE MIAGE et les deux sessions ;
+- rendu visuel du PV, de l’autorisation et des fiches de suivi ;
+- affichage correct des observations et de `RAS` ;
+- protection des données de commission.
+
+Les documents PDF devront être rendus en images pour vérifier la mise en page, les sauts de page, les signatures, les colonnes et la lisibilité.
+
+## Hypothèses retenues
+
+- `M2_S1` est le nom interne unique ; S3, S9 et M2 S1 sont des alias.
+- Les codes UE sont fournis et validés par la scolarité avant import.
+- L’import Excel suit le cycle prévisualisation, correction puis confirmation.
+- Le statut Nouveau/Redoublant est calculé automatiquement à partir de l’historique.
+- Les versions d’UE sont immuables après utilisation.
+- Les anciennes tables et fonctionnalités restent compatibles pendant la transition.
+- Les modifications existantes dans le dépôt doivent être conservées et intégrées sans écrasement.

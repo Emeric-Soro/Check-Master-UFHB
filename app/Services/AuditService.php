@@ -5,16 +5,19 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/AuditLog.php';
 
 use AuditLog;
+use App\Support\DatabaseService;
 use PDO;
 
 class AuditService
 {
     private $db;
+    private DatabaseService $dbService;
     private $auditLog;
 
     public function __construct($db)
     {
         $this->db = $db;
+        $this->dbService = new DatabaseService($db);
         $this->auditLog = new AuditLog($db);
     }
 
@@ -23,10 +26,11 @@ class AuditService
      */
     public function getAllActions()
     {
-        $sql = "SELECT DISTINCT action FROM pister WHERE action IS NOT NULL AND action <> '' ORDER BY action";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        // Retourne une liste plate (colonnes), comme l'historique FETCH_COLUMN
+        $rows = $this->dbService->select(
+            "SELECT DISTINCT action FROM pister WHERE action IS NOT NULL AND action <> '' ORDER BY action"
+        );
+        return array_map(static fn(array $row) => $row['action'] ?? '', $rows);
     }
 
     /**
@@ -150,16 +154,17 @@ class AuditService
         }
 
         // Vérifier combien de lignes correspondent AVANT la suppression
-        $checkSql = "SELECT COUNT(*) FROM pister WHERE date_creation < DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $checkStmt = $this->db->prepare($checkSql);
-        $checkStmt->execute([$days]);
-        $countBefore = (int) $checkStmt->fetchColumn();
+        $countBefore = (int) $this->dbService->scalar(
+            "SELECT COUNT(*) FROM pister WHERE date_creation < DATE_SUB(NOW(), INTERVAL :days DAY)",
+            [':days' => $days],
+            0
+        );
         error_log('[CLEANUP_DEBUG] jours=' . $days . ', lignes correspondant AVANT DELETE=' . $countBefore);
 
-        $sql = "DELETE FROM pister WHERE date_creation < DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$days]);
-        $deletedCount = $stmt->rowCount();
+        $deletedCount = $this->dbService->execute(
+            "DELETE FROM pister WHERE date_creation < DATE_SUB(NOW(), INTERVAL :days DAY)",
+            [':days' => $days]
+        );
         error_log('[CLEANUP_DEBUG] DELETE exécuté, lignes supprimées=' . $deletedCount);
 
         $this->auditLog->logAction($idUtilisateur, 'Nettoyage', 'pister', 'Succès');
@@ -178,11 +183,12 @@ class AuditService
             return ['success' => false, 'message' => 'invalid_id'];
         }
 
-        $sql = "DELETE FROM pister WHERE id_piste = ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$logId]);
+        $deleted = $this->dbService->execute(
+            "DELETE FROM pister WHERE id_piste = :id",
+            [':id' => $logId]
+        );
 
-        if ($stmt->rowCount() > 0) {
+        if ($deleted > 0) {
             $this->auditLog->logAction($idUtilisateur, 'Suppression', 'pister', 'Succès');
             return ['success' => true, 'message' => 'log_deleted'];
         }
@@ -195,10 +201,8 @@ class AuditService
      */
     public function getTablesList()
     {
-        $sql = "SELECT DISTINCT contexte FROM pister ORDER BY contexte";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $rows = $this->dbService->select("SELECT DISTINCT contexte FROM pister ORDER BY contexte");
+        return array_map(static fn(array $row) => $row['contexte'] ?? '', $rows);
     }
 
     /**
@@ -206,10 +210,8 @@ class AuditService
      */
     public function getStatutsList()
     {
-        $sql = "SELECT DISTINCT statut_action FROM pister ORDER BY statut_action";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $rows = $this->dbService->select("SELECT DISTINCT statut_action FROM pister ORDER BY statut_action");
+        return array_map(static fn(array $row) => $row['statut_action'] ?? '', $rows);
     }
 
     /**

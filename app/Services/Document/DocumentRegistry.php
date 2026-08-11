@@ -40,6 +40,18 @@ final class DocumentRegistry
             'codes' => ['PVF', 'PV_FINAL'],
             'subdir' => 'pv_finaux',
         ],
+        'pv_ecrits' => [
+            'codes' => ['PV_EPREUVES_ECRITES', 'PVE'],
+            'subdir' => 'pv_ecrits',
+        ],
+        'autorisation_soutenance' => [
+            'codes' => ['AUT_SOUT'],
+            'subdir' => 'autorisation_soutenance',
+        ],
+        'suivi_encadrement' => [
+            'codes' => ['SUIVI_ENC'],
+            'subdir' => 'suivi_encadrement',
+        ],
         'planning' => [
             'codes' => ['PLN'],
             'subdir' => 'planning',
@@ -96,6 +108,7 @@ final class DocumentRegistry
             'memoire' => $this->resolveMemoire($id),
             'pv_commission' => $this->resolveCompteRenduDocument($id, false, true),
             'pv_final' => $this->resolvePvFinal($id),
+            'pv_ecrits', 'autorisation_soutenance', 'suivi_encadrement' => $this->resolveGeneratedDocument($type, $id),
             'planning' => $this->resolveGeneratedDocument($type, $id),
             'bulletin' => $this->resolveCompteRenduDocument($id, true, false),
             'compte_rendu' => $this->resolveCompteRenduDocument($id, false, false),
@@ -133,7 +146,7 @@ final class DocumentRegistry
         }
 
         if ($userGroup === 12) {
-            return in_array($type, ['rapport', 'fiche_inscription', 'memoire', 'pv_commission', 'pv_final', 'planning', 'compte_rendu', 'bulletin'], true);
+            return in_array($type, ['rapport', 'fiche_inscription', 'memoire', 'pv_commission', 'pv_final', 'pv_ecrits', 'autorisation_soutenance', 'suivi_encadrement', 'planning', 'compte_rendu', 'bulletin'], true);
         }
 
         if ($userGroup === 13) {
@@ -616,6 +629,11 @@ final class DocumentRegistry
                 $id,
                 $studentNum
             ),
+            'pv_ecrits', 'autorisation_soutenance', 'suivi_encadrement' => $this->generatedDocumentBelongsToStudent(
+                $type,
+                $id,
+                $studentNum
+            ),
             'memoire' => $this->existsForStudent(
                 'SELECT 1
                  FROM programmer_soutenance ps
@@ -628,6 +646,31 @@ final class DocumentRegistry
             ),
             default => false,
         };
+    }
+
+    private function generatedDocumentBelongsToStudent(string $type, string $id, string $studentNum): bool
+    {
+        if (!$this->tableExists('document_genere')) {
+            return false;
+        }
+
+        $codes = $this->getTypeCodes($type);
+        if ($codes === []) {
+            return false;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($codes), '?'));
+        $sql = "SELECT 1
+                FROM document_genere
+                WHERE type_document IN ($placeholders)
+                  AND (reference = ? OR id_source = ?)
+                  AND id_source LIKE CONCAT(?, ':%')
+                LIMIT 1";
+        $params = array_merge($codes, [$id, $id, $studentNum]);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchColumn() !== false;
     }
 
     private function existsForStudent(string $sql, string $id, string $studentNum): bool

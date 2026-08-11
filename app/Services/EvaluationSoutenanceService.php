@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/CritereEvaluation.php';
 require_once __DIR__ . '/../utils/AcademicYear.php';
 
 use CritereEvaluation;
+use App\Support\DatabaseService;
 use Exception;
 use PDO;
 use Throwable;
@@ -15,6 +16,7 @@ class EvaluationSoutenanceService
     private const EVALUATION_META_TABLE = 'evaluation_soutenance_meta';
 
     private $pdo;
+    private DatabaseService $dbService;
     private $critereModel;
     private $tableExistsCache = [];
     private $columnExistsCache = [];
@@ -23,6 +25,7 @@ class EvaluationSoutenanceService
     public function __construct($pdo = null)
     {
         $this->pdo = $pdo ?: \Database::getConnection();
+        $this->dbService = new DatabaseService($this->pdo);
         $this->critereModel = new CritereEvaluation($this->pdo);
     }
 
@@ -185,14 +188,13 @@ class EvaluationSoutenanceService
         }
 
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT decision, commentaire_general, note_finale
-                FROM " . self::EVALUATION_META_TABLE . "
-                WHERE num_etudiant = ? AND jury_ref = ?
-                LIMIT 1
-            ");
-            $stmt->execute([$numEtu, $juryRef]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $row = $this->dbService->selectOne(
+                "SELECT decision, commentaire_general, note_finale
+                 FROM " . self::EVALUATION_META_TABLE . "
+                 WHERE num_etudiant = :num_etudiant AND jury_ref = :jury_ref
+                 LIMIT 1",
+                [':num_etudiant' => $numEtu, ':jury_ref' => $juryRef]
+            );
             if (!$row) {
                 return null;
             }
@@ -220,24 +222,24 @@ class EvaluationSoutenanceService
             return;
         }
 
-        $stmt = $this->pdo->prepare("
-            INSERT INTO " . self::EVALUATION_META_TABLE . " (
+        $this->dbService->execute(
+            "INSERT INTO " . self::EVALUATION_META_TABLE . " (
                 num_etudiant, jury_ref, id_annee_acad, decision, commentaire_general, note_finale
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            ) VALUES (:num_etudiant, :jury_ref, :id_annee_acad, :decision, :commentaire_general, :note_finale)
             ON DUPLICATE KEY UPDATE
                 id_annee_acad = VALUES(id_annee_acad),
                 decision = VALUES(decision),
                 commentaire_general = VALUES(commentaire_general),
-                note_finale = VALUES(note_finale)
-        ");
-        $stmt->execute([
-            $numEtu,
-            $juryRef,
-            $idAnneeAcad,
-            $decision !== '' ? $decision : null,
-            $commentaireGeneral !== '' ? $commentaireGeneral : null,
-            $noteFinale,
-        ]);
+                note_finale = VALUES(note_finale)",
+            [
+                ':num_etudiant' => $numEtu,
+                ':jury_ref' => $juryRef,
+                ':id_annee_acad' => $idAnneeAcad,
+                ':decision' => $decision !== '' ? $decision : null,
+                ':commentaire_general' => $commentaireGeneral !== '' ? $commentaireGeneral : null,
+                ':note_finale' => $noteFinale,
+            ]
+        );
     }
 
     private function deleteEvaluationMeta(string $numEtu, string $juryRef): void
@@ -246,11 +248,11 @@ class EvaluationSoutenanceService
             return;
         }
 
-        $stmt = $this->pdo->prepare("
-            DELETE FROM " . self::EVALUATION_META_TABLE . "
-            WHERE num_etudiant = ? AND jury_ref = ?
-        ");
-        $stmt->execute([$numEtu, $juryRef]);
+        $this->dbService->execute(
+            "DELETE FROM " . self::EVALUATION_META_TABLE . "
+             WHERE num_etudiant = :num_etudiant AND jury_ref = :jury_ref",
+            [':num_etudiant' => $numEtu, ':jury_ref' => $juryRef]
+        );
     }
 
     private function normalizeDecision(string $decision, ?float $noteFinale = null): string

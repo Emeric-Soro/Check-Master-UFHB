@@ -235,7 +235,9 @@ class DashboardCommissionService
             'performance_categories' => [],
             'activites_recentes' => [],
             'rapports_details' => [],
-            'evaluations_rapports' => []
+            'evaluations_rapports' => [],
+            'observations_membres' => [],
+            'observation_detail' => []
         ];
 
         try {
@@ -262,6 +264,7 @@ class DashboardCommissionService
             $stats['activites_recentes'] = $this->getActivitesRecentes();
             $stats['rapports_details'] = $this->getRapportsDetails();
             $stats['evaluations_rapports'] = $this->getEvaluationsRapports();
+            $stats['observations_membres'] = $this->getObservationMembers();
         } catch (Exception $e) {
             error_log("Erreur dans getDashboardData: " . $e->getMessage());
         }
@@ -546,6 +549,81 @@ class DashboardCommissionService
         }
     }
 
+    /** @return array<int, array<string, mixed>> */
+    public function getObservationMembers(): array
+    {
+        $rows = [];
+        try {
+            if ($this->tableExists('evaluations_rapports')) {
+                $stmt = $this->db->query(
+                    'SELECT CONCAT("u:", er.id_evaluateur) AS member_key,
+                            COALESCE(NULLIF(TRIM(CONCAT(COALESCE(en.nom_enseignant, ""), " ", COALESCE(en.prenom_enseignant, ""))), ""), u.nom_utilisateur, CONCAT("Membre #", er.id_evaluateur)) AS membre,
+                            0 AS nb_recus, COUNT(*) AS nb_observations,
+                            SUM(CASE WHEN er.commentaire IS NOT NULL AND TRIM(er.commentaire) <> "" THEN 1 ELSE 0 END) AS nb_commentaires,
+                            MAX(er.date_evaluation) AS derniere_activite
+                     FROM evaluations_rapports er
+                     LEFT JOIN utilisateur u ON u.id_utilisateur = er.id_evaluateur
+                     LEFT JOIN enseignants en ON LOWER(en.mail_enseignant) = LOWER(u.login_utilisateur)
+                     GROUP BY er.id_evaluateur, u.nom_utilisateur, en.nom_enseignant, en.prenom_enseignant'
+                );
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
+            if ($this->tableExists('rendre')) {
+                $stmt = $this->db->query(
+                    'SELECT CONCAT("e:", rd.id_enseignant) AS member_key,
+                            COALESCE(NULLIF(TRIM(CONCAT(COALESCE(en.nom_enseignant, ""), " ", COALESCE(en.prenom_enseignant, ""))), ""), CONCAT("Enseignant #", rd.id_enseignant)) AS membre,
+                            COUNT(DISTINCT rd.id_CR) AS nb_recus, 0 AS nb_observations, 0 AS nb_commentaires,
+                            MAX(rd.date_env) AS derniere_activite
+                     FROM rendre rd
+                     LEFT JOIN enseignants en ON en.id_enseignant = rd.id_enseignant
+                     GROUP BY rd.id_enseignant, en.nom_enseignant, en.prenom_enseignant'
+                );
+                $rows = array_merge($rows, $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+            }
+            usort($rows, static fn(array $a, array $b): int => strcmp((string) ($b['derniere_activite'] ?? ''), (string) ($a['derniere_activite'] ?? '')));
+            return $rows;
+        } catch (Throwable $e) {
+            error_log('DashboardCommissionService::getObservationMembers: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function getObservationDetails(string $memberKey): array
+    {
+        if ($memberKey === '') {
+            return [];
+        }
+        try {
+            if (str_starts_with($memberKey, 'u:') && $this->tableExists('evaluations_rapports')) {
+                $stmt = $this->db->prepare(
+                    'SELECT er.id_evaluation, er.id_rapport, er.decision_evaluation, er.commentaire, er.date_evaluation,
+                            r.nom_rapport, r.theme_rapport, e.nom_etu, e.prenom_etu
+                     FROM evaluations_rapports er
+                     LEFT JOIN rapport_etudiants r ON r.id_rapport = er.id_rapport
+                     LEFT JOIN etudiants e ON e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu
+                     WHERE er.id_evaluateur = :member ORDER BY er.date_evaluation DESC'
+                );
+                $stmt->execute([':member' => substr($memberKey, 2)]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
+            if (str_starts_with($memberKey, 'e:') && $this->tableExists('rendre')) {
+                $stmt = $this->db->prepare(
+                    'SELECT rd.id_CR AS id_rapport, cr.nom_CR AS nom_rapport, cr.date_CR AS date_evaluation,
+                            NULL AS decision_evaluation, NULL AS commentaire, e.nom_etu, e.prenom_etu
+                     FROM rendre rd INNER JOIN compte_rendu cr ON cr.id_CR = rd.id_CR
+                     LEFT JOIN etudiants e ON e.num_carte_etud = cr.num_etu OR e.num_ident_etud = cr.num_etu
+                     WHERE rd.id_enseignant = :member ORDER BY rd.date_env DESC'
+                );
+                $stmt->execute([':member' => substr($memberKey, 2)]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
+        } catch (Throwable $e) {
+            error_log('DashboardCommissionService::getObservationDetails: ' . $e->getMessage());
+        }
+        return [];
+    }
+
     /**
      * Retourne les données par défaut du tableau de bord (en cas d'erreur)
      *
@@ -565,7 +643,9 @@ class DashboardCommissionService
             'performance_categories' => [],
             'activites_recentes' => [],
             'rapports_details' => [],
-            'evaluations_rapports' => []
+            'evaluations_rapports' => [],
+            'observations_membres' => [],
+            'observation_detail' => []
         ];
     }
 }

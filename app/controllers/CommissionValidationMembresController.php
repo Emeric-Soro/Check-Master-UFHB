@@ -33,7 +33,7 @@ class CommissionValidationMembresController
         $idUtilisateur = (int) ($_SESSION['id_utilisateur'] ?? 0);
         if (!$this->model->peutGerer($idUtilisateur)) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => "Vous n'avez pas le droit de gérer les membres votants."]);
+            echo json_encode(['success' => false, 'message' => "Vous n'avez pas le droit de gérer les membres actifs."]);
             return;
         }
 
@@ -41,7 +41,7 @@ class CommissionValidationMembresController
         if (!is_array($ids)) $ids = [$ids];
         try {
             $this->model->synchroniserSelection($ids, $idUtilisateur);
-            echo json_encode(['success' => true, 'message' => 'La composition des membres votants a été enregistrée.']);
+            echo json_encode(['success' => true, 'message' => 'La composition des membres actifs a été enregistrée.']);
         } catch (Throwable $e) {
             error_log('CommissionValidationMembresController::sauvegarder: ' . $e->getMessage());
             http_response_code(500);

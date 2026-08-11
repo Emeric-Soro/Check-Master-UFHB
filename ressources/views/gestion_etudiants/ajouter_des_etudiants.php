@@ -319,6 +319,7 @@ $preservedListParams = '&limit=' . urlencode((string) $itemsPerPage) . '&p=' . u
             'limit' => $itemsPerPage,
             'limit_options' => $allowedLimits,
             'search_placeholder' => 'Rechercher (nom, prénom, numéro, email)...',
+            'selection_ui' => 'thead',
             'can_delete' => canDelete() || canEdit(),
             'can_view' => canView(),
             'custom_actions' => [

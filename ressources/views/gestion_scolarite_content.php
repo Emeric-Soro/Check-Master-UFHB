@@ -446,6 +446,7 @@ $paginationBaseUrl = '?page=gestion_scolarite&limit_versements=' . $versementsPa
             'limit' => $versementsParPage,
             'limit_options' => $allowedLimits,
             'limit_name' => 'limit_versements',
+            'selection_ui' => 'thead',
             'can_delete' => canDelete(),
             'can_view' => canView(),
             'filters' => [

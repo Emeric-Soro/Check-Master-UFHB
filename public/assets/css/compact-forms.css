@@ -337,7 +337,7 @@
   margin-bottom: 0 !important;
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 0.5rem 0.75rem !important;
@@ -351,11 +351,12 @@
 }
 
 .cm-content-area .cm-toolbar-left {
-  flex: 0 0 auto !important;
+  flex: 0 1 auto !important;
   display: inline-flex !important;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
   align-items: center !important;
   gap: 0.35rem 0.5rem !important;
+  min-width: 0 !important;
 }
 
 .cm-content-area .cm-toolbar-left label {
@@ -433,10 +434,12 @@
 .cm-content-area .cm-prd3-crud-screen .cm-toolbar-right {
   flex: 1 1 auto !important;
   display: inline-flex !important;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
   align-items: center !important;
   justify-content: flex-end !important;
   gap: 0.35rem 0.5rem !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
 }
 
 .cm-content-area .cm-toolbar .cm-btn {

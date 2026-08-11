@@ -169,6 +169,7 @@ $paginationBaseUrl = '?page=gestion_reclamations_scolarite&limit_reclamations=' 
         'search_value' => $_GET['search'] ?? '',
         'limit' => $reclamationsPerPage,
         'limit_options' => $allowedLimits,
+        'selection_ui' => 'thead',
         'can_delete' => canDelete(),
         'can_view' => canView(),
     ]); ?>

@@ -68,6 +68,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                 'limit' => $perPage,
                 'limit_options' => $allowedLimits,
                 'limit_name' => 'limit_bulletin',
+                'selection_ui' => 'thead',
                 'can_delete' => false,
                 'can_view' => canView(),
                 'print_title' => 'Édition des PV finaux',
@@ -89,7 +90,7 @@ $canGenerate = (function_exists('canCreate') && canCreate()) || (function_exists
                             <th class="cm-data-table__th cm-data-table__th--check">
                                 <input type="checkbox" id="cmBulletinCheckAll" class="cm-table-check-all" aria-label="Tout sélectionner">
                             </th>
-                            <th class="cm-data-table__th">Nom &amp; Prénom</th>
+                            <th class="cm-data-table__th">Étudiants</th>
                             <th class="cm-data-table__th">Thème</th>
                             <th class="cm-data-table__th">Moyenne</th>
                             <th class="cm-data-table__th">Mention</th>

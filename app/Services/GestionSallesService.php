@@ -6,6 +6,7 @@ require_once __DIR__ . '/../models/Salle.php';
 
 use Salle;
 use Database;
+use App\Support\DatabaseService;
 use PDO;
 use Exception;
 
@@ -15,34 +16,31 @@ use Exception;
  * Contient toute la logique métier extraite de GestionSallesController :
  * - Ajout / modification d'une salle (avec validation et dédoublonnage)
  * - Suppression multiple avec vérification d'usage dans les programmations
- * - Recherche et pagination
+ * - Recherche et pagination (via DatabaseService)
  * - Récupération d'une salle par ID
  */
 class GestionSallesService
 {
     private $db;
+    private DatabaseService $dbService;
     private $salleModel;
-    private $tableExistsCache = [];
 
     public function __construct($db)
     {
         $this->db = $db;
+        $this->dbService = new DatabaseService($db);
         $this->salleModel = new Salle($this->db);
     }
 
     private function tableExists($tableName)
     {
-        if (array_key_exists($tableName, $this->tableExistsCache)) {
-            return $this->tableExistsCache[$tableName];
-        }
         try {
-            $stmt = $this->db->prepare("SHOW TABLES LIKE ?");
-            $stmt->execute([$tableName]);
-            $exists = (bool) $stmt->fetchColumn();
-            $this->tableExistsCache[$tableName] = $exists;
-            return $exists;
+            return (int) $this->dbService->scalar(
+                'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t',
+                [':t' => $tableName],
+                0
+            ) > 0;
         } catch (Exception $e) {
-            $this->tableExistsCache[$tableName] = false;
             return false;
         }
     }
@@ -132,9 +130,12 @@ class GestionSallesService
                 // Vérifier si la salle est utilisée dans des programmations
                 $progTable = $this->getProgrammationTable();
                 if ($progTable !== null) {
-                    $usageStmt = $this->db->prepare("SELECT COUNT(*) FROM {$progTable} WHERE id_salle = ?");
-                    $usageStmt->execute([$id]);
-                    if ($usageStmt->fetchColumn() > 0) {
+                    $usage = (int) $this->dbService->scalar(
+                        "SELECT COUNT(*) FROM {$this->dbService->table($progTable)} WHERE id_salle = :id",
+                        [':id' => $id],
+                        0
+                    );
+                    if ($usage > 0) {
                         return ['success' => false, 'message' => "Une ou plusieurs salles sont utilisées dans des programmations et ne peuvent pas être supprimées."];
                     }
                 }
@@ -183,26 +184,27 @@ class GestionSallesService
     public function getSallesAvecPagination(string $search = '', int $page = 1, int $limit = 10): array
     {
         try {
-            // Récupération des salles avec recherche
-            if (!empty($search)) {
-                $stmt = $this->db->prepare("SELECT * FROM salles WHERE lib_salle LIKE ? ORDER BY lib_salle ASC");
-                $stmt->execute(['%' . $search . '%']);
-                $listeSalles = $stmt->fetchAll(PDO::FETCH_OBJ);
-            } else {
-                $stmt = $this->db->query("SELECT * FROM salles ORDER BY lib_salle ASC");
-                $listeSalles = $stmt->fetchAll(PDO::FETCH_OBJ);
+            $page = max(1, $page);
+            $limit = max(1, min(100, $limit));
+            $offset = ($page - 1) * $limit;
+
+            $where = '';
+            $params = [];
+            if ($search !== '') {
+                $where = ' WHERE lib_salle LIKE :search';
+                $params[':search'] = '%' . $search . '%';
             }
 
-            // Pagination
-            $total_items = count($listeSalles);
-            $total_pages = ceil($total_items / $limit);
-            $offset = ($page - 1) * $limit;
-            $listeSalles = array_slice($listeSalles, $offset, $limit);
+            $total = (int) $this->dbService->scalar('SELECT COUNT(*) FROM salles' . $where, $params, 0);
+            $listeSalles = $this->dbService->select(
+                'SELECT * FROM salles' . $where . ' ORDER BY lib_salle ASC LIMIT ' . $limit . ' OFFSET ' . $offset,
+                $params
+            );
 
             return [
                 'data' => $listeSalles,
-                'totalPages' => $total_pages,
-                'totalItems' => $total_items
+                'totalPages' => (int) ceil($total / $limit),
+                'totalItems' => $total
             ];
         } catch (Exception $e) {
             error_log('Erreur getSallesAvecPagination: ' . $e->getMessage());

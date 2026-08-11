@@ -1,4 +1,12 @@
 <?php
+if (($_GET['tab'] ?? '') === 'evaluations_s3') {
+    require __DIR__ . '/evaluation_s3_content.php';
+    return;
+}
+if (($_GET['tab'] ?? '') === 'ue') {
+    require __DIR__ . '/ue_referentiel_content.php';
+    return;
+}
 require_once __DIR__ . '/../../app/models/Note.php';
 $niveaux = is_array($GLOBALS['niveaux'] ?? null) ? $GLOBALS['niveaux'] : [];
 $anneesAcademiques = is_array($GLOBALS['anneesAcademiques'] ?? null) ? $GLOBALS['anneesAcademiques'] : [];
@@ -249,6 +257,7 @@ $paginationBaseUrl .= '&limit_notes=' . $notesPerPage;
         'search_value' => $_GET['search'] ?? '',
         'limit' => $notesPerPage,
         'limit_options' => $allowedLimits,
+        'selection_ui' => 'thead',
         'can_delete' => canDelete(),
         'can_view' => canView(),
     ]); ?>

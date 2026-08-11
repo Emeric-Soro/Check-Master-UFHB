@@ -575,6 +575,7 @@ if (!function_exists('cm_render_param_crud_view')) {
                     'limit_name' => $limitParam,
                     'show_filters' => false,
                     'show_actions' => true,
+                    'selection_ui' => 'thead',
                     'can_delete' => function_exists('canDelete') ? canDelete() : true,
                     'can_view' => function_exists('canView') ? canView() : true,
                     'can_excel' => true,
@@ -1563,7 +1564,8 @@ if (!function_exists('cm_toolbar')) {
                         <?php endif; ?>
 
                         <?php if ($showActions): ?>
-                            <!-- Groupe Sélection -->
+                            <?php if (($config['selection_ui'] ?? 'toolbar') !== 'thead'): ?>
+                            <!-- Groupe Sélection (boutons toolbar ; absent quand la table a sa checkbox select-all dans le thead) -->
                             <div class="cm-toolbar__actions-group" role="group" aria-label="Actions de sélection">
                                 <button type="button" id="<?= htmlspecialchars($selectAllId, ENT_QUOTES, 'UTF-8') ?>"
                                     class="cm-btn is-secondary is-sm" title="Tout sélectionner" data-cm-toolbar-action="select-all">
@@ -1576,6 +1578,7 @@ if (!function_exists('cm_toolbar')) {
                                     <span>☐ Tout désél.</span>
                                 </button>
                             </div>
+                            <?php endif; ?>
 
                             <?php if ($canDelete): ?>
                                 <button type="button" id="<?= htmlspecialchars($deleteBtnId, ENT_QUOTES, 'UTF-8') ?>"
@@ -2070,13 +2073,61 @@ if (!function_exists('cm_toolbar')) {
                     function getSelectableCheckboxes() {
                         const scope = toolbar.closest('.cm-prd3-screen, .cm-crud-wrapper, .cm-content-area') || document;
                         return Array.from(scope.querySelectorAll('table tbody input[type="checkbox"]')).filter(function (cb) {
-                            return !cb.disabled;
+                            if (cb.disabled) return false;
+                            // Only row-selection checkboxes: explicit marker, or inside a selection cell/class,
+                            // or a row whose first cell holds the checkbox. Never generic form checkboxes.
+                            if (cb.hasAttribute('data-cm-selectable')) return true;
+                            const td = cb.closest('td');
+                            if (!td) return false;
+                            if (td.classList.contains('is-checkbox') || td.classList.contains('cm-data-table__td--check')) return true;
+                            if (cb.classList.contains('cm-table-check-row') || cb.classList.contains('cm-row-checkbox')) return true;
+                            if (td.cellIndex === 0 && td.querySelectorAll('input[type="checkbox"]').length === 1) return true;
+                            return false;
                         });
+                    }
+
+                    function isRowVisible(cb) {
+                        const row = cb.closest('tr');
+                        return !row || (row.style.display !== 'none' && !row.classList.contains('cm-hidden'));
+                    }
+
+                    function getTableInScope() {
+                        const scope = toolbar.closest('.cm-prd3-screen, .cm-crud-wrapper, .cm-content-area') || document;
+                        const tables = scope.querySelectorAll('table');
+                        for (let i = 0; i < tables.length; i++) {
+                            if (tables[i].querySelector('tbody input[type="checkbox"]')) return tables[i];
+                        }
+                        return null;
+                    }
+
+                    function getHeadCheckAll(table) {
+                        if (!table) return null;
+                        return table.querySelector('thead input[type="checkbox"]');
+                    }
+
+                    function syncHeadCheckAll() {
+                        const table = getTableInScope();
+                        if (!table) return;
+                        const headCheck = getHeadCheckAll(table);
+                        if (!headCheck) return;
+                        const visibleBoxes = getSelectableCheckboxes().filter(isRowVisible);
+                        const checked = visibleBoxes.filter(function (cb) { return cb.checked; });
+                        headCheck.checked = visibleBoxes.length > 0 && checked.length === visibleBoxes.length;
+                        headCheck.indeterminate = checked.length > 0 && checked.length < visibleBoxes.length;
+                    }
+
+                    function setAllSelected(checked) {
+                        getSelectableCheckboxes().forEach(function (cb) {
+                            if (!isRowVisible(cb)) return;
+                            cb.checked = checked;
+                        });
+                        syncHeadCheckAll();
+                        updateDeleteState();
                     }
 
                     function updateDeleteState() {
                         if (!deleteBtn) return;
-                        const selectedCount = getSelectableCheckboxes().filter(function (cb) { return cb.checked; }).length;
+                        const selectedCount = getSelectableCheckboxes().filter(function (cb) { return cb.checked && isRowVisible(cb); }).length;
                         const countEl = deleteBtn.querySelector('.cm-delete-count');
                         deleteBtn.disabled = selectedCount === 0;
                         if (countEl) {
@@ -2391,14 +2442,12 @@ if (!function_exists('cm_toolbar')) {
                         switch (action) {
                             case 'select-all':
                                 if (dispatchToolbarEvent('cm:toolbar:select:all', { toolbar: toolbar })) {
-                                    getSelectableCheckboxes().forEach(function (cb) { cb.checked = true; });
-                                    updateDeleteState();
+                                    setAllSelected(true);
                                 }
                                 break;
                             case 'deselect-all':
                                 if (dispatchToolbarEvent('cm:toolbar:select:none', { toolbar: toolbar })) {
-                                    getSelectableCheckboxes().forEach(function (cb) { cb.checked = false; });
-                                    updateDeleteState();
+                                    setAllSelected(false);
                                 }
                                 break;
                             case 'delete':
@@ -2457,13 +2506,32 @@ if (!function_exists('cm_toolbar')) {
 
                     document.addEventListener('change', function (e) {
                         if (!document.body.contains(toolbar)) return;
-                        if (e.target && e.target.matches('table tbody input[type="checkbox"]')) {
+                        const target = e.target;
+                        if (!target || target.tagName !== 'INPUT' || target.type !== 'checkbox') return;
+
+                        if (target.closest('tbody')) {
+                            if (getSelectableCheckboxes().indexOf(target) !== -1) {
+                                syncHeadCheckAll();
+                                updateDeleteState();
+                            }
+                            return;
+                        }
+
+                        // thead "select all" checkbox → keep toolbar state in sync
+                        if (target.closest('thead') && getTableInScope() && getHeadCheckAll(getTableInScope()) === target) {
+                            const table = target.closest('table');
+                            Array.from(table.querySelectorAll('tbody input[type="checkbox"]')).forEach(function (cb) {
+                                if (!cb.disabled && isRowVisible(cb) && getSelectableCheckboxes().indexOf(cb) !== -1) {
+                                    cb.checked = target.checked;
+                                }
+                            });
                             updateDeleteState();
                         }
                     }, listenerOptions);
 
                     updateDeleteState();
                     updateFilterCount();
+                    syncHeadCheckAll();
                     applyClientSideFiltering();
                 }
 

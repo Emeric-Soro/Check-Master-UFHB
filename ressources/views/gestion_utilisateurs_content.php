@@ -258,6 +258,7 @@ foreach ($personnelNonUtilisateurs as $row) {
                     'screen' => 'gestion_utilisateurs',
                     'id_prefix' => 'cmUsers',
                     'search_value' => $filters['search'],
+                    'selection_ui' => 'thead',
                     'can_delete' => canDelete(),
                     'can_view' => canView(),
                     'custom_actions' => array_filter([

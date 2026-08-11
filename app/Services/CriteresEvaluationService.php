@@ -5,17 +5,19 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/CritereEvaluation.php';
 
 use CritereEvaluation;
-use PDO;
+use App\Support\DatabaseService;
 use Exception;
 
 class CriteresEvaluationService
 {
     private $db;
+    private DatabaseService $dbService;
     private $critereModel;
 
     public function __construct($db)
     {
         $this->db = $db;
+        $this->dbService = new DatabaseService($db);
         $this->critereModel = new CritereEvaluation($db);
     }
 
@@ -116,9 +118,9 @@ class CriteresEvaluationService
      */
     public function getAnneesAcademiques(): array
     {
-        $stmt = $this->db->prepare("SELECT id_annee_acad as id, CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) as lib FROM annee_academique ORDER BY id_annee_acad DESC");
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->dbService->select(
+            "SELECT id_annee_acad as id, CONCAT(YEAR(date_deb), '-', YEAR(date_fin)) as lib FROM annee_academique ORDER BY id_annee_acad DESC"
+        );
     }
 
     /**
@@ -127,7 +129,7 @@ class CriteresEvaluationService
      */
     public function getCriteres(): array
     {
-        $stmt = $this->db->prepare("
+        $results = $this->dbService->select("
             SELECT 
                 ce.id_critere as id,
                 ce.lib_critere as libelle,
@@ -139,8 +141,6 @@ class CriteresEvaluationService
             LEFT JOIN annee_academique aa ON bc.id_annee_acad = aa.id_annee_acad
             ORDER BY ce.id_critere, bc.id_annee_acad DESC
         ");
-        $stmt->execute();
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Grouper les résultats par critère
         $criteresData = [];
@@ -187,43 +187,42 @@ class CriteresEvaluationService
         // Validation des barèmes - vérifier que le total par année ne dépasse pas 20
         $this->validateBaremesTotaux($input['baremes'], null);
 
-        $this->db->beginTransaction();
-
         try {
-            $libelle = trim((string) $input['libelle']);
-            $codeCritere = $this->generateCritereCode($libelle);
+            return $this->dbService->transaction(function () use ($input) {
+                $libelle = trim((string) $input['libelle']);
+                $codeCritere = $this->generateCritereCode($libelle);
 
-            if (!$this->critereModel->creerCritere($codeCritere, $libelle)) {
-                throw new Exception('Erreur lors de la création du critère');
-            }
-
-            $critere = $this->critereModel->getCritereByCode($codeCritere);
-            $critereId = (string) ($critere->id_critere ?? $codeCritere);
-            if ($critereId === '') {
-                throw new Exception("Impossible de récupérer l'identifiant du critère créé");
-            }
-
-            // Insérer les barèmes
-            $stmtBareme = $this->db->prepare("INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
-
-            foreach ($input['baremes'] as $bareme) {
-                if (
-                    isset($bareme['annee_id'], $bareme['bareme']) &&
-                    $bareme['annee_id'] !== '' &&
-                    $bareme['bareme'] !== ''
-                ) {
-                    $stmtBareme->execute([
-                        $critereId,
-                        $bareme['annee_id'],
-                        (int) $bareme['bareme']
-                    ]);
+                if (!$this->critereModel->creerCritere($codeCritere, $libelle)) {
+                    throw new Exception('Erreur lors de la création du critère');
                 }
-            }
 
-            $this->db->commit();
-            return $critereId;
+                $critere = $this->critereModel->getCritereByCode($codeCritere);
+                $critereId = (string) ($critere->id_critere ?? $codeCritere);
+                if ($critereId === '') {
+                    throw new Exception("Impossible de récupérer l'identifiant du critère créé");
+                }
+
+                // Insérer les barèmes
+                foreach ($input['baremes'] as $bareme) {
+                    if (
+                        isset($bareme['annee_id'], $bareme['bareme']) &&
+                        $bareme['annee_id'] !== '' &&
+                        $bareme['bareme'] !== ''
+                    ) {
+                        $this->dbService->execute(
+                            'INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (:critere, :annee, :bareme)',
+                            [
+                                ':critere' => $critereId,
+                                ':annee' => $bareme['annee_id'],
+                                ':bareme' => (int) $bareme['bareme'],
+                            ]
+                        );
+                    }
+                }
+
+                return $critereId;
+            });
         } catch (Exception $e) {
-            $this->db->rollBack();
             throw $e;
         }
     }
@@ -250,41 +249,38 @@ class CriteresEvaluationService
         // Validation des barèmes - vérifier que le total par année ne dépasse pas 20 (en excluant le critère actuel)
         $this->validateBaremesTotaux($input['baremes'], $input['id']);
 
-        $this->db->beginTransaction();
-
         try {
-            $critereId = trim((string) $input['id']);
-            $libelle = trim((string) $input['libelle']);
-            $codeCritere = $this->generateCritereCode($libelle, $critereId);
+            $this->dbService->transaction(function () use ($input) {
+                $critereId = trim((string) $input['id']);
+                $libelle = trim((string) $input['libelle']);
+                $codeCritere = $this->generateCritereCode($libelle, $critereId);
 
-            if (!$this->critereModel->modifierCritere($critereId, $codeCritere, $libelle)) {
-                throw new Exception('Erreur lors de la modification du critère');
-            }
-
-            // Supprimer les anciens barèmes
-            $stmtDelete = $this->db->prepare("DELETE FROM bareme_critere WHERE id_critere = ?");
-            $stmtDelete->execute([$critereId]);
-
-            // Insérer les nouveaux barèmes
-            $stmtBareme = $this->db->prepare("INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (?, ?, ?)");
-
-            foreach ($input['baremes'] as $bareme) {
-                if (
-                    isset($bareme['annee_id'], $bareme['bareme']) &&
-                    $bareme['annee_id'] !== '' &&
-                    $bareme['bareme'] !== ''
-                ) {
-                    $stmtBareme->execute([
-                        $critereId,
-                        $bareme['annee_id'],
-                        (int) $bareme['bareme']
-                    ]);
+                if (!$this->critereModel->modifierCritere($critereId, $codeCritere, $libelle)) {
+                    throw new Exception('Erreur lors de la modification du critère');
                 }
-            }
 
-            $this->db->commit();
+                // Supprimer les anciens barèmes
+                $this->dbService->execute('DELETE FROM bareme_critere WHERE id_critere = :critere', [':critere' => $critereId]);
+
+                // Insérer les nouveaux barèmes
+                foreach ($input['baremes'] as $bareme) {
+                    if (
+                        isset($bareme['annee_id'], $bareme['bareme']) &&
+                        $bareme['annee_id'] !== '' &&
+                        $bareme['bareme'] !== ''
+                    ) {
+                        $this->dbService->execute(
+                            'INSERT INTO bareme_critere (id_critere, id_annee_acad, bareme) VALUES (:critere, :annee, :bareme)',
+                            [
+                                ':critere' => $critereId,
+                                ':annee' => $bareme['annee_id'],
+                                ':bareme' => (int) $bareme['bareme'],
+                            ]
+                        );
+                    }
+                }
+            });
         } catch (Exception $e) {
-            $this->db->rollBack();
             throw $e;
         }
     }
@@ -300,29 +296,25 @@ class CriteresEvaluationService
             throw new Exception('ID du critère requis');
         }
 
-        $this->db->beginTransaction();
-
         try {
-            $critereId = trim((string) $input['id']);
+            $this->dbService->transaction(function () use ($input) {
+                $critereId = trim((string) $input['id']);
 
-            // Vérifier si le critère existe
-            $critere = $this->critereModel->getCritereById($critereId);
-            if (!$critere) {
-                throw new Exception('Critère non trouvé');
-            }
+                // Vérifier si le critère existe
+                $critere = $this->critereModel->getCritereById($critereId);
+                if (!$critere) {
+                    throw new Exception('Critère non trouvé');
+                }
 
-            // Supprimer les barèmes associés
-            $stmtBaremes = $this->db->prepare("DELETE FROM bareme_critere WHERE id_critere = ?");
-            $stmtBaremes->execute([$critereId]);
+                // Supprimer les barèmes associés
+                $this->dbService->execute('DELETE FROM bareme_critere WHERE id_critere = :critere', [':critere' => $critereId]);
 
-            // Supprimer le critère via le modèle
-            if (!$this->critereModel->supprimerCritere($critereId)) {
-                throw new Exception('Erreur lors de la suppression du critère');
-            }
-
-            $this->db->commit();
+                // Supprimer le critère via le modèle
+                if (!$this->critereModel->supprimerCritere($critereId)) {
+                    throw new Exception('Erreur lors de la suppression du critère');
+                }
+            });
         } catch (Exception $e) {
-            $this->db->rollBack();
             throw $e;
         }
     }
@@ -336,7 +328,7 @@ class CriteresEvaluationService
     private function validateBaremesTotaux(array $nouveauxBaremes, ?string $critereIdExclure = null): void
     {
         // Récupérer les totaux actuels par année (en excluant le critère en cours de modification si applicable)
-        $sqlExclusion = $critereIdExclure ? " AND bc.id_critere != ?" : "";
+        $sqlExclusion = $critereIdExclure ? " AND bc.id_critere != :exclure" : "";
         $sql = "
             SELECT 
                 aa.id_annee_acad,
@@ -348,10 +340,8 @@ class CriteresEvaluationService
             ORDER BY aa.date_deb DESC
         ";
 
-        $params = $critereIdExclure ? [$critereIdExclure] : [];
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $totauxActuels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $params = $critereIdExclure ? [':exclure' => $critereIdExclure] : [];
+        $totauxActuels = $this->dbService->select($sql, $params);
 
         // Créer un tableau des totaux actuels indexé par année
         $totauxParAnnee = [];
@@ -374,9 +364,10 @@ class CriteresEvaluationService
 
                 if (!isset($totauxParAnnee[$anneeId])) {
                     // Récupérer les infos de l'année si pas encore présente
-                    $stmtAnnee = $this->db->prepare("SELECT CONCAT(date_deb, ' - ', date_fin) as lib_annee FROM annee_academique WHERE id_annee_acad = ?");
-                    $stmtAnnee->execute([$anneeId]);
-                    $anneeInfo = $stmtAnnee->fetch(PDO::FETCH_ASSOC);
+                    $anneeInfo = $this->dbService->selectOne(
+                        "SELECT CONCAT(date_deb, ' - ', date_fin) as lib_annee FROM annee_academique WHERE id_annee_acad = :id",
+                        [':id' => $anneeId]
+                    );
 
                     $totauxParAnnee[$anneeId] = [
                         'total' => 0,

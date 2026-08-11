@@ -1,0 +1,501 @@
+================================================================================
+PLAN CONSOLIDÉ : INVENTAIRE, MIGRATION DOCUMENTAIRE ET SÉCURISATION DES URLS
+================================================================================
+Projet : CheckMaster UFRMI-UFHB-CI
+Date de l'analyse : 02/08/2026
+Statut : PLAN UNIQUEMENT - AUCUNE IMPLÉMENTATION DANS CETTE ÉTAPE
+Sources consultées :
+- plan_documents_securite.txt
+- https://checkmaster.ufrmi-ufhb-ci.com/server_audit.php
+- Code source local, composer.json, routes, services documentaires et fichiers .htaccess
+
+IMPORTANT
+---------
+Ce document décrit les travaux à planifier. Aucun code, aucune route, aucune base de
+données et aucune configuration n'est modifié par la présente analyse.
+
+================================================================================
+1. OBJECTIF GÉNÉRAL
+================================================================================
+
+Le projet doit évoluer selon deux axes coordonnés :
+
+1. Revoir la majorité des documents produits afin de privilégier des modèles Word
+   dynamiques avec PHPWord, puis produire les formats finaux nécessaires, notamment PDF.
+2. Revoir les URL pour supprimer les extensions et limiter l'exposition des identifiants,
+   tout en conservant les autorisations, la traçabilité, la compatibilité avec l'existant
+   et la protection contre l'accès direct aux fichiers.
+
+La migration devra être progressive, documentée et réversible pendant la phase de test.
+Les documents historiques et les anciennes URL devront être recensés avant toute décision
+de suppression ou de migration.
+
+================================================================================
+2. ÉTAT DES LIEUX : CE QUE LE PROJET POSSÈDE ACTUELLEMENT
+================================================================================
+
+2.1 Architecture applicative
+-----------------------------
+- Application PHP organisée autour de contrôleurs, services, modèles, routes et vues.
+- Point d'entrée applicatif principal dans public/app/index.php.
+- Routes métier principalement déclarées dans ressources/routes/ et chargées par
+  public/layout.php.
+- Noyau applicatif présent dans app/Core/ : Bootstrap, Router, Request, Response,
+  Session, CSRF, conteneur de services et configuration.
+- Sécurité applicative déjà structurée dans app/Security/ et app/middlewares/ :
+  autorisations, permissions par route, résolution d'actions, contrôle d'accès.
+- Compatibilité historique encore présente avec des fichiers PHP publics et des URLs
+  de type ?page=..., ?action=..., ?id=... et index.php?_path=....
+
+2.2 Dépendances Composer disponibles
+--------------------------------------
+Le fichier composer.json déclare notamment :
+- phpoffice/phpword : modèles et manipulation de documents Word.
+- mpdf/mpdf : rendu PDF en PHP.
+- dompdf/dompdf : rendu HTML/CSS vers PDF.
+- tecnickcom/tcpdf : génération PDF actuellement très présente dans les services.
+- smalot/pdfparser : lecture et extraction de contenu PDF.
+- phpoffice/phpspreadsheet : import/export de feuilles Excel.
+- phpmailer/phpmailer : envoi d'e-mails.
+- ezyang/htmlpurifier : nettoyage de contenu HTML.
+- PDO, cURL, fileinfo et ZIP déclarés comme extensions nécessaires.
+
+La plateforme Composer est configurée pour PHP 8.1, alors que l'audit et le document
+existant mentionnent PHP 8.2/8.4 selon l'environnement. Cette différence devra être
+vérifiée avant la migration pour éviter une incompatibilité entre local, Wamp et LWS.
+
+2.3 Gestion actuelle des documents
+-----------------------------------
+Services et composants identifiés :
+- app/Services/Document/DocumentStorageService.php
+  - stockage possible en base dans la table documents ;
+  - versions, statut actif/archive, référence, type MIME et consultations ;
+  - matérialisation temporaire dans storage/cache/documents ;
+  - diffusion inline ou téléchargement avec Content-Type et Content-Disposition.
+- app/Services/Document/DocumentRegistry.php
+  - catalogue central des types rapport, fiche_inscription, reçu, mémoire,
+    PV commission, PV final, planning, bulletin et compte rendu ;
+  - résolution de documents stockés en base ou dans les répertoires historiques ;
+  - contrôle de chemins autorisés et détection de traversal ;
+  - support de références et de tokens opaques base64 URL-safe.
+- app/Services/Document/PdfGeneratorService.php
+  - génération PDF principalement avec TCPDF ;
+  - en-têtes, logos, pieds de page, stockage par type et année, rendu HTML.
+- Autres générateurs présents :
+  - PlanningGeneratorService.php
+  - PvFinalGeneratorService.php
+  - PvCommissionGeneratorService.php
+  - RecuGeneratorService.php
+  - RapportPdfGeneratorService.php
+- Contrôleurs principaux concernés :
+  - DocViewerController.php
+  - DocumentsController.php
+  - ArchiveDocumentController.php
+  - GestionRapportController.php
+  - ProgrammationSoutenanceController.php
+- Tables et colonnes historiques identifiées :
+  - documents, documents_consultations, document_genere ;
+  - rapport_etudiants.chemin_fichier ;
+  - compte_rendu.chemin_fichier_pdf ;
+  - inscriptions.fiche_inscription ;
+  - associations avec id_document, id_rapport, id_CR et num_soutenance.
+
+2.4 Utilisation actuelle de PHPWord
+------------------------------------
+- PHPWord est déjà installé/déclaré dans Composer.
+- L'analyse du code visible ne montre pas encore une chaîne généralisée basée sur
+  TemplateProcessor pour la majorité des documents.
+- Les générateurs PDF existants utilisent principalement TCPDF et du HTML rendu en PDF.
+- La migration vers PHPWord devra donc être considérée comme une harmonisation et une
+  extension de l'existant, et non comme une simple installation de dépendance.
+
+2.5 URLs et routage actuels
+----------------------------
+Plusieurs formats coexistent :
+- index.php?_path=/login et autres chemins du Router moderne ;
+- ?page=docviewer&type=rapport&id=... ;
+- ?page=...&action=...&id=... ;
+- fichiers PHP legacy tels que public/login.php, public/logout.php et public/index.php ;
+- paramètres directs id, id_rapport, id_document, id_CR, num_etu et file.
+
+Des identifiants numériques de base sont encore visibles dans les vues, liens, formulaires,
+boutons JavaScript et contrôleurs. Les contrôles d'autorisation existent mais la visibilité
+des identifiants facilite l'énumération et complique la maîtrise des liens partagés.
+
+2.6 Protections déjà présentes
+--------------------------------
+- Ressources upload protégées par ressources/uploads/.htaccess.
+- Logs protégés par logs/.htaccess.
+- Contrôle CSRF présent dans le noyau et plusieurs contrôleurs.
+- Contrôle des chemins et null bytes dans Request et DocumentRegistry.
+- Contrôle d'accès aux documents via DocumentRegistry::canView().
+- En-tête X-Content-Type-Options: nosniff lors de la diffusion de documents.
+- Résolution des fichiers par realpath et répertoires autorisés.
+- display_errors désactivé par Bootstrap en production.
+
+2.7 Audit serveur distant
+--------------------------
+Le fichier server_audit.php expose des diagnostics sur :
+- version PHP, serveur web, SAPI, système et utilisateur de processus ;
+- mémoire, temps d'exécution, taille des uploads, variables d'entrée et erreurs ;
+- extensions PHP dont PDO, cURL, mbstring, ZIP, XML, OpenSSL et fileinfo ;
+- fonctions shell telles que exec, shell_exec, system, passthru et proc_open ;
+- permissions des dossiers et fichiers ;
+- exposition HTTP de fichiers sensibles ;
+- compatibilité Composer et moteurs PDF ;
+- réécriture .htaccess et connexions BDD.
+
+Constat critique :
+- server_audit.php est actuellement accessible publiquement ;
+- ACCESS_PASSWORD est vide dans le code local ;
+- RESTRICT_TO_ROOT est désactivé ;
+- l'interface propose des actions de diagnostic, de scan et d'optimisation.
+
+Avant toute mise en production, l'accès à cet outil doit être supprimé, restreint ou
+protégé fortement. Les résultats dynamiques de l'interface ne sont pas tous présents dans
+la réponse HTML consultée à distance ; les valeurs réelles devront être relevées depuis
+l'environnement LWS authentifié, puis ajoutées au dossier d'exploitation, pas inventées.
+
+================================================================================
+3. CHANTIER A - MIGRATION DES DOCUMENTS VERS PHPWORD
+================================================================================
+
+3.1 Inventaire préalable des documents
+---------------------------------------
+Établir un tableau exhaustif pour chaque document :
+- type fonctionnel ;
+- contrôleur et service générateur ;
+- route d'accès et route de téléchargement ;
+- source des données ;
+- format actuel : HTML, PDF, DOCX, fichier uploadé ou contenu BDD ;
+- emplacement physique ou table de stockage ;
+- règles de nommage ;
+- droits de consultation et téléchargement ;
+- fréquence de génération ;
+- présence de versions historiques ;
+- niveau de priorité pour PHPWord.
+
+Types à examiner en priorité :
+- rapports étudiants ;
+- fiches d'inscription ;
+- reçus ;
+- mémoires et métadonnées associées ;
+- PV de commission ;
+- PV finaux ;
+- plannings ;
+- bulletins ;
+- comptes rendus ;
+- exports massifs et documents administratifs.
+
+3.2 Classification de migration
+--------------------------------
+Classer les documents en trois groupes :
+- Groupe 1 : documents fortement structurés et répétitifs, prioritaires pour un modèle DOCX.
+- Groupe 2 : documents avec mise en page institutionnelle complexe, à tester avec PHPWord
+  et un rendu PDF contrôlé.
+- Groupe 3 : fichiers entrants ou documents dont la conversion est inappropriée, conservés
+  comme fichiers uploadés avec stockage et diffusion sécurisés.
+
+3.3 Standard de modèles Word
+-----------------------------
+Définir avant toute implémentation :
+- répertoire sécurisé des modèles non accessible directement par HTTP ;
+- nomenclature versionnée des modèles ;
+- format des balises, par exemple ${nom_etudiant}, ${matricule}, ${date} ;
+- règles d'échappement et de normalisation des valeurs ;
+- gestion des valeurs absentes ou nulles ;
+- gestion des lignes répétitives via cloneRow ;
+- gestion des blocs répétitifs via cloneBlock ;
+- gestion des tableaux, signatures, logos et sauts de page ;
+- identité du modèle utilisé et version dans les métadonnées du document produit.
+
+3.4 Architecture cible de génération
+-------------------------------------
+Prévoir une chaîne uniforme :
+1. Le contrôleur vérifie session, permission, propriété et contexte métier.
+2. Un service prépare un jeu de données typé et validé.
+3. Le générateur charge un modèle PHPWord autorisé.
+4. TemplateProcessor remplace les variables et clone les lignes/blocs nécessaires.
+5. Le document DOCX est écrit dans un emplacement temporaire non public.
+6. Le DOCX est contrôlé : existence, taille, MIME, ZIP valide et absence de chemin externe.
+7. Le rendu PDF est exécuté par une solution PHP compatible avec le serveur.
+8. Le document final est enregistré dans DocumentStorageService avec référence, version,
+   type MIME, entité, utilisateur, statut et journal de génération.
+9. Le fichier temporaire est supprimé après succès ou échec contrôlé.
+
+3.5 Choix du rendu PDF
+-----------------------
+Le serveur mutualisé ne doit pas être supposé disposer de LibreOffice ou d'un autre binaire.
+Le plan doit comparer et tester :
+- PHPWord avec renderer mPDF si la mise en page est compatible ;
+- génération HTML contrôlée puis mPDF ou Dompdf pour certains documents ;
+- conservation de TCPDF pour les documents qui ont besoin d'un contrôle graphique ou
+  d'un comportement existant difficile à reproduire immédiatement.
+
+Le choix devra être fait document par document après comparaison visuelle et fonctionnelle.
+Il ne faut pas imposer une conversion globale sans vérifier les polices, tableaux, logos,
+marges, caractères accentués, signatures et pagination.
+
+3.6 Stockage, versions et migration des historiques
+-----------------------------------------------------
+- Définir la source de vérité entre documents, document_genere et les anciennes colonnes.
+- Ne pas supprimer les anciens fichiers avant validation et sauvegarde.
+- Migrer progressivement les références historiques vers un identifiant documentaire
+  stable et opaque.
+- Conserver le type, la version, le statut, la date et l'auteur de génération.
+- Vérifier les doublons entre contenu BDD et fichiers présents sur disque.
+- Prévoir une procédure de retour vers le document historique en cas d'échec de conversion.
+- Vérifier la taille des BLOB, les limites PHP, les limites SQL et l'espace disque.
+
+3.7 Tests documentaires à prévoir
+----------------------------------
+Pour chaque modèle :
+- données normales ;
+- champs accentués, apostrophes, caractères Unicode et valeurs longues ;
+- tableaux vides, une ligne et nombreuses lignes ;
+- absence de logo ou logo invalide ;
+- génération simultanée de plusieurs documents ;
+- téléchargement et visualisation selon chaque groupe d'utilisateur ;
+- fichier DOCX valide ;
+- PDF lisible et pagination correcte ;
+- version archivée inaccessible si elle ne doit plus être active ;
+- absence de fichiers temporaires résiduels ;
+- journalisation de la génération et des consultations.
+
+================================================================================
+4. CHANTIER B - RÉÉCRITURE, MASQUAGE ET PROTECTION DES URLS
+================================================================================
+
+4.1 Objectifs de routage
+--------------------------
+- Supprimer progressivement les extensions .php affichées.
+- Remplacer les URLs techniques par des chemins lisibles et stables.
+- Éviter l'exposition des clés primaires numériques dans les liens publics.
+- Centraliser la création des URLs afin d'éviter des formats divergents dans les vues.
+- Conserver les contrôles d'authentification, permissions et propriété au niveau serveur.
+
+Exemples de forme cible à étudier :
+- /connexion
+- /app/tableau-de-bord
+- /documents/rapport/{jeton-opaque}
+- /documents/rapport/{jeton-opaque}/telecharger
+- /documents/pv-final/{jeton-opaque}
+
+Les noms définitifs devront être établis dans une matrice de routes avant modification.
+
+4.2 Réécriture Apache
+----------------------
+- Vérifier mod_rewrite depuis l'environnement réel, et non uniquement depuis le script.
+- Définir une règle d'entrée unique vers le front controller.
+- Exclure explicitement les assets, uploads protégés, logs, vendor et fichiers statiques.
+- Rediriger les anciennes URLs vers les nouvelles lorsqu'une migration sûre est possible.
+- Éviter les boucles de redirection et les doubles décodages.
+- Ajouter des réponses 404/403 cohérentes sans révéler l'existence d'un document.
+- Tester avec et sans slash final, avec paramètres inattendus et méthodes HTTP différentes.
+
+4.3 Stratégie de jetons opaques
+---------------------------------
+Le mécanisme existant utilise déjà des références et des tokens base64 URL-safe pour certains
+chemins. Il faut décider si ce mécanisme est suffisant ou s'il doit être remplacé par un
+jeton signé ou chiffré.
+
+Recommandation de conception à valider :
+- ne jamais chiffrer avec AES-ECB ;
+- préférer un identifiant aléatoire non séquentiel ou un jeton signé ;
+- si la confidentialité du contenu est nécessaire, utiliser un chiffrement authentifié,
+  par exemple AES-256-GCM, avec nonce, tag et clé conservée hors du code public ;
+- utiliser une représentation URL-safe sans padding problématique ;
+- associer le jeton au type de document, à la version et éventuellement à une expiration ;
+- vérifier l'intégrité avec hash_equals ou une primitive équivalente ;
+- refuser les tokens vides, trop courts, mal formés, expirés ou altérés ;
+- ne jamais considérer le masquage d'un ID comme un contrôle d'autorisation.
+
+4.4 Données à ne pas placer dans l'URL
+---------------------------------------
+Éviter d'exposer :
+- id_rapport, id_document, id_CR et identifiants internes ;
+- num_etu, numéro de carte ou informations personnelles ;
+- chemins physiques de fichiers ;
+- clés secrètes, données de session ou informations de base de données ;
+- données métier sensibles encodées en base64.
+
+La base64 masque uniquement la valeur et ne constitue ni un chiffrement ni une autorisation.
+
+4.5 Matrice de migration des URLs
+----------------------------------
+Créer une matrice contenant pour chaque URL :
+- ancienne URL exacte ;
+- nouveau chemin cible ;
+- méthode HTTP ;
+- contrôleur/service responsable ;
+- paramètres à transformer ;
+- permission requise ;
+- comportement pour utilisateur non connecté ;
+- code HTTP en cas d'absence, expiration ou interdiction ;
+- stratégie de compatibilité et date de retrait de l'ancien format.
+
+Priorité :
+1. consultation et téléchargement de documents ;
+2. URLs contenant des identifiants de documents ;
+3. URLs d'authentification et de réinitialisation ;
+4. URLs des modules métier ;
+5. endpoints legacy et fichiers PHP directs.
+
+4.6 Réinitialisation de mot de passe
+-------------------------------------
+Le service GestionUtilisateurService génère actuellement des tokens de réinitialisation et
+construit des liens avec reset_password.php?token=.... Le plan devra vérifier :
+- stockage haché du token plutôt que sa valeur en clair ;
+- expiration et usage unique ;
+- limitation du débit ;
+- absence de fuite dans les logs, Referer et historiques ;
+- URL propre dédiée ;
+- invalidation après changement du mot de passe.
+
+================================================================================
+5. CHANTIER C - SÉCURITÉ DE L'AUDIT ET DE L'HÉBERGEMENT
+================================================================================
+
+5.1 Server audit
+-----------------
+Avant toute utilisation sur internet :
+- supprimer server_audit.php après collecte des informations ; ou
+- le déplacer hors de la racine publique ; ou
+- définir ACCESS_PASSWORD via une configuration non publique ;
+- activer RESTRICT_TO_ROOT ;
+- supprimer les actions d'écriture si elles ne sont pas indispensables ;
+- protéger les endpoints AJAX avec la même authentification ;
+- ne pas afficher les secrets, chemins internes, variables sensibles ou informations réseau.
+
+5.2 Répertoires et fichiers
+----------------------------
+Vérifier la séparation entre :
+- public/ : seules les ressources devant être publiques ;
+- app/, ressources/views/, config/, vendor/ : non accessibles directement ;
+- storage/ : non accessible directement, diffusion uniquement via contrôleur autorisé ;
+- ressources/uploads/ : déjà refusé par .htaccess, à vérifier en production ;
+- logs/ : déjà refusé par .htaccess, à vérifier en production ;
+- modèles DOCX : à placer hors racine publique ou explicitement protégés.
+
+5.3 Paramètres serveur à relever réellement
+---------------------------------------------
+À récupérer dans l'audit authentifié LWS :
+- version PHP et SAPI ;
+- memory_limit ;
+- max_execution_time ;
+- upload_max_filesize et post_max_size ;
+- extensions zip, xml, mbstring, fileinfo et openssl ;
+- fonctions shell réellement disponibles ;
+- open_basedir ;
+- permissions et propriétaire des répertoires ;
+- espace disque ;
+- version MySQL/MariaDB ;
+- fonctionnement réel de mod_rewrite ;
+- présence ou absence des binaires de conversion PDF.
+
+================================================================================
+6. ORDRE DE RÉALISATION PROPOSÉ
+================================================================================
+
+Phase 0 - Gel et sauvegarde
+----------------------------
+- Sauvegarder code, base, fichiers générés et modèles.
+- Définir les environnements local, recette et production.
+- Geler les conventions actuelles sans supprimer l'historique.
+
+Phase 1 - Inventaire détaillé
+------------------------------
+- Finaliser la matrice des documents et des URLs.
+- Relever les valeurs réelles de l'audit LWS authentifié.
+- Identifier les documents prioritaires et les incompatibilités de rendu.
+
+Phase 2 - Socle documentaire
+-----------------------------
+- Définir les conventions de modèles PHPWord.
+- Définir le stockage temporaire, le stockage final et les versions.
+- Définir les métadonnées et les journaux.
+- Définir la stratégie DOCX/PDF par type de document.
+
+Phase 3 - Prototype contrôlé
+-----------------------------
+- Choisir un document représentatif simple.
+- Produire un modèle PHPWord et comparer avec le rendu actuel.
+- Tester les droits, le stockage, la diffusion et la purge des temporaires.
+
+Phase 4 - Migration progressive
+--------------------------------
+- Migrer les documents par groupe fonctionnel.
+- Maintenir un fallback vers l'ancien générateur pendant la recette.
+- Comparer visuellement et fonctionnellement chaque sortie.
+- Valider les performances et l'espace disque.
+
+Phase 5 - Socle d'URL propre
+-----------------------------
+- Centraliser les helpers de génération d'URL.
+- Ajouter les routes propres et les règles Apache en environnement de recette.
+- Introduire les jetons opaques ou signés selon la décision de sécurité.
+- Vérifier systématiquement permission, expiration et type de document.
+
+Phase 6 - Migration des liens et compatibilité
+-----------------------------------------------
+- Mettre à jour vues, JavaScript, contrôleurs, e-mails et redirections.
+- Ajouter les redirections temporaires depuis les anciens formats.
+- Surveiller les erreurs 404, 403 et les liens cassés.
+- Retirer les anciennes routes seulement après validation des journaux.
+
+Phase 7 - Durcissement final
+-----------------------------
+- Retirer ou sécuriser server_audit.php.
+- Vérifier les .htaccess sur le serveur réel.
+- Vérifier les permissions, logs, secrets et répertoires publics.
+- Désactiver les anciens accès directs aux documents.
+- Effectuer une sauvegarde et documenter la procédure de restauration.
+
+================================================================================
+7. CRITÈRES D'ACCEPTATION AVANT MISE EN PRODUCTION
+================================================================================
+
+Documents :
+- chaque type prioritaire possède un modèle, une version et un responsable ;
+- le rendu DOCX/PDF est conforme au document de référence ;
+- les caractères, tableaux, logos, signatures et pages sont corrects ;
+- les documents ne sont pas accessibles par chemin direct ;
+- les droits de chaque groupe sont respectés ;
+- les versions archivées sont correctement distinguées ;
+- les erreurs ne révèlent ni chemins ni détails internes.
+
+URLs :
+- les URL publiques ne contiennent plus d'identifiants internes pour les documents ciblés ;
+- les extensions PHP sont masquées selon la matrice validée ;
+- les anciens liens ont une stratégie explicite ;
+- les tokens sont non prévisibles, validés, expirables si nécessaire et non réutilisables
+  au-delà de leur contexte ;
+- un token masqué ne permet jamais de contourner les permissions ;
+- les réponses 403/404 ne permettent pas d'énumérer les documents.
+
+Serveur :
+- server_audit.php n'est plus public ou est correctement protégé ;
+- les valeurs LWS réelles sont compatibles avec PHPWord et le rendu choisi ;
+- les dossiers storage, uploads et logs sont correctement protégés ;
+- les fichiers de configuration et vendor ne sont pas exposés ;
+- les tests de réécriture et de diffusion sont validés sur le serveur réel.
+
+================================================================================
+8. DÉCISIONS À PRENDRE AVANT L'IMPLÉMENTATION
+================================================================================
+
+- Quels documents doivent obligatoirement être produits en DOCX, en PDF ou dans les deux ?
+- Le PDF doit-il être généré par mPDF, Dompdf, TCPDF ou une combinaison par type ?
+- Les documents finaux doivent-ils être stockés en BDD, sur disque privé, ou les deux ?
+- Quelle est la durée de conservation des documents et des versions ?
+- Les liens de documents doivent-ils expirer ?
+- Faut-il utiliser des références publiques aléatoires, des tokens signés ou du chiffrement
+  authentifié ?
+- Quelle compatibilité doit être conservée pour les anciens liens ?
+- Quelles routes doivent être totalement retirées après migration ?
+- Quelle politique de journalisation et de purge doit être appliquée ?
+- Quelles valeurs exactes de l'environnement LWS doivent être retenues comme référence ?
+
+================================================================================
+FIN DU PLAN - AUCUNE IMPLÉMENTATION EFFECTUÉE
+================================================================================

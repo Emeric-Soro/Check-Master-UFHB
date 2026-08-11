@@ -391,6 +391,7 @@ foreach ($soutenances as $soutenance) {
                 'limit' => $perPage,
                 'limit_options' => $allowedLimits,
                 'search_placeholder' => 'Rechercher une soutenance...',
+                'selection_ui' => 'thead',
                 'custom_actions' => [
                     [
                         'tag' => 'button',

@@ -85,202 +85,188 @@ require_once __DIR__ . '/../app/Services/AuditService.php';
 
 use CheckMaster\Security\PermissionContextFactory;
 use CheckMaster\Security\RoutePermissionService;
+use CheckMaster\Security\RequestContext;
+use CheckMaster\Security\AuthenticationGuard;
+use CheckMaster\Security\CsrfGuard;
+use CheckMaster\Security\AuthorizationGuard;
+use CheckMaster\Security\LegacyCompatibilityLayer;
 
-$legacyPageAliases = [
-    'maj_etudiant' => [
-        'page' => 'gestion_etudiants',
-        'action' => 'ajouter_des_etudiants',
-    ],
-    'repertoire_documents' => [
-        'page' => 'repertoire_enseignant',
-    ],
-];
+// ── Compatibilité des alias legacy (maj_etudiant → gestion_etudiants, ...) ──
+$legacyCompatibilityLayer = new LegacyCompatibilityLayer();
+$legacyCompatibilityLayer->apply();
 
-if (isset($_GET['page']) && isset($legacyPageAliases[(string) $_GET['page']])) {
-    foreach ($legacyPageAliases[(string) $_GET['page']] as $key => $value) {
-        $_GET[$key] = $value;
-        $_REQUEST[$key] = $value;
-    }
+// Contexte de requête normalisé (page/action/méthode/AJAX/JSON) — créé APRÈS
+// l'application des alias pour que page/action reflètent les réécritures.
+$requestContext = RequestContext::fromGlobals();
+
+// ── Année académique globale ──
+
+// ── Gardes : authentification → CSRF → autorisation ──
+$authGuard = new AuthenticationGuard();
+$authResponse = $authGuard->requireAuthenticated();
+if ($authResponse !== null) {
+    $authResponse->send();
+    exit;
 }
 
-if (!isset($_SESSION['id_utilisateur'])) {
-    header('Location: page_connexion.php');
-    exit;
-} else {
-    $isCandidatureStagePost = ((string) ($_GET['page'] ?? '') === 'candidature_soutenance')
-        && (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST');
+$isCandidatureStagePost = ($requestContext->page === 'candidature_soutenance') && $requestContext->isPost();
+if ($isCandidatureStagePost) {
+    cm_candidature_debug_log('request_entered_layout', [
+        'get' => $_GET,
+        'post' => $_POST,
+        'session' => [
+            'id_utilisateur' => $_SESSION['id_utilisateur'] ?? null,
+            'id_GU' => $_SESSION['id_GU'] ?? null,
+            'lib_GU' => $_SESSION['lib_GU'] ?? null,
+            'num_etu' => $_SESSION['num_etu'] ?? null,
+            'login_utilisateur' => $_SESSION['login_utilisateur'] ?? null,
+        ],
+        'headers' => [
+            'x_requested_with' => $_SERVER['HTTP_X_REQUESTED_WITH'] ?? null,
+            'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
+            'referer' => $_SERVER['HTTP_REFERER'] ?? null,
+        ],
+    ]);
+}
+
+// Protection CSRF globale pour toutes les actions POST du legacy.
+if ($requestContext->isPost()) {
+    $csrfToken = $requestContext->csrfToken();
     if ($isCandidatureStagePost) {
-        cm_candidature_debug_log('request_entered_layout', [
-            'get' => $_GET,
-            'post' => $_POST,
-            'session' => [
-                'id_utilisateur' => $_SESSION['id_utilisateur'] ?? null,
-                'id_GU' => $_SESSION['id_GU'] ?? null,
-                'lib_GU' => $_SESSION['lib_GU'] ?? null,
-                'num_etu' => $_SESSION['num_etu'] ?? null,
-                'login_utilisateur' => $_SESSION['login_utilisateur'] ?? null,
-            ],
-            'headers' => [
-                'x_requested_with' => $_SERVER['HTTP_X_REQUESTED_WITH'] ?? null,
-                'content_type' => $_SERVER['CONTENT_TYPE'] ?? null,
-                'referer' => $_SERVER['HTTP_REFERER'] ?? null,
-            ],
+        cm_candidature_debug_log('csrf_token_received', [
+            'has_token' => $csrfToken !== null && $csrfToken !== '',
+            'token_length' => is_string($csrfToken) ? strlen($csrfToken) : 0,
         ]);
     }
 
-    // Protection CSRF globale pour toutes les actions POST du legacy.
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-        $csrfToken = $_POST['csrf_token'] ?? null;
-        if ($isCandidatureStagePost) {
-            cm_candidature_debug_log('csrf_token_received', [
-                'has_token' => $csrfToken !== null && $csrfToken !== '',
-                'token_length' => is_string($csrfToken) ? strlen($csrfToken) : 0,
-            ]);
-        }
-        if ($csrfToken === null && strpos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') !== false) {
-            $rawJsonInput = file_get_contents('php://input');
-            $jsonInput = json_decode($rawJsonInput, true);
-            if (is_array($jsonInput)) {
-                $csrfToken = $jsonInput['csrf_token'] ?? null;
-                if ($isCandidatureStagePost) {
-                    cm_candidature_debug_log('csrf_token_loaded_from_json', [
-                        'json_keys' => array_keys($jsonInput),
-                        'has_token' => isset($jsonInput['csrf_token']) && $jsonInput['csrf_token'] !== '',
-                    ]);
-                }
-                // On stocke le JSON décodé pour que le contrôleur puisse y accéder sans relire php://input
-                $GLOBALS['decoded_json_input'] = $jsonInput;
+    // Stocker le JSON décodé pour que le contrôleur puisse y accéder sans relire php://input
+    if ($csrfToken === null && $requestContext->isJson) {
+        $rawJsonInput = file_get_contents('php://input');
+        $jsonInput = json_decode($rawJsonInput, true);
+        if (is_array($jsonInput)) {
+            $csrfToken = $jsonInput['csrf_token'] ?? null;
+            $GLOBALS['decoded_json_input'] = $jsonInput;
+            if ($isCandidatureStagePost) {
+                cm_candidature_debug_log('csrf_token_loaded_from_json', [
+                    'json_keys' => array_keys($jsonInput),
+                    'has_token' => isset($jsonInput['csrf_token']) && $jsonInput['csrf_token'] !== '',
+                ]);
             }
-        }
-
-        $csrfValid = Csrf::validate($csrfToken);
-        if ($isCandidatureStagePost) {
-            cm_candidature_debug_log($csrfValid ? 'csrf_validation_passed' : 'csrf_validation_failed', [
-                'has_token' => $csrfToken !== null && $csrfToken !== '',
-            ]);
-        }
-
-        if (!$csrfValid) {
-            // AJAX
-            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
-                http_response_code(403);
-                header('Content-Type: application/json; charset=UTF-8');
-                echo json_encode(['success' => false, 'message' => Messages::get('auth.session_expired')]);
-                exit;
-            }
-
-            $_SESSION['error'] = Messages::get('auth.session_expired');
-            $_SESSION['error_type'] = 'csrf';
-            $fallback = 'layout.php?page=' . urlencode($_GET['page'] ?? 'dashboard');
-            $redirect = $fallback;
-            $referer = $_SERVER['HTTP_REFERER'] ?? '';
-            if ($referer !== '') {
-                $refererHost = parse_url($referer, PHP_URL_HOST);
-                $currentHost = $_SERVER['HTTP_HOST'] ?? '';
-                if ($refererHost !== false && $refererHost === $currentHost) {
-                    $redirect = $referer;
-                }
-            }
-            header('Location: ' . $redirect);
-            exit;
         }
     }
 
-    $permissionMiddleware = new PermissionMiddleware();
-    $routePermissionService = new RoutePermissionService($container->getPDO());
-    $permissionContextFactory = new PermissionContextFactory($container->getPDO());
-    $currentMenuSlugForGate = isset($_GET['page']) ? (string) $_GET['page'] : '';
-    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-    $isOwnProfileUpdate = $currentMenuSlugForGate === 'profil'
-        && $method === 'POST'
-        && (
-            isset($_POST['update_password'])
-            || isset($_POST['update_email'])
-            || (string) ($_POST['action'] ?? '') === 'update_password'
-            || (string) ($_POST['action'] ?? '') === 'update_email'
-        );
-
-    $legacyAccessAllowed = true;
-    // Les routes de service avec leur propre securite interne (docviewer, etc.)
-    // sont exemptees du controle de permissions legacy. Elles gerent elles-memes
-    // l'authentification et les droits (session + DocumentRegistry::canView()).
-    $bypassLegacyPermissionCheck = in_array($currentMenuSlugForGate, ['docviewer'], true);
-    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$bypassLegacyPermissionCheck) {
-        $legacyAccessAllowed = $routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method);
-        if ($isCandidatureStagePost) {
-            cm_candidature_debug_log('permission_check', [
-                'page' => $currentMenuSlugForGate,
-                'method' => $method,
-                'group_id' => $_SESSION['id_GU'] ?? null,
-                'allowed' => $legacyAccessAllowed,
-                'action' => $_GET['action'] ?? null,
-            ]);
-        }
+    $csrfValid = Csrf::validate($csrfToken);
+    if ($isCandidatureStagePost) {
+        cm_candidature_debug_log($csrfValid ? 'csrf_validation_passed' : 'csrf_validation_failed', [
+            'has_token' => $csrfToken !== null && $csrfToken !== '',
+        ]);
     }
 
-    if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$legacyAccessAllowed) {
-        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-        if ($isAjax) {
-            http_response_code(403);
-            header('Content-Type: application/json; charset=UTF-8');
-            echo json_encode(['success' => false, 'message' => 'Accès refusé. Permissions insuffisantes.']);
+    if (!$csrfValid) {
+        $csrfGuard = new CsrfGuard();
+        $csrfResponse = $csrfGuard->check($requestContext);
+        if ($csrfResponse !== null) {
+            $csrfResponse->send();
             exit;
         }
-
-        $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
-        $_SESSION['error_type'] = 'permission_denied';
-
-        $redirect = 'layout.php?page=access_denied';
-        header('Location: ' . $redirect);
-        exit;
     }
 }
 
+$permissionMiddleware = new PermissionMiddleware();
+$routePermissionService = new RoutePermissionService($container->getPDO());
+$permissionContextFactory = new PermissionContextFactory($container->getPDO());
+$currentMenuSlugForGate = $requestContext->page;
+$method = $requestContext->method;
+
+$isOwnProfileUpdate = $requestContext->isOwnProfileUpdate();
+
+$legacyAccessAllowed = true;
+// Les routes de service avec leur propre securite interne (docviewer, etc.)
+// sont exemptees du controle de permissions legacy. Elles gerent elles-memes
+// l'authentification et les droits (session + DocumentRegistry::canView()).
+$bypassLegacyPermissionCheck = in_array($currentMenuSlugForGate, ['docviewer'], true);
+if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$bypassLegacyPermissionCheck) {
+    $legacyAccessAllowed = $routePermissionService->canAccessLegacy((int) $_SESSION['id_GU'], $_GET, $_POST, $method);
+    if ($isCandidatureStagePost) {
+        cm_candidature_debug_log('permission_check', [
+            'page' => $currentMenuSlugForGate,
+            'method' => $method,
+            'group_id' => $_SESSION['id_GU'] ?? null,
+            'allowed' => $legacyAccessAllowed,
+            'action' => $_GET['action'] ?? null,
+        ]);
+    }
+}
+
+if ($currentMenuSlugForGate !== '' && !$isOwnProfileUpdate && !$legacyAccessAllowed) {
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+    if ($isAjax) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['success' => false, 'message' => 'Accès refusé. Permissions insuffisantes.']);
+        exit;
+    }
+
+    $_SESSION['error'] = "Vous n'avez pas l'autorisation d'effectuer cette action.";
+    $_SESSION['error_type'] = 'permission_denied';
+
+    $redirect = 'layout.php?page=access_denied';
+    header('Location: ' . $redirect);
+    exit;
+}
+
 include __DIR__ . '/menu.php';
-include __DIR__ . '/../ressources/routes/gestionUtilisateurRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionRhRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionDashboardRoutes.php';
-include __DIR__ . '/../ressources/routes/dashboardEnseignantRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionScolariteRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionNotesRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionCandidaturesRoutes.php';
-include __DIR__ . '/../ressources/routes/listeEtudiantsRoutes.php';
-include __DIR__ . '/../ressources/routes/dossierAcademiqueRoutes.php';
-include __DIR__ . '/../ressources/routes/verificationRapportsRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionReclamationsScolariteRoutes.php';
-include __DIR__ . '/../ressources/routes/evaluationDossiersRoutes.php';
-include __DIR__ . '/../ressources/routes/programmationSoutenanceRoutes.php';
-include __DIR__ . '/../ressources/routes/plannificationSoutenanceRoutes.php';
-include __DIR__ . '/../ressources/routes/gestionDossiersCandidaturesRoutes.php';
-include __DIR__ . '/../ressources/routes/archivesDossiersSoutenanceRoutes.php';
-include __DIR__ . '/../ressources/routes/sauvegardeRestaurationRoutes.php';
-include __DIR__ . '/../ressources/routes/notesResultatsRoutes.php';
-include __DIR__ . '/../ressources/routes/auditRoutes.php';
-include __DIR__ . '/../ressources/routes/criteresEvaluationRoutes.php';
-include __DIR__ . '/../ressources/routes/redactionCompteRenduRoutes.php';
-include __DIR__ . '/../ressources/routes/archivesCompteRenduRoutes.php';
-include __DIR__ . '/../ressources/routes/archiveHistoryRoutes.php';
-include __DIR__ . '/../ressources/routes/archiveRoutes.php';
-include __DIR__ . '/../ressources/routes/editionBulletinRoutes.php';
-include __DIR__ . '/../ressources/routes/docviewerRoutes.php';
-include __DIR__ . '/../ressources/routes/documentsRoutes.php';
-include __DIR__ . '/../ressources/routes/ficheEtudiantRoutes.php';
-include __DIR__ . '/../ressources/routes/ficheCommissionRoutes.php';
-include __DIR__ . '/../ressources/routes/fichePersAdminRoutes.php';
-include __DIR__ . '/../ressources/routes/historiqueInscriptionsRoutes.php';
-include __DIR__ . '/../ressources/routes/workflowValidationRoutes.php';
-include __DIR__ . '/../ressources/routes/ficheEnseignantRoutes.php';
-include __DIR__ . '/../ressources/routes/ficheFinanciereRoutes.php';
-include __DIR__ . '/../ressources/routes/dashboardDirectionRoutes.php';
-include __DIR__ . '/../ressources/routes/rechercheGlobaleRoutes.php';
-include __DIR__ . '/../ressources/routes/echeancierEtudiantRoutes.php';
-include __DIR__ . '/../ressources/routes/exportMasseDocumentsRoutes.php';
-include __DIR__ . '/../ressources/routes/historiqueModificationsRoutes.php';
-include __DIR__ . '/../ressources/routes/timelineParcoursRoutes.php';
-include __DIR__ . '/../ressources/routes/annuaireEnseignantsRoutes.php';
-include __DIR__ . '/../ressources/routes/parametreGenerauxRouteur.php';
+
+// ── Registre centralisé des routes legacy (page/action) ──
+// Les fichiers de routes sont chargés par domaine ; chaque route est déclarée
+// avec un nom unique pour permettre la migration vers des routes nommées.
+$routeRegistry = new \CheckMaster\Core\RouteRegistry();
+$routeRegistry->loadLegacyFiles(__DIR__ . '/../ressources/routes', [
+    'gestionUtilisateurRoutes.php',
+    'gestionRhRoutes.php',
+    'gestionDashboardRoutes.php',
+    'dashboardEnseignantRoutes.php',
+    'gestionScolariteRoutes.php',
+    'gestionNotesRoutes.php',
+    'gestionCandidaturesRoutes.php',
+    'listeEtudiantsRoutes.php',
+    'dossierAcademiqueRoutes.php',
+    'verificationRapportsRoutes.php',
+    'gestionReclamationsScolariteRoutes.php',
+    'evaluationDossiersRoutes.php',
+    'programmationSoutenanceRoutes.php',
+    'plannificationSoutenanceRoutes.php',
+    'gestionDossiersCandidaturesRoutes.php',
+    'archivesDossiersSoutenanceRoutes.php',
+    'sauvegardeRestaurationRoutes.php',
+    'notesResultatsRoutes.php',
+    'auditRoutes.php',
+    'criteresEvaluationRoutes.php',
+    'redactionCompteRenduRoutes.php',
+    'archivesCompteRenduRoutes.php',
+    'archiveHistoryRoutes.php',
+    'archiveRoutes.php',
+    'editionBulletinRoutes.php',
+    'docviewerRoutes.php',
+    'documentsRoutes.php',
+    'ficheEtudiantRoutes.php',
+    'ficheCommissionRoutes.php',
+    'fichePersAdminRoutes.php',
+    'historiqueInscriptionsRoutes.php',
+    'workflowValidationRoutes.php',
+    'ficheEnseignantRoutes.php',
+    'ficheFinanciereRoutes.php',
+    'dashboardDirectionRoutes.php',
+    'rechercheGlobaleRoutes.php',
+    'echeancierEtudiantRoutes.php',
+    'exportMasseDocumentsRoutes.php',
+    'historiqueModificationsRoutes.php',
+    'timelineParcoursRoutes.php',
+    'annuaireEnseignantsRoutes.php',
+    'parametreGenerauxRouteur.php',
+]);
+$GLOBALS['routeRegistry'] = $routeRegistry;
 
 $menuController = new MenuController();
 
@@ -328,7 +314,7 @@ $canonicalPageLabels = [
     'fiche_etudiant_complete' => 'Fiche Étudiante Complete',
     'suivi_scolarite' => 'Suivi & Scolarité',
     'commissions_archives' => 'Commissions & Archives',
-    'membres_commission' => 'Membres votants de la commission',
+    'membres_commission' => 'Membres actifs de la commission',
     'enseignant_gestion' => 'Gestion des Enseignants',
     'outils_direction' => 'Outils & Direction',
     'gestion_notes' => 'Gestion des Notes',
@@ -975,8 +961,13 @@ switch ($currentMenuSlug) {
         $currentPageLabel = 'Tableau de bord commission';
         break;
     case 'gestion_candidatures':
-        $contentFile = $partialsBasePath . 'gestion_candidatures_soutenance_content.php';
-        $currentPageLabel = 'Gestion des Candidatures';
+        if (($_GET['action'] ?? '') === 'evaluations_m2_s1') {
+            $contentFile = $partialsBasePath . 'gestion_candidatures_evaluations_content.php';
+            $currentPageLabel = 'Évaluations M2/S1 des candidatures';
+        } else {
+            $contentFile = $partialsBasePath . 'gestion_candidatures_soutenance_content.php';
+            $currentPageLabel = 'Gestion des Candidatures';
+        }
         break;
     case 'verification_candidatures':
         $contentFile = $partialsBasePath . 'verification_candidatures_soutenance_content.php';
@@ -1083,7 +1074,7 @@ switch ($currentMenuSlug) {
         }
         $membresCommissionData = $membresCommissionController->index();
         $contentFile = $partialsBasePath . 'membres_commission_content.php';
-        $currentPageLabel = 'Membres votants';
+        $currentPageLabel = 'Membres actifs';
         break;
     case 'redaction_compte_rendu':
         $contentFile = $partialsBasePath . 'redaction_compte_rendu_content.php';
@@ -2709,12 +2700,10 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             border: 2px solid rgba(214, 230, 245, 0.65) !important;
         }
 
-        /* Toolbar unifiée sur une seule ligne sur tous les écrans CRUD */
+        /* Toolbar unifiée : une seule ligne, sans débordement ni scroll horizontal */
         .cm-content-area .cm-barre-intermediaire {
-            overflow-x: hidden !important;
-            overflow-y: visible !important;
-            scrollbar-gutter: stable both-edges !important;
-            -webkit-overflow-scrolling: touch;
+            overflow: visible !important;
+            margin-bottom: 0.5rem !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar {
@@ -2723,20 +2712,14 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             flex-wrap: nowrap !important;
             align-items: center !important;
             justify-content: space-between !important;
-            gap: 0.65rem !important; /* Premium breathing space */
+            gap: 0.5rem !important;
             width: 100% !important;
             max-width: 100% !important;
+            min-width: 0 !important;
             margin-left: auto !important;
             margin-right: auto !important;
             box-sizing: border-box !important;
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            scrollbar-width: none !important; /* Premium touch swipe action bar on tablets and mobile screens */
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .cm-content-area .cm-barre-intermediaire .cm-toolbar::-webkit-scrollbar {
-            display: none !important;
+            overflow: hidden !important; /* jamais de scroll : le contenu se compacte */
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-left,
@@ -2747,18 +2730,19 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             flex-wrap: nowrap !important;
             width: auto !important;
             min-width: 0 !important;
-            gap: 0.5rem !important;
+            gap: 0.4rem !important;
+            white-space: nowrap !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-left {
-            flex: 0 0 auto !important;
+            flex: 0 1 auto !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar-center {
-            flex: 0 0 auto !important; /* Never squeeze search box */
-            width: clamp(11.5rem, 22vw, 16rem) !important;
-            min-width: 11.5rem !important;
-            max-width: 16rem !important;
+            flex: 0 1 auto !important; /* se compacte avant la zone droite */
+            width: clamp(10rem, 20vw, 15rem) !important;
+            min-width: 10rem !important;
+            max-width: 15rem !important;
             justify-content: flex-start !important;
         }
 
@@ -2766,6 +2750,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             flex: 1 1 auto !important;
             justify-content: flex-end !important;
             margin-left: auto !important;
+            overflow: hidden !important;
         }
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar__actions-group {
@@ -2773,7 +2758,7 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
             flex-direction: row !important;
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 0.35rem !important;
+            gap: 0.3rem !important;
             flex: 0 0 auto !important;
         }
 
@@ -2784,9 +2769,38 @@ $publicPrefix = strpos($scriptPath, '/app/') !== false ? '../' : '';
 
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar__search-wrap,
         .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar-field-lg {
-            width: 100% !important; /* Takes full width of the parent center container which is already constrained */
-            min-width: 11.5rem !important;
-            max-width: 16rem !important;
+            width: 100% !important;
+            min-width: 10rem !important;
+            max-width: 15rem !important;
+        }
+
+        /* Sur écrans étroits : ne garder que les icônes des boutons d'action */
+        @media (max-width: 1100px) {
+            .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-btn[data-cm-toolbar-action] span {
+                display: none !important;
+            }
+            .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar__actions-group .cm-btn {
+                padding: 0.3rem 0.5rem !important;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .cm-content-area .cm-barre-intermediaire .cm-toolbar {
+                gap: 0.35rem !important;
+            }
+            .cm-content-area .cm-barre-intermediaire .cm-toolbar-center {
+                width: 9rem !important;
+                min-width: 9rem !important;
+                max-width: 9rem !important;
+            }
+            .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar__control span {
+                display: none !important;
+            }
+            .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar__search-wrap,
+            .cm-content-area .cm-barre-intermediaire .cm-toolbar .cm-toolbar-field-lg {
+                min-width: 8rem !important;
+                max-width: 9rem !important;
+            }
         }
 
         @media (max-width: 900px) {

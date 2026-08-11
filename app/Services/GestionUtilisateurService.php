@@ -16,6 +16,7 @@ use TypeUtilisateur;
 use GroupeUtilisateur;
 use NiveauAccesDonnees;
 use AuditLog;
+use App\Support\DatabaseService;
 use PHPMailer\PHPMailer\PHPMailer;
 require_once __DIR__ . '/../utils/EmailService.php';
 
@@ -58,12 +59,15 @@ class GestionUtilisateurService
     /** @var \PDO */
     private $pdo;
 
+    private DatabaseService $dbService;
+
     /**
      * @param \PDO $pdo Connexion à la base de données
      */
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
+        $this->dbService = new DatabaseService($pdo);
         $this->utilisateur = new Utilisateur($pdo);
         $this->groupeUtilisateur = new GroupeUtilisateur($pdo);
         $this->typeUtilisateur = new TypeUtilisateur($pdo);
@@ -127,11 +131,10 @@ class GestionUtilisateurService
     {
         $token = bin2hex(random_bytes(32));
         $expires = date('Y-m-d H:i:s', time() + 3600);
-        $stmt = $this->pdo->prepare('INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :expires)');
-        $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':token', $token);
-        $stmt->bindParam(':expires', $expires);
-        $stmt->execute();
+        $this->dbService->execute(
+            'INSERT INTO password_resets (email, token, expires_at) VALUES (:email, :token, :expires)',
+            [':email' => $email, ':token' => $token, ':expires' => $expires]
+        );
         return $token;
     }
 
@@ -183,21 +186,23 @@ class GestionUtilisateurService
 
     private function recordExists(string $table, string $column, int $id): bool
     {
-        $stmt = $this->pdo->prepare("SELECT 1 FROM {$table} WHERE {$column} = ? LIMIT 1");
-        $stmt->execute([$id]);
-        return (bool) $stmt->fetchColumn();
+        return (bool) $this->dbService->scalar(
+            "SELECT 1 FROM {$this->dbService->table($table)} WHERE {$this->dbService->column($column)} = :id LIMIT 1",
+            [':id' => $id],
+            0
+        );
     }
 
     private function groupBelongsToType(int $groupId, int $typeId): bool
     {
-        $stmt = $this->pdo->prepare("
-            SELECT 1
-            FROM groupe_utilisateur
-            WHERE id_GU = ? AND id_type_utilisateur = ?
-            LIMIT 1
-        ");
-        $stmt->execute([$groupId, $typeId]);
-        return (bool) $stmt->fetchColumn();
+        return (bool) $this->dbService->scalar(
+            "SELECT 1
+             FROM groupe_utilisateur
+             WHERE id_GU = :gid AND id_type_utilisateur = :tid
+             LIMIT 1",
+            [':gid' => $groupId, ':tid' => $typeId],
+            0
+        );
     }
 
     private function resolveInvitationEmail(array $data, string $nomUtilisateur, int $idTypeUtilisateur, string $loginUtilisateur): ?string

@@ -89,17 +89,20 @@
     }
 
     .cm-toolbar {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
         gap: var(--cm-spacing-sm);
+        overflow: hidden;
     }
 
     .cm-toolbar-left,
     .cm-toolbar-center,
     .cm-toolbar-right {
-        width: 100%;
+        width: auto;
         justify-content: flex-start;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        min-width: 0;
     }
 
     .cm-toolbar__search-wrap {

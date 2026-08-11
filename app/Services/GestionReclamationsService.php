@@ -13,6 +13,7 @@ require_once __DIR__ . '/../utils/NotificationService.php';
 use Reclamation;
 use AuditLog;
 use Database;
+use App\Support\DatabaseService;
 use PDO;
 use Exception;
 
@@ -34,6 +35,8 @@ class GestionReclamationsService
 
     /** @var AuditLog */
     private $auditLog;
+
+    private DatabaseService $dbService;
 
     private $emailService;
 
@@ -82,6 +85,7 @@ class GestionReclamationsService
     {
         $this->reclamationModel = $reclamationModel;
         $this->auditLog = $auditLog;
+        $this->dbService = new DatabaseService(\Database::getConnection());
         $this->emailService = new \EmailService();
     }
 
@@ -173,14 +177,11 @@ class GestionReclamationsService
     public function recupererNumEtuParEmail(string $email): ?string
     {
         try {
-            $db = \Database::getConnection();
-            $query = "SELECT num_etu FROM etudiants WHERE email_etu = :email";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(':email', $email);
-            $stmt->execute();
-
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result ? $result['num_etu'] : null;
+            $result = $this->dbService->selectOne(
+                "SELECT num_carte_etud FROM etudiants WHERE email_etu = :email LIMIT 1",
+                [':email' => $email]
+            );
+            return $result ? $result['num_carte_etud'] : null;
         } catch (Exception $e) {
             error_log("Erreur lors de la récupération du num_etu: " . $e->getMessage());
             return null;
@@ -351,18 +352,18 @@ class GestionReclamationsService
     public function getHistoriqueReclamation(int $reclamationId): array
     {
         try {
-            $db = \Database::getConnection();
-            $query = "SELECT al.action, al.date_action, al.commentaire,
-                             e.nom_etu, e.prenom_etu
-                      FROM audit_log al
-                      LEFT JOIN etudiants e ON al.id_utilisateur = e.id_utilisateur
-                      WHERE al.id_reference = :id
-                        AND al.type_action = 'reclamation'
-                      ORDER BY al.date_action DESC";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(':id', $reclamationId, \PDO::PARAM_INT);
-            $stmt->execute();
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            return $this->dbService->select(
+                "SELECT al.action, al.date_creation AS date_action,
+                         COALESCE(u.nom_utilisateur, u.login_utilisateur) AS nom_etu,
+                         '' AS prenom_etu,
+                         NULL AS commentaire
+                  FROM pister al
+                  LEFT JOIN utilisateur u ON al.id_utilisateur = u.id_utilisateur
+                  WHERE al.contexte = 'reclamation'
+                    AND al.id_piste = :id
+                  ORDER BY al.date_creation DESC",
+                [':id' => $reclamationId]
+            );
         } catch (Exception $e) {
             error_log('Erreur getHistoriqueReclamation: ' . $e->getMessage());
             return [];
@@ -435,10 +436,10 @@ class GestionReclamationsService
     public function notifierReclamationSoumise(int $idReclamation, string $objet, string $type, string $numEtu): void
     {
         try {
-            $db = \Database::getConnection();
-            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = ?");
-            $stmt->execute([$numEtu]);
-            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            $etu = $this->dbService->selectOne(
+                "SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = :num_etu",
+                [':num_etu' => $numEtu]
+            );
             $nomEtudiant = $etu ? trim(($etu['prenom_etu'] ?? '') . ' ' . ($etu['nom_etu'] ?? '')) : $numEtu;
 
             $notifService = new \NotificationService();
@@ -457,10 +458,10 @@ class GestionReclamationsService
     public function notifierReclamationStatut(int $idReclamation, string $objet, string $statut, string $numEtu, string $commentaire = ''): void
     {
         try {
-            $db = \Database::getConnection();
-            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = ?");
-            $stmt->execute([$numEtu]);
-            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            $etu = $this->dbService->selectOne(
+                "SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = :num_etu",
+                [':num_etu' => $numEtu]
+            );
             if (!$etu || empty($etu['email_etu'])) {
                 return;
             }
@@ -488,10 +489,10 @@ class GestionReclamationsService
     public function notifierReclamationReponse(int $idReclamation, string $objet, string $reponse, string $numEtu): void
     {
         try {
-            $db = \Database::getConnection();
-            $stmt = $db->prepare("SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = ?");
-            $stmt->execute([$numEtu]);
-            $etu = $stmt->fetch(PDO::FETCH_ASSOC);
+            $etu = $this->dbService->selectOne(
+                "SELECT prenom_etu, nom_etu, email_etu FROM etudiants WHERE num_etu = :num_etu",
+                [':num_etu' => $numEtu]
+            );
             if (!$etu || empty($etu['email_etu'])) {
                 return;
             }

@@ -4,11 +4,16 @@ if (isset($_GET['page']) && in_array($_GET['page'], ['gestion_candidatures', 'ge
     require_once __DIR__ . '/../../app/config/database.php';
     require_once __DIR__ . '/../../app/controllers/GestionCandidaturesController.php';
 
-    $controller = new GestionCandidaturesController();
-
-    if (isset($_GET['examiner']) || isset($_GET['action'])) {
-        $controller->examinerCandidature();
+    if (($_GET['action'] ?? '') === 'evaluations_m2_s1') {
+        require_once __DIR__ . '/../../app/controllers/GestionCandidaturesEvaluationsController.php';
+        $evaluationsController = new GestionCandidaturesEvaluationsController();
+        $evaluationsController->index();
     } else {
-        $controller->index();
+        $controller = new GestionCandidaturesController();
+        if (isset($_GET['examiner']) || isset($_GET['action'])) {
+            $controller->examinerCandidature();
+        } else {
+            $controller->index();
+        }
     }
 }

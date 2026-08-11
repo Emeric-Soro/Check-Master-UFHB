@@ -77,6 +77,7 @@ unset($_SESSION['message']);
             'search_value' => $_GET['search'] ?? '',
             'limit' => 10,
             'limit_options' => [5, 10, 25, 50, 100],
+            'selection_ui' => 'thead',
             'can_delete' => canDelete(),
             'can_view' => canView(),
             'print_title' => 'Réclamations',

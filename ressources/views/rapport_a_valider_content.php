@@ -127,6 +127,7 @@ $statusOptions = [
             'search_value' => $_GET['search'] ?? '',
             'limit' => $perPage,
             'allowed_limits' => $allowedLimits,
+            'selection_ui' => 'thead',
             'can_delete' => false,
             'can_view' => canView(),
             'print_title' => 'Rapports à valider',

@@ -130,7 +130,10 @@ class ArchivesCompteRenduController
         $rows = is_array($data['archives']) ? $data['archives'] : [];
 
         header('Content-Type: text/csv; charset=UTF-8');
-        header('Content-Disposition: attachment; filename=\"archives_comptes_rendus.csv\"');
+        header('Content-Disposition: attachment; filename="archives_comptes_rendus.csv"');
+
+        // BOM UTF-8 : sans lui, Excel (locale FR) lit le CSV en ANSI et casse les accents
+        echo "\xEF\xBB\xBF";
 
         $out = fopen('php://output', 'w');
         if ($out === false) {

@@ -122,6 +122,9 @@ class ArchiveEtudiantController
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="archives_etudiants_' . date('Y-m-d') . '.csv"');
 
+        // BOM UTF-8 : sans lui, Excel (locale FR) lit le CSV en ANSI et casse les accents
+        echo "\xEF\xBB\xBF";
+
         $output = fopen('php://output', 'w');
         fputcsv($output, ['Matricule', 'Nom', 'Prénom', 'Email', 'Promotion', 'Spécialité', 'Entreprise', 'Thème', 'Statut']);
 

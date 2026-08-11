@@ -536,8 +536,18 @@ $addFeature([
     'existing_codes' => ['MOYENNE_ETUDIANT'],
     'routes' => [
         ['pattern' => 'page=gestion_notes_evaluations', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_notes_evaluations&tab=evaluations_s3', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_notes_evaluations&tab=ue', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_notes_evaluations&action=enregistrer_notes', 'method' => 'GET', 'crud' => 'modifier'],
         ['pattern' => 'page=gestion_notes_evaluations&action=btn_enregistrer_notes', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=enregistrer_evaluations_s3&tab=evaluations_s3', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=import_evaluations_s3&tab=evaluations_s3', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=confirmer_import_evaluations_s3&tab=evaluations_s3', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=enregistrer_ue&tab=ue', 'method' => 'POST', 'crud' => 'modifier'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=generer_pv_ecrits&tab=evaluations_s3', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=generer_autorisation&tab=evaluations_s3', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=generer_suivi_directeur&tab=evaluations_s3', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_notes_evaluations&action=generer_suivi_encadreur&tab=evaluations_s3', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_notes_evaluations&action=imprimer_releve', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_notes', 'method' => 'GET', 'crud' => 'voir'],
     ],
@@ -776,6 +786,8 @@ $addFeature([
     'routes' => [
         ['pattern' => 'page=gestion_candidatures', 'method' => 'GET', 'crud' => 'voir'],
         ['pattern' => 'page=gestion_candidatures&action=examiner', 'method' => 'GET', 'crud' => 'modifier'],
+        ['pattern' => 'page=gestion_candidatures&action=evaluations_m2_s1', 'method' => 'GET', 'crud' => 'voir'],
+        ['pattern' => 'page=gestion_candidatures&action=evaluations_m2_s1', 'method' => 'POST', 'crud' => 'modifier'],
     ],
 ]);
 
@@ -1433,7 +1445,7 @@ $addFeature([
 $addFeature([
     'slug' => 'commission_membres',
     'code' => 'COM_MEMBRES',
-    'label' => 'Membres votants de la commission',
+    'label' => 'Membres actifs de la commission',
     'category_code' => 'COMMISSION',
     'menu_url' => '?page=membres_commission',
     'routes' => [

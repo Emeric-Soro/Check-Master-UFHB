@@ -16,6 +16,8 @@ $rapportsRejetes = (int) ($dashboardData['rapports_rejetes'] ?? 0);
 $repartition = is_array($dashboardData['repartition_statuts'] ?? null) ? $dashboardData['repartition_statuts'] : [];
 $activites = is_array($dashboardData['activites_recentes'] ?? null) ? $dashboardData['activites_recentes'] : [];
 $rapportsDetails = is_array($dashboardData['rapports_details'] ?? null) ? $dashboardData['rapports_details'] : [];
+$observationMembers = is_array($dashboardData['observations_membres'] ?? null) ? $dashboardData['observations_membres'] : [];
+$observationDetail = is_array($dashboardData['observation_detail'] ?? null) ? $dashboardData['observation_detail'] : [];
 
 $countByStatut = static function (array $rows, string $needle): int {
     $count = 0;
@@ -33,10 +35,7 @@ $valides = isset($dashboardData['rapports_valides'])
     : $countByStatut($repartition, 'valider');
 $rejetes = $rapportsRejetes;
 $crRediges = count($rapportsDetails);
-$totalRapports = max(1, $enAttente + $valides + $rejetes);
-$pctValides = (int) round(($valides / $totalRapports) * 100);
-$pctAttente = (int) round(($enAttente / $totalRapports) * 100);
-$pctRejetes = (int) round(($rejetes / $totalRapports) * 100);
+
 
 // Préparer les activités récentes pour le format attendu
 $activityItems = [];
@@ -126,101 +125,7 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
         </div>
     </div>
 
-    <!-- Graphique de répartition -->
-    <div class="cm-card cm-mt-md">
-        <div class="cm-card__header">
-            <h3 class="cm-card__title">Répartition des rapports</h3>
-        </div>
-        <div class="cm-card__body">
-            <div class="cm-grid-2" style="align-items: center;">
-                <!-- Diagramme circulaire -->
-                <div style="position: relative; height: 300px; max-width: 400px; margin: 0 auto;">
-                    <canvas id="chartRepartitionRapports"></canvas>
-                </div>
 
-                <!-- Légende avec barres de progression -->
-                <div>
-                    <?php
-                    $progressRows = [
-                        ['label' => 'Validés', 'count' => $valides, 'pct' => $pctValides, 'color' => '#10b981'],
-                        ['label' => 'En attente', 'count' => $enAttente, 'pct' => $pctAttente, 'color' => '#3b82f6'],
-                        ['label' => 'Rejetés', 'count' => $rejetes, 'pct' => $pctRejetes, 'color' => '#ef4444'],
-                    ];
-                    foreach ($progressRows as $row):
-                        ?>
-                        <div class="cm-mb-md">
-                            <div class="cm-flex-between cm-text-sm cm-mb-sm">
-                                <span style="font-weight: 500;">
-                                    <span
-                                        style="display: inline-block; width: 12px; height: 12px; background: <?php echo htmlspecialchars($row['color'], ENT_QUOTES, 'UTF-8'); ?>; border-radius: 3px; margin-right: 8px;"></span>
-                                    <?php echo htmlspecialchars($row['label'], ENT_QUOTES, 'UTF-8'); ?>
-                                    (<?php echo (int) $row['count']; ?>)
-                                </span>
-                                <strong><?php echo (int) $row['pct']; ?>%</strong>
-                            </div>
-                            <div style="height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;">
-                                <span
-                                    style="display:block;height:100%;width:<?php echo (int) $row['pct']; ?>%;background:<?php echo htmlspecialchars($row['color'], ENT_QUOTES, 'UTF-8'); ?>;transition:width 0.3s ease;"></span>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        (function () {
-            function initChart() {
-                var ctx = document.getElementById('chartRepartitionRapports');
-                if (ctx && typeof Chart !== 'undefined') {
-                    new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Validés', 'En attente', 'Rejetés'],
-                            datasets: [{
-                                label: 'Rapports',
-                                data: [<?php echo $valides; ?>, <?php echo $enAttente; ?>, <?php echo $rejetes; ?>],
-                                backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
-                                borderColor: ['#059669', '#2563eb', '#dc2626'],
-                                borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            plugins: {
-                                legend: {
-                                    display: false
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function (context) {
-                                            var label = context.label || '';
-                                            var value = context.parsed.y || 0;
-                                            var total = <?php echo $totalRapports; ?>;
-                                            var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                            return label + ': ' + value + ' (' + percentage + '%)';
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                x: { grid: { display: false } },
-                                y: { beginAtZero: true, ticks: { precision: 0 } }
-                            }
-                        }
-                    });
-                }
-            }
-
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initChart);
-            } else {
-                initChart();
-            }
-        })();
-    </script>
 
     <!-- Activités récentes et actions rapides -->
     <div class="cm-grid-2 cm-mt-md">
@@ -310,4 +215,53 @@ if ($anneeAcademique && is_array($anneeAcademique)) {
             </div>
         </div>
     <?php endif; ?>
+
+    <div class="cm-card cm-mt-md">
+        <div class="cm-card__header cm-flex-between">
+            <div><h3 class="cm-card__title"><i class="fas fa-comments cm-mr-sm"></i>Observations des membres</h3><p class="cm-card__subtitle">Cliquez sur un membre pour voir les rapports et observations qu’il a renseignés.</p></div>
+        </div>
+        <div class="cm-card__body">
+            <?php if ($observationMembers === []): ?>
+                <p class="cm-empty-state">Aucun membre reçu ou observateur enregistré pour le moment.</p>
+            <?php else: ?>
+                <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
+                    <?php foreach ($observationMembers as $member): ?>
+                        <?php $memberKey = (string) ($member['member_key'] ?? ''); ?>
+                        <a class="cm-observation-member" href="?page=dashboard_commission&member=<?= urlencode($memberKey) ?>">
+                            <strong><?= htmlspecialchars((string) ($member['membre'] ?? 'Membre'), ENT_QUOTES, 'UTF-8') ?></strong>
+                            <span><?= (int) ($member['nb_recus'] ?? 0) ?> reçu(s), <?= (int) ($member['nb_observations'] ?? 0) ?> observation(s), <?= (int) ($member['nb_commentaires'] ?? 0) ?> commentaire(s)</span>
+                            <?php if ((int) ($member['nb_observations'] ?? 0) === 0): ?><small>RAS — aucune observation renseignée</small><?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php if ($observationDetail !== []): ?>
+        <div class="cm-card cm-mt-md">
+            <div class="cm-card__header cm-flex-between"><h3 class="cm-card__title">Détail des observations</h3><a class="cm-btn is-light is-sm" href="?page=dashboard_commission">Fermer</a></div>
+            <div class="cm-card__body">
+                <div class="cm-table-wrapper">
+                    <table class="cm-table"><thead><tr><th>Rapport</th><th>Étudiant</th><th>Décision</th><th>Observation</th><th>Date</th></tr></thead><tbody>
+                    <?php foreach ($observationDetail as $observation): ?>
+                        <tr>
+                            <td><?= htmlspecialchars((string) ($observation['nom_rapport'] ?? 'Rapport'), ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars(trim((string) ($observation['nom_etu'] ?? '') . ' ' . (string) ($observation['prenom_etu'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars((string) ($observation['decision_evaluation'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= htmlspecialchars(trim((string) ($observation['commentaire'] ?? '')) ?: 'RAS', ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= !empty($observation['date_evaluation']) ? htmlspecialchars(date('d/m/Y H:i', strtotime((string) $observation['date_evaluation'])), ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody></table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 </section>
+
+<style>
+    .cm-observation-member { display: inline-flex; flex-direction: column; gap: .2rem; min-width: 13rem; padding: .75rem 1rem; border: 1px solid var(--cm-border-color, #d9e1e8); border-radius: .65rem; color: inherit; text-decoration: none; background: rgba(42,95,130,.03); }
+    .cm-observation-member:hover { border-color: var(--cm-primary, #2a5f82); background: rgba(42,95,130,.08); }
+    .cm-observation-member span { font-size: .78rem; color: var(--cm-text-muted, #64748b); }
+</style>

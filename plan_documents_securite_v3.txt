@@ -1,0 +1,691 @@
+================================================================================
+PLAN DIRECTEUR — MIGRATION DOCUMENTS PHPOFFICE/PHPWORD + SÉCURISATION DES URLS
+================================================================================
+Version 3.0 — 02/08/2026 — Rédigé en mode ANALYSE (aucune implémentation)
+Sources : audit serveur réel (server_audit.php + endpoints AJAX), exploration
+complète du code local, plans antérieurs (plan_documents_securite.txt v1 et
+plan_documents_securite_consolide.txt v2 — consolidés et dépassés ici avec les
+VALEURS RÉELLES de l'hébergement LWS).
+
+Ce document remplace les versions précédentes comme référence de travail.
+Il ne contient AUCUNE modification de code : c'est un plan à valider.
+
+--------------------------------------------------------------------------------
+0. RAPPEL DE L'OBJECTIF
+--------------------------------------------------------------------------------
+Trois chantiers, dans l'ordre logique :
+  A. Inventorier précisément « tout ce que l'on possède » (actif applicatif,
+     serveur, dépendances, données, documents, URLs).
+  B. Migrer la MAJORITÉ des documents générés vers phpoffice/phpword
+     (modèles .docx + TemplateProcessor, rendu PDF en PHP pur sans LibreOffice).
+  C. Réécrire, chiffrer et masquer les URLs (suppression des .php et des IDs
+     bruts, jetons opaques, réécriture Apache propre).
+
+--------------------------------------------------------------------------------
+1. INVENTAIRE COMPLET DE CE QUE NOUS POSSÉDONS (VALEURS RÉELLES RELEVÉES)
+--------------------------------------------------------------------------------
+
+1.1 PLATEFORME D'HÉBERGEMENT (LWS MUTUALISÉ — vérifié le 02/08/2026)
+--------------------------------------------------------------------
+- Système     : Debian Linux 6.12.95+deb13-amd64 (hôte webdb2225.lwspanel.com)
+- Serveur     : Apache/2.4.68 (Debian), mod_rewrite et .htaccess à 100 %
+- PHP         : 8.4.23, SAPI fpm-fcgi, utilisateur processus ufrmi1802974 (UID 3650)
+- Fuseau      : Africa/Abidjan
+- Disque      : 4,14 To total / 2,85 To libre (31,3 % restants)
+- Charge      : ~14-17 (moyenne, mutualisé)
+- Réseau      : ports 80 (HTTP), 443 (HTTPS), 465/587 (SMTP), 3306 (MySQL distant) ouverts
+- Cache       : Varnish/7.7 en frontal
+- DOCUMENT_ROOT : /var/www/ufrmi-ufhb-ci.com/htdocs
+- Sites voisins (MD_SLAVES) : biblio.ufrmi-ufhb-ci.com, inscription.ufrmi-ufhb-ci.com,
+  memoire.ufrmi-ufhb-ci.com, checkmaster.ufrmi-ufhb-ci.com (MD_MASTER : ufrmi-ufhb-ci.com)
+- OPcache     : activé, mémoire 908 Mo 100 % PLEINE, hit rate 38,6 %, JIT désactivé
+               → signe d'une mémoire cache insuffisante ou de scripts trop lourds
+
+1.2 CONFIGURATION PHP EFFECTIVE
+-------------------------------
+- memory_limit            : 384 M (plafond LWS ; objectif d'optimisation : 512 M)
+- max_execution_time      : 60 s (objectif : 120 s pour les gros PDF)
+- upload_max_filesize     : 288 M
+- post_max_size           : 289 M
+- max_input_vars          : 3000
+- display_errors          : OFF (bon)
+- open_basedir            : AUCUNE restriction (aucune protection répertoires)
+- session.save_path       : /var/www/ufrmi-ufhb-ci.com/tmp/.php-session
+
+1.3 EXTENSIONS PHP CHARGÉES (toutes actives)
+--------------------------------------------
+pdo, pdo_mysql, mysqli, gd, imagick, curl, mbstring, zip, xml, openssl,
+fileinfo, json.
+
+FONCTIONS DÉSACTIVÉES : passthru, system, proc_open, proc_nice, proc_terminate,
+proc_get_status, proc_close, apache_child_terminate, posix_*, popen, proc_exec,
+dl, ftp_exec, apache_setenv, define_syslog_variables, openlog, syslog, virtual.
+→ CONSERVÉES : exec() et shell_exec() (utiles, à surveiller).
+→ Conséquence : AUCUN binaire CLI PDF (libreoffice, soffice, wkhtmltopdf,
+  ghostscript, node, git) n'est disponible. Le rendu PDF doit donc être 100 %
+  PHP (librairies). C'est confirmé par l'audit : toutes les libs PHP
+  (Dompdf, mPDF, TCPDF, FPDF, PHPWord) sont compatibles.
+
+1.4 DÉPENDANCES COMPOSER INSTALLÉES (composer.lock réel)
+--------------------------------------------------------
+- phpmailer/phpmailer        v6.12.0        (emails SMTP)
+- smalot/pdfparser           v2.12.4        (lecture PDF)
+- phpoffice/phpword           1.4.0          (CŒUR DU CHANTIER A)
+- mpdf/mpdf                  v8.3.1          (rendu PDF)
+- dompdf/dompdf              v3.1.5          (rendu PDF)
+- tecnickcom/tcpdf           6.11.2          (moteur PDF ACTUEL)
+- ezyang/htmlpurifier        v4.19.0         (assainissement HTML)
+- psr/log                     1.1.4
+- mpdf/psr-log-aware-trait   v2.0.0
+- phpoffice/phpspreadsheet    5.5.0           (exports Excel)
+- symfony/var-dumper         v5.4.48         (dev uniquement)
+→ PHPWord, mPDF, Dompdf, PhpSpreadsheet sont INSTALLÉS mais AUCUNE ligne de
+  code du projet ne les instancie (vérifié par recherche exhaustive) :
+  seul TCPDF est réellement utilisé.
+
+1.5 STRUCTURE DU PROJET (statistiques réelles)
+----------------------------------------------
+- 483 fichiers .php, ~121 880 lignes (hors vendor/)
+- app/config (5 fichiers + database.oldphp), app/Core (10), app/controllers (57),
+  app/models (51), app/Services (59 dont app/Services/Document/), app/Security (7),
+  app/middlewares (1), app/utils (19), app/Support (1)
+- public/ (13), ressources/ajax (1), ressources/components (40),
+  ressources/routes (50), ressources/views (151), database/ (2 .sql)
+- Racine : index.php (vitrine), composer.json/lock, server_audit.php (185 Ko),
+  phpinfo.php (17 octets !), check_permissions.php, test_emails.php,
+  preview_emails.php, log.php, plan.txt, db_tables.txt, db_tables2.txt (16 Mo),
+  barre_de_recherche.txt, cycle_etudiant_tables.md,
+  2 dumps SQL ufrmi1802974_2q2mpf.sql et « (2).sql » (16 Mo CHACUN — dans le
+  webroot, à ne JAMAIS déployer), fichier « nul » (0 octet, artefact Windows)
+- Dossiers : app/, public/, ressources/, storage/, vendor/, database/, docs/,
+  log/, logs/, NouveauDoc/ (images non organisées), .git, .omo, .idea, .commandcode
+- PAS de .htaccess ni de .user.ini en local : ils n'existent que côté serveur
+  (à versionner et standardiser)
+
+1.6 ARCHITECTURE APPLICATIVE — DEUX SYSTÈMES DE ROUTAGE COEXISTENT
+------------------------------------------------------------------
+MVC maison, namespace CheckMaster\Core, PSR-4 App\ → app/.
+
+SYSTÈME 1 — LÉGACY (la majorité du métier) :
+  public/layout.php = front controller. Dispatch par $_GET['page'] +
+  $_GET['action'], inclusion des 50 fichiers ressources/routes/*.php puis
+  des vues ressources/views/*_content.php.
+  URLs type : layout.php?page=xxx&action=yyy (toutes les pages métier).
+
+SYSTÈME 2 — NOUVEAU (partiel) :
+  public/app/index.php = routeur avec paramètre _path :
+  /login, /logout (POST + CSRF), /dashboard, /admin/permissions, /admin/backups,
+  /admin/users, /access-denied, /app, /
+  Entrée actuelle : public/app/index.php?_path=/login
+  public/index.php redirige vers app/index.php ; public/site/index.php = vitrine.
+
+AUTHENTIFICATION (existante, à préserver) :
+  app/Core/Session.php (HttpOnly, SameSite=Lax, Secure si HTTPS, régénération),
+  app/Services/AuthService.php (rate limiting DbRateLimiter, session_regenerate_id,
+  journal d'audit), app/Core/Csrf.php, app/Security/ (AuthorizationService,
+  RoutePermissionService, PermissionRegistry, LegacyActionResolver,
+  RouteActionResolver, PermissionContextFactory, DbRateLimiter),
+  app/middlewares/PermissionMiddleware.php,
+  app/config/permission_registry.php.
+
+CONFIGURATION (point sensible) :
+  app/config/app.php contient TOUTES les valeurs en dur (PAS de .env) :
+  BDD localhost/base ufrmi1802974_2q2mpf/root/mot de passe vide (dev),
+  SMTP Gmail, session, rate-limit.
+  app/config/database.php (singleton PDO), database.oldphp (ancienne version à
+  purger), email.php, email_templates.php.
+
+1.7 GÉNÉRATION DE DOCUMENTS — ÉTAT ACTUEL RÉEL
+----------------------------------------------
+MOTEUR RÉEL : TCPDF UNIQUEMENT, via app/Services/Document/PdfGeneratorService.php
+  (createDocument → SilentTcpdf ; createBrandedDocument → BrandedTcpdf ;
+  writeHtml() HTML→PDF ; enregistrement storage/{type}/{année}/ ;
+  resolveLogoPaths() = logos public/image(s)/).
+  ~90 % des documents : HTML → TCPDF.
+  SEUL le PV final utilise le dessin TCPDF direct (cellules, couleurs, Annexes 1-3).
+
+GÉNÉRATEURS EXISTANTS (inventaire) :
+  #  Type / Code  Service                                        Rendu actuel
+  -- ------------- --------------------------------------------  ------------------------
+  1  Reçu (REC)    RecuGeneratorService (A5 paysage)             HTML → TCPDF
+  2  PV commission (PVC) PvCommissionGeneratorService (A4)       HTML → TCPDF (contenu_CR
+                                                                  stocké en base ou buildPvContent)
+  3  PV final (PVF) PvFinalGeneratorService (A4)                 DESSIN TCPDF DIRECT
+  4  Planning (PLN) PlanningGeneratorService (A4 paysage,        HTML → TCPDF
+                     colonnes salles colorées)
+  5  Rapport stage (RAP) RapportPdfGeneratorService              HTML sauvegardé → TCPDF
+                     (rapport_etudiants.chemin_fichier)
+  6  Relevé de notes  NotesResultatsService::generatePdf()       vue releve_notes.php
+                     (template HTML @media print, données via    (HTML) → TCPDF,
+                     $GLOBALS['selectedStudent'|'studentGrades'| Output 'D' direct
+                     'niveau'])                                   (pas de stockage)
+  7  Bulletin (BUL) EditionBulletinService                       réutilise PvFinalGeneratorService
+                     (genererBulletin, genererContenuBulletin,   + template HTML + TCPDF,
+                     exporterPdf) ; stockage table documents     inline
+  8  Compte rendu (CR) RedactionCompteRenduService               HTML libre (contenu_CR)
+                     (enregistrer, exporterPdf)                  → TCPDF inline
+  9  Piste d'audit  AuditController l.115-156                    HTML → TCPDF, Output 'D'
+ 10  Archives sout. ArchiveSoutenanceController l.110-151        HTML → TCPDF
+ 11  Candidatures   GestionDossiersCandidaturesController::      HTML → TCPDF
+                     telechargerPdf() l.98-113
+ 12  Rapports vérif. ressources/routes/verificationRapportsRoutes.php
+                     telecharger_pdf l.219-286 (.html→TCPDF à    HTML → TCPDF / redirection
+                     la volée ; .pdf/.doc/.docx → DocViewer)     DocViewer
+ 13  Planning ens.  ressources/views/v2/export_planning_         script AUTONOME EXPOSÉ :
+                     enseignant_pdf.php                           session_start + die('Non
+                     (params GET id_enseignant_selected,          autorisé') artisanal, SQL
+                     id_annee_acad)                               direct, TCPDF, Output 'I'
+
+HUB CENTRAL DE CONSULTATION :
+  app/controllers/DocViewerController.php — entrée
+  ?page=docviewer&type=X&id=Y&action=preview|download|catalogue_preview
+  pour les 9 types (RAP, FIC, REC, MEM, PVC, PVF, PLN, BUL, CR) ; génère à la
+  volée si absent (rapport, recu, pv_commission, pv_final) ; aperçus catalogue
+  (bulletin, CR, fiche inscription, mémoire) avec fausses données.
+
+RÉFÉRENTIEL DOCUMENTS :
+  app/Services/Document/DocumentRegistry.php (résolution chemins par type,
+  contrôle d'accès canView(), anti-traversal, tokens base64url)
+  app/Services/Document/DocumentStorageService.php (BLOB table documents,
+  versions, statut actif/archive, MIME, consultations, matérialisation
+  storage/cache/documents, service inline/download avec X-Content-Type-Options
+  nosniff)
+  app/Services/Document/StudentInfoTrait.php
+
+AUCUN modèle .docx n'existe dans le projet (seulement 2 .docx téléversés par
+des étudiants dans ressources/uploads/rapports/). Aucun document de type
+attestation/certificat/convocation n'existe dans le code.
+
+1.8 STOCKAGE DES DOCUMENTS — DOUBLONS CONSTATÉS
+-----------------------------------------------
+- storage/documents/{bulletins, planning, pv_commission, pv_finaux, rapports,
+  recus}/{année}/  → CANONIQUE (à conserver)
+- storage/{planning, rapports, recus}/{année}/   → DOUBLONS LEGACY (à fusionner)
+- storage/cache/documents/doc_{id}_v{n}.pdf      → matérialisation des docs BDD
+- ressources/uploads/rapports/{annee_*, autres}/ → rapports étudiants uploadés
+  (.docx/.pdf/.html)
+- Tables : documents (BLOB), document_genere, documents_consultations,
+  rapport_etudiants.chemin_fichier, compte_rendu.chemin_fichier_pdf,
+  inscriptions.fiche_inscription
+- La duplication storage/ vs storage/documents/ est documentée dans
+  app/rapport_duplications.txt
+
+1.9 EXPORTS DE DONNÉES (hors documents, restent hors périmètre PHPWord)
+-----------------------------------------------------------------------
+app/utils/ComponentHelper.php (CRUD réutilisable, export XLSX via param
+_export, fenêtre print avec en-tête institutionnel), ExportHelper.php,
+app/Services/ExportService.php (CSV/JSON/Excel), public/export_etudiants_excel.php
+(PhpSpreadsheet), imports : ExcelImportService.php, ImportService.php,
+TabularImportService.php.
+Exports CSV : GestionReclamationsController, GestionRapportController,
+AuditController, ArchivesCompteRenduController, ArchiveEtudiantController,
+annuaire_enseignants_content.php (?export=csv&grade=&specialite=&type_enseignant=&search=).
+
+VUES IMPRIMABLES (window.print) — 14 vues identifiées :
+releve_notes.php, redaction_compte_rendu_content.php,
+evaluation_soutenance_content.php (grille jury), evaluations_dossiers_soutenance_content.php,
+soutenance_ens_content.php, Programation_soutenance_content.php,
+processus_validation_content.php, notes_resultats_content.php,
+mise_en_ligne_memoire_content.php, gestion_dossiers_candidatures_content.php,
+gestion_candidatures_soutenance_content.php, archives_dossiers_soutenance_content.php,
+gestion_rapports/admin_telecharger_rapport.php,
+gestion_etudiants/ajouter_des_etudiants.php (+ fenêtre print générique de ComponentHelper).
+
+1.10 URLS ACTUELLES ET PARAMÈTRES EXPOSÉS
+-----------------------------------------
+Exemples réels collectés :
+  ?page=fiche_enseignante&view=fiche&id=12
+  ?page=admin_historique&action=view_student&num_etu=CI0115004687
+  ?page=evaluations_dossiers_soutenance&detail=123
+  ?page=parametres_generaux&action=imprimer_recu&id_inscription=56
+  ?page=visionneuse_document&type=rapport&id=42
+  ?page=notes_resultats&action=export_pdf
+  ?page=dossiers_academiques&p=2&search=...&niveau=...
+  ?page=annuaire_enseignants&export=csv
+  ?page=docviewer&type=X&id=Y&action=preview|download
+  ?page=admin_historique&tab=students&annee=2025
+  index.php?_path=/login
+  reset_password.php?token=...
+  v2/export_planning_enseignant_pdf.php?id_enseignant_selected=3&id_annee_acad=2
+
+Paramètres sensibles exposés en clair : id, id_rapport, id_document, id_CR,
+id_inscription, num_etu, matricule, detail, type, file, annee, p, search.
+
+1.11 PROTECTIONS EXISTANTES ET LACUNES
+--------------------------------------
+EXISTE :
+- ressources/uploads/.htaccess  → Require all denied (uploads bloqués) ✓
+- public/assets/.htaccess       → cache 1 an, DEFLATE, Options -Indexes ✓
+- logs/.htaccess côté serveur   → logs protégés ✓
+- composer.json / composer.lock → 403 côté serveur ✓ ; .git/config → 404 ✓
+- CSRF, sessions durcies, rate-limit login, permission_registry, anti-traversal,
+  nosniff sur les documents servis.
+
+LACUNES (à corriger dans le chantier C) :
+- server_audit.php → HTTP 200 PUBLIC (mode public, ACCESS_PASSWORD vide) ⚠️
+  Le script lui-même affiche : « 🔓 Mode public. Définissez ACCESS_PASSWORD
+  dans le script pour le sécuriser » + « Rappelez-vous de supprimer ce fichier
+  une fois les analyses finalisées ».
+- phpinfo.php à la racine (17 octets) ⚠️
+- 2 dumps SQL de 16 Mo dans le webroot ⚠️
+- AUCUN .htaccess à la racine (rien ne bloque .txt, *.sql, dumps, logs,
+  vendor/ si accessible, etc.) ⚠️
+- app/config/*.php : identifiants BDD/SMTP EN CLAIR dans le code ⚠️
+- storage/ : pas de protection Apache explicite vérifiée ⚠️
+- Aucun chiffrement openssl_encrypt/mcrypt nulle part : seuls base64 (data-URI
+  logos, base64url chemins DocumentRegistry/ProgrammationSoutenanceController
+  l.650) et md5 (ids UI/cache). Mots de passe : password_hash (correct).
+- v2/export_planning_enseignant_pdf.php : script autonome avec SQL direct et
+  contrôle d'accès artisanal, accessible directement ⚠️
+- reset_password.php?token=... : tokens transmis en clair dans l'URL (à
+  hachager en base, expiration, usage unique) ⚠️
+
+================================================================================
+2. CHANTIER A — MIGRATION DES DOCUMENTS VERS PHPOFFICE/PHPWORD
+================================================================================
+
+2.1 OBJECTIF ET PÉRIMÈTRE
+-------------------------
+Remplacer, pour la MAJORITÉ des documents générés, la chaîne actuelle
+« HTML → TCPDF » par « modèle .docx UFRMI → PHPWord TemplateProcessor →
+DOCX et/ou PDF en PHP pur ». Bénéfices attendus : documents éditables
+(DOCX) conformes aux modèles Word de l'UFRMI, maintenance simplifiée des
+gabarits, rendu PDF délégué à mPDF/Dompdf (moteurs modernes, meilleur CSS).
+
+RESTENT HORS PÉRIMÈTRE PHPWord : les documents importés (rapports étudiants
+uploadés), les exports de données (CSV/XLSX, PhpSpreadsheet déjà en place),
+les vues imprimables navigateur (window.print).
+
+2.2 ÉTAT DES LIEUX — POINT DE DÉPART
+------------------------------------
+- PHPWord 1.4.0, mPDF 8.3.1, Dompdf 3.1.5 : installés, jamais utilisés → zéro
+  régression à craindre, mais zéro retour d'expérience : le prototype (2.9) est
+  obligatoire.
+- Aucun modèle .docx officiel UFRMI n'existe encore dans le projet : les
+  modèles devront être créés (à partir des documents Word actuels de l'UFRMI)
+  puis déposés dans un répertoire sécurisé.
+- TCPDF reste le moteur de référence des documents non migrés (fallback).
+
+2.3 STRATÉGIE GÉNÉRALE : MODÈLES .DOCX + TEMPLATEPROCESSOR
+----------------------------------------------------------
+- Chaque type de document = un modèle .docx officiel (Word de l'UFRMI),
+  balisé avec ${ma_variable} : ${nom_etudiant}, ${matricule}, ${mention},
+  ${note_jury}, ${ue_code}, ${session}, ${annee_academique}, etc.
+- Traitement : new \PhpOffice\PhpWord\TemplateProcessor('/chemin/modele.docx')
+  puis setValue('nom_etudiant', ...) ; répétitions de lignes : cloneRow('ue_code',
+  count($ues)) ; blocs conditionnels : cloneBlock('bloc_mention', n).
+- Échappement systématique des valeurs (guillemets, accents, caractères
+  spéciaux), gestion des valeurs nulles (ne jamais injecter « null »).
+- Identité du modèle : version + date en métadonnées DOCX (core properties).
+
+2.4 RÉPERTOIRE DES MODÈLES (SÉCURISÉ)
+-------------------------------------
+- Emplacement proposé : storage/templates/ (hors public/, non servi par
+  Apache ; à confirmer par le test HTTP) OU app/templates/.
+- Contrôles : vérifier qu'une requête HTTP directe renvoie 403/404 ;
+  bloquer explicitement dans le .htaccess racine si besoin (voir 4.3).
+- Nomenclature versionnée : {code_type}_{version}.docx
+  (ex. releve_notes_v01.docx, bulletin_v01.docx).
+- Les modèles sont des BIENS UFRMI : stockés en base (BLOB) ou en disque avec
+  sauvegarde, jamais modifiés par l'application.
+
+2.5 CLASSIFICATION DES DOCUMENTS PAR DIFFICULTÉ DE MIGRATION
+------------------------------------------------------------
+G1 — BONS CANDIDATS (structurés, répétitifs, priorité de migration) :
+   1. Relevé de notes (#6)        — tableau de notes par UE, cloneRow idéal
+   2. Bulletin de soutenance (#7) — bloc par épreuve/mention
+   3. Planning de soutenances (#4) — lignes par étudiant, colonnes colorées
+      (couleurs : à gérer via styles PHPWord ou tableau HTML dans un modèle)
+   4. Piste d'audit (#9)           — tableau chronologique
+   5. Archives de soutenances (#10)
+G2 — PRUDENCE (HTML utilisateur libre stocké en base/disque) :
+   6. PV de commission (#2)  — contenu_CR saisi librement (assainir HTML →
+      markdown/paragraphes ou conserver HTML → mPDF)
+   7. Compte rendu (#8)      — idem contenu libre
+   8. Rapport de stage (#5)  — HTML sauvegardé par l'étudiant (chemin_fichier) :
+      conversion HTML → mPDF/Dompdf plutôt que template DOCX
+G3 — RISQUE ÉLEVÉ (fidélité graphique, à évaluer coût/bénéfice, TCPDF en
+   fallback conservé) :
+   9. Reçu de paiement (#1)   — A5 paysage pixel-perfect, logo, numérotation
+   10. PV final (#3)          — dessin TCPDF direct (Annexes 1-3), mise en page
+      très spécifique : conserver TCPDF sauf preuve contraire
+
+2.6 ARCHITECTURE CIBLE (9 ÉTAPES PAR DOCUMENT)
+----------------------------------------------
+ 1. Contrôleur existant (inchangé côté appels) → session + permission
+ 2. Service métier : collecte de DONNÉES TYPÉES (au lieu des $GLOBALS actuels
+    de releve_notes.php) ; extraction progressive des DataUtils existants
+    (PlanningDataUtils, RecuDataUtils)
+ 3. Chargement du modèle autorisé (registre de modèles, anti-traversal,
+    pas de nom de fichier fourni par l'utilisateur)
+ 4. TemplateProcessor : setValue/cloneRow/cloneBlock selon les données
+ 5. Génération du DOCX temporaire dans un dossier NON public (storage/tmp/)
+ 6. Contrôles avant rendu : existence, taille, signature ZIP valide, MIME
+ 7. Rendu PDF en PHP pur : mPDF ou Dompdf (via PHPWord Settings ou conversion
+    DOCX→HTML intermédiaire), choix par type de document (voir 2.7)
+ 8. Stockage via DocumentStorageService existant (référence, version, MIME,
+    entité, utilisateur, statut actif/archive, journal) — table documents
+ 9. Purge du temporaire (try/finally, pas de fichier orphelin)
+
+2.7 RENDU PDF SANS LIBREOFFICE (OPTIONS PAR TYPE)
+-------------------------------------------------
+Option 1 — Convertisseur interne PHPWord (driver mPDF ou Dompdf) :
+  \PhpOffice\PhpWord\Settings::setPdfRendererName(
+    \PhpOffice\PhpWord\Settings::PDF_RENDERER_MPDF);
+  \PhpOffice\PhpWord\Settings::setPdfRendererPath('/chemin/vendor/mpdf/mpdf');
+  IOFactory::createWriter($obj, 'PDF')->save($chemin);
+  → à valider au prototype : fidélité des tableaux/accents sur les modèles
+    UFRMI (mPDF reconnu plus fidèle que Dompdf pour les tableaux Word).
+Option 2 — Template HTML/CSS intermédiaire → mPDF ou Dompdf :
+  pour les documents G2 (contenu libre) : réutiliser les gabarits HTML
+  existants (releve_notes.php, etc.) et remplacer uniquement TCPDF par
+  mPDF/Dompdf. Gain immédiat, risque faible.
+Option 3 — Conservation TCPDF : pour G3 (reçu, PV final) et en fallback
+  général si un rendu ne passe pas la validation.
+
+DÉCISION REQUISE (voir §7) : DOCX seul, PDF seul, ou les deux par type ?
+Recommandation : produire les DEUX (DOCX éditable + PDF de diffusion), le
+DOCX étant la sortie native de PHPWord.
+
+2.8 STOCKAGE, VERSIONS ET MIGRATION DES HISTORIQUES
+---------------------------------------------------
+- Source de vérité actuelle : table `documents` (BLOB) + disque
+  storage/documents/ (canonique) + storage/ legacy (doublons).
+- Règles : ne PAS supprimer les anciens documents avant validation complète ;
+  migration progressive par type ; procédure de retour arrière (restauration
+  depuis BLOB/backup) ; vérifier les limites BLOB, la capacité disque
+  (2,85 To libres : OK) et le temps d'exécution (60 s → viser < 30 s par
+  document, sinon optimiser ou passer en génération différée).
+- Fusionner les doublons storage/{planning,rapports,recus}/ vers
+  storage/documents/ et mettre à jour les chemins référencés
+  (rapport_etudiants.chemin_fichier, compte_rendu.chemin_fichier_pdf).
+- Documenter le mapping ancien fichier → nouvelle version (journal de
+  migration) pour traçabilité.
+
+2.9 TESTS DE VALIDATION (avant migration de chaque type)
+--------------------------------------------------------
+ 1. Rendu conforme au modèle Word UFRMI (comparaison visuelle PDF)
+ 2. Polices/accents français corrects (é, è, ê, ç, œ)
+ 3. Tableaux multi-pages corrects (cloneRow)
+ 4. Logos et en-têtes institutionnels présents (resolveLogoPaths)
+ 5. Marges et sauts de page conformes
+ 6. Valeurs nulles / caractères spéciaux / XSS injectée neutralisés
+ 7. DOCX généré ouvrable dans Word et LibreOffice (validation ZIP)
+ 8. PDF généré en < 30 s, taille raisonnable, pas d'erreur mémoire
+ 9. Droits : seul le public autorisé accède au document (canView)
+10. Pas d'accès direct aux modèles via HTTP
+11. Versionnage : régénération = nouvelle version, ancienne conservée
+    (statut actif/archive)
+
+================================================================================
+3. CHANTIER B — RÉÉCRITURE, CHIFFREMENT ET MASQUAGE DES URLS
+================================================================================
+
+3.1 OBJECTIFS
+-------------
+- Éliminer les extensions .php visibles dans les URLs.
+- Remplacer les identifiants bruts (id=1402, num_etu=CI0115004687, etc.)
+  par des jetons opaques non prédictibles.
+- Centraliser la création d'URLs (une seule fonction/helper) pour ne jamais
+  régénérer d'URLs exposées par erreur.
+- Conserver la compatibilité (redirections) le temps de la migration.
+
+3.2 ÉTAT DES LIEUX — LES DEUX SYSTÈMES
+--------------------------------------
+- LÉGACY (majorité) : layout.php?page=X&action=Y&id=Z — 50 fichiers routes,
+  151 vues. C'est lui qui expose le plus de paramètres.
+- NOUVEAU (partiel) : index.php?_path=/login — routeur app/Core/Router.php.
+- Point d'ancrage recommandé : router unique, mappage
+  page/action legacy → route propre, puis réécriture Apache.
+
+FORMES D'URLS CIBLES (exemples) :
+  /connexion                              (au lieu de layout.php?page=connexion)
+  /app/tableau-de-bord                    (au lieu de index.php?_path=/dashboard)
+  /documents/rapport/{jeton-opaque}                 (consultation)
+  /documents/rapport/{jeton-opaque}/telecharger     (téléchargement)
+  /documents/pv-final/{jeton-opaque}
+  /reinitialisation-mot-de-passe/{jeton}  (au lieu de reset_password.php?token=...)
+
+3.3 STRATÉGIE DE RÉÉCRITURE APACHE (.htaccess RACINE À CRÉER)
+-------------------------------------------------------------
+- RewriteEngine On ; RewriteBase /
+- Front controller unique : toutes les requêtes non-fichier/non-répertoire →
+  index.php (ou router), SAUF exclusions : /assets/, /uploads/, /logs/,
+  /vendor/, /storage/ (interdit), fichiers réels existants (RewriteCond
+  %{REQUEST_FILENAME} -f / -d).
+- Règles explicites pour les routes documents :
+  ^documents/rapport/([A-Za-z0-9_-]+)$            → ?page=visionneuse_document&type=rapport&token=$1 [L,QSA]
+  ^documents/rapport/([A-Za-z0-9_-]+)/telecharger → ?page=visionneuse_document&type=rapport&token=$1&action=download [L,QSA]
+  (idem pv-final, bulletin, releve-notes, planning, etc. — un seul pattern
+  par famille)
+- Redirections anciennes : 301 des anciennes URLs documentées (matrice §3.6)
+  vers les nouvelles, avec date de retrait programmée.
+- Anti-pièges : éviter les boucles de réécriture (vérifier %{ENV:REDIRECT_}),
+  éviter le double décodage (%2F, %252F), 403/404 cohérents (page d'erreur
+  unique, sans énumération), tester les slashs finaux et les méthodes HTTP.
+- Valider avec l'onglet « Réécriture .htaccess » de server_audit.php AVANT
+  suppression de l'audit.
+
+3.4 JETONS OPAQUES — CHIFFREMENT DES IDENTIFIANTS
+--------------------------------------------------
+REGLES DE BASE (issues de l'audit et des bonnes pratiques) :
+- NE JAMAIS utiliser AES-ECB (mode dangereux, pattern répétitif visible).
+- Ne pas « chiffrer » pour masquer : un jeton doit être IMPRÉVISIBLE.
+- Masquage ≠ autorisation : le contrôle d'accès (canView, permissions)
+  reste appliqué côté serveur APRÈS décryptage.
+
+DEUX APPROCHES COMPLÉMENTAIRES (à choisir en §7) :
+Approche 1 — JETON ALÉATOIRE (recommandée pour la plupart des cas) :
+  identifiant non séquentiel généré (random_bytes(16→24) → base64url sans
+  padding) stocké en base (table documents.jeton_public, unique index) ;
+  lien jeton → type/entité/version/expiration ; lookup par index unique.
+  Avantages : zéro dépendance à une clé, révocable individuellement.
+Approche 2 — JETON CHIFFRÉ (si confidentialité du contenu nécessaire) :
+  AES-256-GCM (openssl_encrypt avec nonce + tag), clé secrète stockée HORS
+  du code public (fichier hors webroot ou variable d'environnement LWS),
+  sortie base64url sans padding, nonce transmis avec le tag dans la charge
+  utile ; expiration : timestamp dans la charge utile (ex. validité 1 h pour
+  un lien de téléchargement ponctuel, 24 h pour un lien d'accès) ;
+  vérification : hash_equals pour comparer les jetons, refuser tout jeton
+  vide/court/malformé/expiré/altéré (échec → 403/404 personnalisé sans
+  révéler la cause).
+- Lier TOUJOURS le jeton au type de document (jamais de jeton « universel »)
+  et à la version ciblée.
+
+3.5 DONNÉES À NE JAMAIS METTRE DANS UNE URL
+-------------------------------------------
+- id_rapport, id_document, id_CR, id_inscription (IDs internes)
+- num_etu / matricule (données personnelles)
+- chemins physiques de fichiers
+- clés de chiffrement ou secrets
+- base64 ≠ chiffrement : ne pas confondre encodage et protection
+- paramètres de recherche/filtres (p, search, niveau) : autorisés en
+  querystring APRÈS le jeton pour les listes internes, jamais pour l'accès
+  à un document.
+
+3.6 MATRICE DE MIGRATION DES URLS (PAR PRIORITÉ)
+------------------------------------------------
+Champs de la matrice (un tableau par fichier plan_matrices_urls.txt) :
+  ancienne URL | cible propre | méthode | contrôleur/route | paramètres
+  requis | permission | comportement non connecté | codes HTTP | compat
+  anciens liens | date de retrait
+
+PRIORITÉ 1 — DOCUMENTS (le plus exposé) :
+  ?page=docviewer&type=X&id=Y&action=preview|download
+  ?page=visionneuse_document&type=rapport&id=42
+  ?page=parametres_generaux&action=imprimer_recu&id_inscription=56
+  ?page=notes_resultats&action=export_pdf
+  ?page=admin_historique&action=view_student&num_etu=CI0115004687
+  ?page=evaluations_dossiers_soutenance&detail=123
+PRIORITÉ 2 — AUTHENTIFICATION / RÉINITIALISATION :
+  reset_password.php?token=...          → /reinitialisation-mot-de-passe/{jeton}
+  (hachage du token en base, expiration, usage unique, rate-limit,
+   aucun token dans les logs/Referer, invalidation après usage)
+  public/login.php, logout.php          → /connexion, /deconnexion
+PRIORITÉ 3 — MODULES MÉTIER (pages internes connectées) :
+  ?page=fiche_enseignante&view=fiche&id=12 → /enseignants/fiche/{jeton}
+  ?page=admin_historique&tab=students&annee=2025 → /historique/etudiants/{annee}
+  ?page=dossiers_academiques&p=2&search=... → /dossiers-academiques (querystring
+  filtrée interne, pas d'ID)
+PRIORITÉ 4 — LÉGACY RESTANT : laisser en l'état le temps de la transition,
+  puis retirer selon calendrier (le router mappe page/action → route propre).
+
+3.7 CAS PARTICULIERS (EXPOSITION DIRECTE À TRAITER DANS LE CHANTIER C)
+---------------------------------------------------------------------
+- v2/export_planning_enseignant_pdf.php : supprimer OU déplacer hors
+  webroot OU réécrire en route protégée + jeton (SQL direct à éliminer,
+  passer par le service PlanningGeneratorService).
+- server_audit.php : voir 4.1 (chantier C).
+- phpinfo.php : supprimer purement et simplement (17 octets).
+- check_permissions.php, test_emails.php, preview_emails.php, log.php,
+  plan.txt, db_tables*.txt, dumps *.sql : hors webroot ou suppression.
+
+3.8 REDIRECTIONS ET COMPATIBILITÉ
+---------------------------------
+- Toute ancienne URL migrée reçoit une redirection 301 temporairement
+  (matrice : date de retrait) ; au-delà → 404 propre.
+- Les emails déjà envoyés contenant d'anciennes URLs doivent rester
+  fonctionnels au moins 6 mois (cas des liens de documents envoyés aux
+  jurys/étudiants).
+- Tester la non-régression : parcours complet (login → liste → consultation
+  → téléchargement → impression) sur chaque famille migrée.
+
+================================================================================
+4. CHANTIER C — DURCISSEMENT DU SERVEUR ET DU PÉRIMÈTRE
+================================================================================
+
+4.1 server_audit.php (EXPOSÉ AUJOURD'HUI — HTTP 200 public)
+-----------------------------------------------------------
+Trois options (décision §7) :
+  a) SUPPRIMER le fichier une fois les analyses finalisées (recommandé à
+     terme — le script dit lui-même « rappelez-vous de supprimer ce fichier »),
+  b) DÉPLACER hors webroot (ex. /var/www/ufrmi-ufhb-ci.com/tmp/),
+  c) SÉCURISER : définir ACCESS_PASSWORD + activer RESTRICT_TO_ROOT +
+     protéger les endpoints AJAX (get_system_info, browse_dir,
+     get_advanced_diagnostics, apply_optimizations, ...) contre l'accès
+     direct sans session/mot de passe + ne jamais afficher de secrets
+     (lwsapitoken, chemins internes).
++ Garder une copie locale du script (déjà présente : 185 Ko en local).
+
+4.2 FICHIERS SENSIBLES À LA RACINE (à purger/déplacer)
+------------------------------------------------------
+- phpinfo.php (17 octets)            → SUPPRIMER
+- dumps SQL 16 Mo (×2)               → déplacer hors webroot (tmp/) + purge
+- check_permissions.php, test_emails.php, preview_emails.php, log.php,
+  plan*.txt, db_tables*.txt, barre_de_recherche.txt, cycle_etudiant_tables.md
+  → hors webroot ou suppression (les dumps et fichiers de travail ne sont
+  jamais servis par Apache)
+- NouveauDoc/ (images non organisées) → réorganiser dans ressources/ ou storage/
+
+4.3 .htaccess RACINE À CRÉER (serveur ET local versionné)
+---------------------------------------------------------
+  - Bloquer : .user.ini, composer.json, composer.lock, *.sql, *.txt,
+    *.md, server_audit.php (si conservé), phpinfo.php, .env, .git/**
+  - Forcer : Options -Indexes (interdire le listing), protections
+    ressources/uploads/ et storage/ en dur (Require all denied sur
+    storage/ — les PDF sont servis par les contrôleurs, jamais par Apache)
+  - Réécriture : voir 3.3 (front controller + exclusions)
+  - Sécurité transport : redirection HTTP → HTTPS si LWS le permet
+
+4.4 CONFIGURATION EN CLAIR (app/config)
+---------------------------------------
+- Objectif : retirer identifiants BDD/SMTP du code versionné
+  (app/config/app.php, database.php, email.php sont dans .gitignore mais
+  présents en dur dans le code) → variables d'environnement LWS (champs
+  dispo dans l'hébergement) OU fichier de config hors webroot avec
+  permissions restrictives ; fallback local WAMP (valeurs dev actuelles).
+- Purger database.oldphp.
+
+4.5 RÉPERTOIRES À PROTÉGER / À CONSOLIDER
+-----------------------------------------
+- storage/ : jamais accessible via HTTP (test 403 obligatoire)
+- vendor/ : jamais accessible (déjà 403 pour composer.json ; confirmer vendor/)
+- logs/ log/ : protection existante côté serveur, à confirmer en local
+- ressources/uploads/ : déjà Require all denied ✓
+- Modeles DOCX (2.4) : répertoire dédié hors public
+
+4.6 PARAMÈTRES PHP / .user.ini (à aligner si possible)
+------------------------------------------------------
+- memory_limit 384 M → objectif 512 M (plafond LWS, à tester)
+- max_execution_time 60 s → objectif 120 s (génération PDF)
+- upload_max_filesize 288 M : OK pour les rapports
+- zlib.output_compression : gzip level 6 déjà actif
+- display_errors OFF : maintenir
+- OPcache 908 Mo 100 % plein + hit rate 38,6 % : réduire le nombre de
+  fichiers inclus (router unique), surveiller après migration
+
+================================================================================
+5. ORDRE DE RÉALISATION (PHASES)
+================================================================================
+Phase 0 — GEL ET SAUVEGARDE : dump BDD propre, copie du code (git tag),
+         sauvegarde des modèles Word UFRMI source.
+Phase 1 — INVENTAIRE (CE DOCUMENT) : validation des valeurs LWS réelles,
+         complétion de la matrice des URLs (plan_matrices_urls.txt).
+Phase 2 — SOCLE DOCUMENTAIRE : répertoire des modèles sécurisé, service
+         générique PHPWord (TemplateProcessor + rendu PDF), tests unitaires.
+Phase 3 — PROTOTYPE CONTRÔLÉ : migrer 1 document G1 (relevé de notes ou
+         bulletin) de bout en bout (modèle → DOCX → PDF → stockage →
+         consultation via DocViewer) et valider avec l'UFRMI.
+Phase 4 — MIGRATION PROGRESSIVE : G1 complet, puis G2, puis décision G3 ;
+         fusion des doublons de stockage ; journal de migration.
+Phase 5 — SOCLE D'URL PROPRE : .htaccess racine, router unique, helper de
+         jetons (aléatoire ou AES-256-GCM), page 403/404 unique.
+Phase 6 — MIGRATION DES LIENS : matrice priorité 1 → 4, redirections 301,
+         tests de non-régression, MAJ des emails envoyés.
+Phase 7 — DURCISSEMENT FINAL : suppression/déplacement server_audit.php,
+         purge des fichiers sensibles, config hors code, validation
+         complète (test_rewrite_endpoint, parcours utilisateur).
+
+================================================================================
+6. CRITÈRES D'ACCEPTATION
+================================================================================
+DOCUMENTS :
+  - Le document généré est conforme au modèle Word UFRMI (comparaison visuelle)
+  - Les droits d'accès sont respectés (canView/permissions) après migration
+  - Les versions sont conservées (actif/archive), historique intact
+  - Aucun accès direct HTTP aux modèles .docx ni aux fichiers temporaires
+  - PDF généré 100 % PHP (aucun binaire CLI), < 30 s par document
+URLS :
+  - Plus aucun ID interne (id, id_rapport, num_etu, matricule...) dans les URLs
+    publiques ; plus d'extension .php visible sur les pages migrées
+  - Les jetons sont imprévisibles (aléatoire ou AES-256-GCM + nonce + tag),
+    liés au type/entité, expirables si besoin, comparés avec hash_equals
+  - 403/404 sans énumération (même réponse quel que soit l'échec)
+  - Les anciennes URLs redirigent (301) selon la matrice, puis 404 propre
+SERVEUR :
+  - server_audit.php inaccessible publiquement (supprimé ou protégé)
+  - phpinfo.php supprimé, dumps SQL et fichiers de travail hors webroot
+  - .htaccess racine actif (Options -Indexes, protections, réécriture validée)
+  - Aucun identifiant BDD/SMTP dans le code versionné
+
+================================================================================
+7. DÉCISIONS À PRENDRE (à trancher avant chaque chantier)
+================================================================================
+ 1. DOCX seul, PDF seul, ou les DEUX par type de document ? (recommandé : les
+    deux, DOCX = sortie native PHPWord, PDF = diffusion)
+ 2. Moteur de rendu PDF par type : mPDF via PHPWord / HTML→mPDF / HTML→Dompdf /
+    TCPDF conservé ? (prototype obligatoire avant choix définitif)
+ 3. Stockage des documents générés : BLOB (table documents) vs disque
+    storage/documents/ vs les deux ? Durée de conservation des versions ?
+ 4. Jetons : approche 1 aléatoire (base64url, index unique en base) ou
+    approche 2 chiffrée (AES-256-GCM, clé hors code) — ou mixte selon le type
+    de lien ? Durée d'expiration (1 h / 24 h / permanent) ?
+ 5. Compatibilité des anciens liens : durée de la fenêtre de redirection 301
+    (recommandé : 6 mois minimum, les emails contiennent d'anciennes URLs) ?
+ 6. Routes légacy à retirer définitivement et calendrier de retrait ?
+ 7. server_audit.php : supprimer / déplacer / sécuriser (ACCESS_PASSWORD +
+    RESTRICT_TO_ROOT) ? (recommandé : sécuriser pendant la migration, puis
+    supprimer à la fin)
+ 8. Où placer les modèles .docx : storage/templates/ vs app/templates/ ?
+ 9. Faut-il créer les modèles UFRMI manquants (attestations, certificats,
+    convocations) dans le périmètre PHPWord ?
+10. Journalisation de la génération (table document_genere) : quels champs,
+    quelle rétention, purge automatique ?
+
+================================================================================
+8. FIN — AUCUNE IMPLÉMENTATION RÉALISÉE
+================================================================================
+Ce document est un plan d'analyse. Aucune ligne de code n'a été modifiée.
+Prochaine étape : valider les décisions §7, puis démarrer la Phase 0
+(gel/sauvegarde) à la demande expresse de l'utilisateur.
+================================================================================

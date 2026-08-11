@@ -45,6 +45,10 @@ class DashboardCommissionController
     {
         try {
             $dashboardData = $this->service->getDashboardData();
+            $memberKey = trim((string) ($_GET['member'] ?? ''));
+            if ($memberKey !== '' && canView('dashboard_commission')) {
+                $dashboardData['observation_detail'] = $this->service->getObservationDetails($memberKey);
+            }
             // Passer les données à la vue
             global $stats;
             $stats = $dashboardData;

@@ -727,6 +727,46 @@ class PlanningDataUtils
      */
     public function getMoyennesAcademiques(string $numEtu): ?array
     {
+        // Les évaluations détaillées M2/S1 deviennent la source de vérité dès
+        // qu'elles existent. On conserve le repli vers `notes` pour les anciennes
+        // années et pour les dossiers encore non migrés.
+        if ($this->tableExists('evaluation_s3') && $this->tableExists('ue')) {
+            try {
+                $detailStmt = $this->db->pdo()->prepare(
+                    'SELECT e.id_annee_acad,
+                            ROUND(SUM(e.note_obtenue_ue * u.credit_ue) / NULLIF(SUM(u.credit_ue), 0), 2) AS moyenne_M2
+                     FROM evaluation_s3 e
+                     INNER JOIN ue u ON u.id_ue = e.id_ue
+                     WHERE e.num_etu = :num_etu
+                       AND e.session_normale = 1
+                     GROUP BY e.id_annee_acad
+                     ORDER BY e.id_annee_acad DESC
+                     LIMIT 1'
+                );
+                $detailStmt->execute(['num_etu' => $numEtu]);
+                $detail = $detailStmt->fetch(PDO::FETCH_ASSOC);
+                if (is_array($detail) && $detail['moyenne_M2'] !== null) {
+                    $stmt = $this->db->pdo()->prepare(
+                        'SELECT n.moyenne_M1
+                         FROM notes n
+                         WHERE n.num_etu = :num_etu
+                         ORDER BY n.id_annee_acad DESC
+                         LIMIT 1'
+                    );
+                    $stmt->execute(['num_etu' => $numEtu]);
+                    $legacy = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+                    return [
+                        'moyenne_M1' => $legacy['moyenne_M1'] ?? null,
+                        'moyenne_M2' => $detail['moyenne_M2'],
+                    ];
+                }
+            } catch (\Throwable) {
+                // Une base en cours de migration doit continuer à servir les
+                // moyennes historiques sans rendre le bulletin indisponible.
+            }
+        }
+
         $stmt = $this->db->pdo()->prepare(
             'SELECT n.moyenne_M1, n.moyenne_M2
              FROM notes n

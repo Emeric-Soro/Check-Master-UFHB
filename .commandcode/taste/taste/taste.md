@@ -1,0 +1,29 @@
+# Taste
+- Communicates in French; expects responses and written deliverables in French. Confidence: 0.9
+- Prefers planning and analysis deliverables to be written as `.txt` files (e.g., `plan_*.txt`). Confidence: 0.8
+- When asking for a plan or analysis, wants no implementation — explicitly "ne rien implémenter" (planning phase must not modify code, routes, DB, or config). Confidence: 0.9
+- Prefers a plan-only workflow: analyze code/repos/sources thoroughly first, then produce a written plan, before any implementation is allowed; explicitly asks to use Command Code's plan mode ("utilise le plan mode") for planning tasks. Confidence: 0.9
+- Technical direction for the project: document generation should migrate to PhpOffice/PHPWord (Word templates) for most documents, with controlled PDF rendering. Confidence: 0.8
+- Technical direction for the project: URLs should be rewritten, masked, and protected (hide extensions, avoid exposing numeric IDs). Confidence: 0.8
+- Prefers progressive, non-breaking architectural evolution ("sans rien casser"): no big-bang framework swap, keep legacy routes/files working, migrate incrementally (e.g., modular monolith with Domain/Application/Infrastructure/Presentation layers). Confidence: 0.85
+- Wants code reduction/refactoring to be measurable and reversible: explicit before/after targets (e.g., ~50% code reduction), metrics tracked per batch, code removed only with proof it is unused, and rollback/legacy compatibility kept until validated. Confidence: 0.8
+- Prefers achieving code reduction via deduplication, shared helpers/components, and removal of proven dead code over adopting new frameworks/ORMs/libraries for the sake of modernization. Confidence: 0.8
+- Grounds technical/architecture recommendations in the real deployment environment (server audit, PHP version, extension compatibility catalog) rather than assuming host capabilities. Confidence: 0.7
+- For implementation tasks, wants the referenced plan read first, then all planned work carried out comprehensively and exhaustively rather than partially. Confidence: 0.95
+- Expects the necessary tests to be created or run for implementation work, with validation focused on avoiding regressions. Confidence: 0.9
+- Wants desktop-deployable web applications to support fullscreen/kiosk presentation and disabling the browser context menu where possible. Confidence: 0.8
+- Wants implementation progress recorded incrementally in a `.txt` file throughout the work. Confidence: 0.9
+- The project runs on a Windows/WAMP stack: `php` is not on the shell PATH, so PHP must be invoked via the full WAMP binary path (e.g., `C:\wamp64\bin\php\php8.3.28\php.exe`); the codebase lives under `C:\wamp64\www\...`. Confidence: 0.8
+- Tests are run through a custom harness `tests/run_tests.php` (supports `--filter`), not PHPUnit; the suite is expected to stay green (e.g., ~100 tests passing). Confidence: 0.7
+- Treats PHP warnings and exceptions visible in runtime logs as defects to fix (including pre-existing ones, e.g., "use statement with non-compound name"), and expects the codebase left warning-free — verified with full error reporting (`-d error_reporting=E_ALL -d display_errors=1`) and stderr checks. Confidence: 0.7
+- UI components (e.g., toolbars) must be functional, not decorative — any rendered control (buttons, filters, selection) is expected to actually work. Confidence: 0.8
+- Toolbars/action bars must fit on a single line without ever overflowing: prefer compacting content (icons-only buttons on narrow screens, shrinking search/limit controls) over wrapping to multiple lines or horizontal scrolling. Confidence: 0.85
+- Avoid duplicate controls for the same action (e.g., toolbar "select all" buttons alongside a thead select-all checkbox on the same table); keep a single source of truth for selection UI — the native thead checkbox pattern driving row checkboxes. Confidence: 0.85
+- Before touching code, audits the real repository state against the plan's claims (git status, real DB schema, actual route/service wiring) rather than trusting the written plan or progress log; documents gaps found. Confidence: 0.9
+- Implements missing functionality through targeted, minimal edits to existing services/views/controllers, staying compatible with the real DB schema, rather than creating new abstractions or inventing structures that don't exist. Confidence: 0.9
+- Prefers small, verifiable, incremental edits with early syntax checks over one big rewrite; when a large exact-match replacement fails, falls back to smaller, safer substitutions instead of forcing an approximate rewrite. Confidence: 0.85
+- SQL migrations must be idempotent and re-runnable (conditional DDL, e.g., widen a column only if needed), and are replayed to prove re-playability. Confidence: 0.85
+- Treats a claim of "done" in a plan as insufficient: verifies acceptance criteria explicitly (e.g., test coverage of the plan's criteria), and adds targeted tests for the criteria the existing suite misses. Confidence: 0.85
+- New screens/features should be integrated into the existing navigation structure: placed inside the relevant existing submenu (e.g., "Gestion des candidatures") with a menu/link there and reciprocal navigation between sibling screens, rather than added as a new standalone or parallel menu section. Confidence: 0.8
+- Prefers Excel-like spreadsheet grid UIs for data-entry screens: select a student/record to load its data (UE, notes, credits, sessions), editable cells, weighted totals and averages, and instant client-side recalculation while typing — over classic separate forms per record. Confidence: 0.75
+- Expects new implementations to incorporate everything previously discussed/agreed for the feature ("tout ce qu'on avait dit"), including related extras (status badges, PDF preview links, historical-year locking), not just the bare minimum requested. Confidence: 0.7

@@ -203,6 +203,9 @@ final class ServiceContainer
         $this->register('EtudiantService', fn() => new \CheckMaster\Services\EtudiantService($pdo));
         $this->register('InscriptionService', fn() => new \CheckMaster\Services\InscriptionService($pdo));
         $this->register('NotesService', fn() => new \CheckMaster\Services\NotesService($pdo));
+        $this->register('UeReferentielService', fn() => new \CheckMaster\Services\UeReferentielService($pdo));
+        $this->register('EvaluationS3Service', fn() => new \CheckMaster\Services\EvaluationS3Service($pdo, $this->get('UeReferentielService')));
+        $this->register('EvaluationS3ImportService', fn() => new \CheckMaster\Services\EvaluationS3ImportService($pdo, $this->get('EvaluationS3Service'), $this->get('UeReferentielService')));
         $this->register('GestionRapportService', fn() => new \CheckMaster\Services\GestionRapportService($pdo));
         $this->register('GestionReclamationsService', fn() => new \CheckMaster\Services\GestionReclamationsService($pdo));
         $this->register('ProgrammationSoutenanceService', fn() => new \CheckMaster\Services\ProgrammationSoutenanceService($pdo));
@@ -213,6 +216,7 @@ final class ServiceContainer
         $this->register('ArchiveService', fn() => new \CheckMaster\Services\ArchiveService($pdo));
         $this->register('GestionUtilisateurService', fn() => new \CheckMaster\Services\GestionUtilisateurService($pdo));
         $this->register('FicheEnseignantService', fn() => new \CheckMaster\Services\FicheEnseignantService($pdo));
+        $this->register('RepertoireEnseignantService', fn() => new \CheckMaster\Services\RepertoireEnseignantService($pdo));
         $this->register('FicheFinanciereService', fn() => new \CheckMaster\Services\FicheFinanciereService($pdo));
         $this->register('FichePersAdminService', fn() => new \CheckMaster\Services\FichePersAdminService($pdo));
         $this->register('SauvegardeRestaurationService', fn() => new \CheckMaster\Services\SauvegardeRestaurationService($pdo));
@@ -224,6 +228,17 @@ final class ServiceContainer
         // ── Helpers / Utils ───────────────────────────
         $this->register('EmailService', fn() => new \EmailService());
         $this->register('Logger', fn() => new \Logger());
+
+        // ── Briques communes Phase 2 ───────────────────
+        $this->register('DatabaseService', fn() => new \App\Support\DatabaseService($pdo));
+        $this->register('EntityLoader', fn() => new \App\Support\EntityLoader($this->get('DatabaseService')));
+        $this->register('PaginationService', fn() => new \App\Support\PaginationService());
+        $this->register('BusinessLogger', fn() => new \App\Support\BusinessLogger());
+        $this->register('Validator', fn() => new \App\Support\Validator());
+        $this->register('ReferentielCrudService', fn() => new \App\Services\ReferentielCrudService(
+            $this->get('DatabaseService'),
+            $pdo
+        ));
 
         return $this;
     }

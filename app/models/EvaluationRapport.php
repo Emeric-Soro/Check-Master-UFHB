@@ -368,7 +368,7 @@ class EvaluationRapport
             if ($nombreMembresCommission === 0) {
                 return [
                     'statut' => 'commission_non_configuree',
-                    'message' => 'Aucun membre votant actif n’est configuré.',
+                    'message' => 'Aucun membre actif n’est configuré.',
                     'peut_finaliser' => false,
                     'votes_valider' => 0,
                     'votes_rejeter' => 0,

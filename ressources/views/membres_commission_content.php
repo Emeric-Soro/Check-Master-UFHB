@@ -28,6 +28,7 @@ if (!empty($membresCommissionData['forbidden'])):
                     'limit' => 10,
                     'allowed_limits' => [5, 10, 25, 50],
                     'show_filters' => false,
+                    'selection_ui' => 'thead',
                     'can_delete' => false,
                     'can_view' => true,
                 ]); ?>
@@ -72,18 +73,23 @@ if (!empty($membresCommissionData['forbidden'])):
                                         <?php endif; ?>
                                     </td>
                                     <td class="cm-data-table__td is-center" style="padding: 0.85rem 1rem; font-size: 0.88rem; text-align: center; vertical-align: middle;">
-                                        <?php $presidentNonAdmin = !empty($membre['est_president']) && (int) ($_SESSION['id_GU'] ?? 0) === 14; ?>
+                                        <?php
+                                        // L'administrateur et l'Admin + Responsable filière gèrent
+                                        // également l'activation du président.
+                                        $peutGererPresident = in_array((int) ($_SESSION['id_GU'] ?? 0), [5, 14], true);
+                                        $presidentNonGestionnaire = !empty($membre['est_president']) && !$peutGererPresident;
+                                        ?>
                                         <div style="display: inline-flex; align-items: center; justify-content: center;">
-                                            <?php if ($presidentNonAdmin && !empty($membre['actif_votant'])): ?>
+                                            <?php if ($presidentNonGestionnaire && !empty($membre['actif_votant'])): ?>
                                                 <input type="hidden" name="membres_actifs[]" value="<?= (int) $membre['id_utilisateur'] ?>">
                                             <?php endif; ?>
-                                            <label style="display: inline-flex; align-items: center; gap: 0.55rem; cursor: <?= $presidentNonAdmin ? 'not-allowed' : 'pointer' ?>; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 6px; background: <?= $presidentNonAdmin ? 'rgba(0,0,0,0.03)' : (!empty($membre['actif_votant']) ? 'rgba(59, 130, 246, 0.08)' : 'rgba(0,0,0,0.02)') ?>; border: 1px solid <?= $presidentNonAdmin ? 'rgba(0,0,0,0.05)' : (!empty($membre['actif_votant']) ? 'rgba(59, 130, 246, 0.15)' : 'rgba(0,0,0,0.08)') ?>; color: <?= $presidentNonAdmin ? '#8b9ea2' : (!empty($membre['actif_votant']) ? '#2563eb' : '#4b5563') ?>; transition: all var(--cm-transition-fast);">
+                                            <label style="display: inline-flex; align-items: center; gap: 0.55rem; cursor: <?= $presidentNonGestionnaire ? 'not-allowed' : 'pointer' ?>; font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 6px; background: <?= $presidentNonGestionnaire ? 'rgba(0,0,0,0.03)' : (!empty($membre['actif_votant']) ? 'rgba(59, 130, 246, 0.08)' : 'rgba(0,0,0,0.02)') ?>; border: 1px solid <?= $presidentNonGestionnaire ? 'rgba(0,0,0,0.05)' : (!empty($membre['actif_votant']) ? 'rgba(59, 130, 246, 0.15)' : 'rgba(0,0,0,0.08)') ?>; color: <?= $presidentNonGestionnaire ? '#8b9ea2' : (!empty($membre['actif_votant']) ? '#2563eb' : '#4b5563') ?>; transition: all var(--cm-transition-fast);">
                                                 <input type="checkbox" name="membres_actifs[]"
                                                        value="<?= (int) $membre['id_utilisateur'] ?>"
                                                        <?= !empty($membre['actif_votant']) ? 'checked' : '' ?>
-                                                       <?= $presidentNonAdmin ? 'disabled' : '' ?>
+                                                       <?= $presidentNonGestionnaire ? 'disabled' : '' ?>
                                                        style="accent-color: #2563eb; width: 15px; height: 15px; margin: 0; cursor: inherit;">
-                                                <span><?= $presidentNonAdmin ? 'Géré par l’admin' : 'Votant actif' ?></span>
+                                                <span><?= $presidentNonGestionnaire ? 'Géré par l’admin' : 'Membre actif' ?></span>
                                             </label>
                                         </div>
                                     </td>

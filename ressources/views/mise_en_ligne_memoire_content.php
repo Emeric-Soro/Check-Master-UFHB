@@ -147,6 +147,7 @@ foreach ($etudiants as $etudiant) {
                 'limit' => $perPage,
                 'limit_options' => $allowedLimits,
                 'search_placeholder' => 'Rechercher un mémoire...',
+                'selection_ui' => 'thead',
                 'custom_actions' => [
                     [
                         'tag' => 'button',

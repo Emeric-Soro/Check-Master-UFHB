@@ -102,26 +102,21 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
     <?php endif; ?>
     <div class="cm-crud-wrapper">
         <div class="cm-pole-superieur is-compact">
-            <div class="cm-grid-3">
-                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=a_traiter'">
-                    <div class="cm-text-sm cm-text-semibold cm-text-primary">A TRAITER</div>
-                    <div style="font-size:1.6rem;font-weight:700;"><?php echo $aTraiter; ?></div>
-                </div>
-                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=valides'">
-                    <div class="cm-text-sm cm-text-semibold cm-text-primary">VALIDÉS</div>
-                    <div style="font-size:1.6rem;font-weight:700;"><?php echo $valides; ?></div>
-                </div>
-                <div class="cm-card cm-p-md is-clickable" onclick="window.location.href='?page=evaluation_dossiers&filter=rejetes'">
-                    <div class="cm-text-sm cm-text-semibold cm-text-primary">REJETÉS</div>
-                    <div style="font-size:1.6rem;font-weight:700;"><?php echo $rejetes; ?></div>
-                </div>
-            </div>
             <style>
-/* cm-form-local-overrides: ajustements locaux de ce formulaire (editez dans ce fichier) */
-#cmEvaluationDecisionForm .cm-form-group:has(#FIELD_ID) {
-    width: 10ch !important;
-    min-width: 10ch !important;
-    max-width: 10ch !important;
+/* Évaluation : bandeau compact et formulaire orienté lecture */
+#cmEvaluationDecisionForm { display: grid; gap: 1rem; }
+#cmEvaluationDecisionForm .cm-grid-2 { grid-template-columns: minmax(0, 1.6fr) minmax(180px, .7fr); gap: 1rem; }
+#cmEvaluationDecisionForm .cm-form-group { margin-bottom: 0; }
+#cmEvaluationDecisionForm .cm-form-control { background: rgba(255,255,255,.25); }
+.cm-eval-details {
+    display: grid;
+    grid-template-columns: minmax(220px, .8fr) minmax(0, 1.8fr) minmax(170px, .55fr);
+    gap: 1rem;
+}
+.cm-eval-details .cm-form-group { min-width: 0; }
+#cmEvaluationDecisionForm textarea { min-height: 92px; resize: vertical; }
+@media (max-width: 760px) {
+    #cmEvaluationDecisionForm .cm-grid-2, .cm-eval-details { grid-template-columns: 1fr; }
 }
 </style>
 <form id="cmEvaluationDecisionForm"
@@ -152,7 +147,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
                     ]);
                     ?>
                 </div>
-                <div class="cm-grid-2">
+                <div class="cm-eval-details">
                     <?php
                     cm_component('form/input-text', [
                         'name' => 'cm_etudiant_info',
@@ -205,6 +200,7 @@ $rejetes = (int) ($stats['a_corriger'] ?? 0);
             'search_value' => $_GET['search'] ?? '',
             'limit' => $perPage,
             'limit_options' => [5, 10, 25, 50, 100],
+            'selection_ui' => 'thead',
             'can_delete' => canDelete(),
             'can_view' => canView(),
             'print_title' => 'Évaluations dossiers soutenance',

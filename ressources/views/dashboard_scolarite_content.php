@@ -6,7 +6,6 @@ $dashboardController = new DashboardScolariteController();
 $dashboardData = $dashboardController->getDashboardData();
 
 $stats = is_array($dashboardData['stats'] ?? null) ? $dashboardData['stats'] : [];
-$inscriptionsParNiveau = is_array($dashboardData['inscriptionsParNiveau'] ?? null) ? $dashboardData['inscriptionsParNiveau'] : [];
 $nouvellesInscriptionsDetail = is_array($dashboardData['nouvelles_inscriptions_detail'] ?? null) ? $dashboardData['nouvelles_inscriptions_detail'] : [];
 $paiementsEnAttenteDetail = is_array($dashboardData['paiements_en_attente_detail'] ?? null) ? $dashboardData['paiements_en_attente_detail'] : [];
 $selectedYearId = !empty($_SESSION['global_annee_id']) ? (int) $_SESSION['global_annee_id'] : null;
@@ -26,12 +25,6 @@ if (!empty($GLOBALS['anneeAcademiqueActive']) && is_object($GLOBALS['anneeAcadem
     }
 }
 
-$niveauLabels = [];
-$niveauValues = [];
-foreach ($inscriptionsParNiveau as $niveau) {
-    $niveauLabels[] = (string) ($niveau['niveau'] ?? 'Niveau');
-    $niveauValues[] = (int) ($niveau['total'] ?? 0);
-}
 
 $genres = [
     'Masculin' => 0,
@@ -133,34 +126,6 @@ cm_component('layout/page-header', [
 <div class="cm-grid-2 cm-mb-lg">
     <?php
     cm_component('dashboard/chart-container', [
-        'chart_id' => 'cmScolariteNiveaux',
-        'title' => '',
-        'subtitle' => 'Inscriptions par niveau d\'étude',
-        'type' => 'bar',
-        'height' => '320px',
-        'data' => [
-            'labels' => $niveauLabels,
-            'datasets' => [
-                [
-                    'label' => 'Étudiants',
-                    'data' => $niveauValues,
-                    'backgroundColor' => 'rgba(52, 152, 219, 0.55)',
-                    'borderColor' => '#1a5276',
-                    'borderWidth' => 1,
-                ],
-            ],
-        ],
-        'options' => [
-            'scales' => [
-                'y' => [
-                    'beginAtZero' => true,
-                    'ticks' => ['precision' => 0],
-                ],
-            ],
-        ],
-    ]);
-
-    cm_component('dashboard/chart-container', [
         'chart_id' => 'cmScolariteGenres',
         'title' => '',
         'subtitle' => 'Population étudiante',
@@ -192,16 +157,13 @@ cm_component('layout/page-header', [
         ],
     ]);
     ?>
-</div>
-
-<div class="cm-grid-2">
-    <?php cm_component('dashboard/alert-list', ['title' => '', 'items' => $alertItems, 'max_show' => 4]); ?>
 
     <div class="cm-chart-container">
         <div class="cm-chart-container__header">
-            <p class="cm-chart-container__subtitle">Accès direct aux opérations de scolarité</p>
+            <h3 class="cm-chart-container__title">Accès direct</h3>
+            <p class="cm-chart-container__subtitle">Opérations de scolarité</p>
         </div>
-        <div class="cm-chart-container__body">
+        <div class="cm-chart-container__body is-md" style="display: flex; align-items: center;">
             <div class="cm-flex cm-flex-wrap cm-flex-gap-sm">
                 <?php if (canCreate()): ?>
                     <a class="cm-btn is-info" href="?page=maj_etudiant">
@@ -224,6 +186,10 @@ cm_component('layout/page-header', [
             </div>
         </div>
     </div>
+</div>
+
+<div class="cm-mb-lg">
+    <?php cm_component('dashboard/alert-list', ['title' => '', 'items' => $alertItems, 'max_show' => 4]); ?>
 </div>
 
 <?php if (!empty($paiementsEnAttenteDetail)): ?>

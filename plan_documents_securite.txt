@@ -1,0 +1,123 @@
+================================================================================
+PLAN DE DÉVELOPPEMENT : GESTION DES DOCUMENTS & SÉCURISATION DES URLS
+================================================================================
+CheckMaster UFRMI-UFHB-CI (Hébergement LWS Mutualisé)
+Fuseau horaire : Africa/Abidjan
+
+Ce document dresse l'état des lieux de notre infrastructure et planifie les
+chantiers techniques pour la gestion de modèles Word (PHPWord), la génération
+PDF associée, ainsi que le routage, le masquage et le chiffrement des URLs.
+
+--------------------------------------------------------------------------------
+1. INVENTAIRE DES COMPOSANTS ET OUTILS DISPONIBLES ("Ce qu'on possède")
+--------------------------------------------------------------------------------
+
+A. Plateforme et Système :
+   - OS : Debian Linux
+   - Web Server : Apache 2.4.68 (Supportant mod_rewrite et .htaccess à 100%)
+   - Moteur PHP : Version 8.4 (ou 8.2 en Wamp), exécuté via FPM/CGI
+   - Privilèges : Accès en écriture complet sur le répertoire racine (/htdocs)
+   - Outils système d'exécution : exec() et shell_exec() fonctionnels
+
+B. Fichiers de Configuration Personnalisés actifs :
+   - .user.ini :
+     * Limite RAM : 384 Mo (Hard lock par LWS, cible idéale : 512 Mo)
+     * Durée max scripts : 60s (Hard lock par LWS, cible idéale : 120s)
+     * Taille max uploads : 256 Mo (upload_max_filesize & post_max_size)
+     * Variables d'entrées : max_input_vars = 3000 (utile pour les grilles)
+     * Compression HTTP : active via zlib (compression Gzip level 6)
+     * Fuseau horaire : Africa/Abidjan
+     * Affichage erreurs : display_errors = Off (Sécurisé en production)
+   - .htaccess :
+     * Règle de protection d'accès : Bloque l'accès HTTP aux fichiers
+       .user.ini, composer.json et composer.lock (Sécurisation des librairies)
+     * Module URL Rewrite : mod_rewrite pleinement opérationnel (validé à 100%)
+
+C. Catalogue des librairies de référence déjà installées (répertoire vendor/) :
+   - phpoffice/phpword (v1.4.0) : Génération et manipulation de documents Word
+   - mpdf/mpdf (v8.3.1)       : Génération de fichiers PDF (100% compatible)
+   - dompdf/dompdf (v3.1.5)   : Rendu HTML vers PDF CSS 2.1 (100% compatible)
+   - tecnickcom/tcpdf         : Génération de PDF autonome (100% compatible)
+   - smalot/pdfparser         : Extraction de texte et lecture de PDF
+
+--------------------------------------------------------------------------------
+2. CHANTIER DOCUMENTS : MODÈLES WORD (PHPWORD) VERS PDF
+--------------------------------------------------------------------------------
+
+A. Objectif :
+   Remplacer la majorité des formulaires et documents générés en base de données
+   par des modèles Word dynamiques (.docx) stockés sur le serveur, modifiables
+   directement par l'administration, puis exportés en PDF pour signature.
+
+B. Modèle conceptuel d'intégration de PHPWord :
+   1. Création de modèles Word types (.docx) par les gestionnaires de l'UFRMI.
+   2. Intégration de balises de variables au format standard `${ma_variable}`.
+      Exemples : `${nom_etudiant}`, `${matricule}`, `${mention}`, `${note_jury}`.
+   3. Téléversement de ces modèles dans un répertoire sécurisé du projet.
+
+C. Logique de traitement PHP (TemplateProcessor) :
+   - Chargement du fichier modèle :
+     $template = new \PhpOffice\PhpWord\TemplateProcessor('/chemin/modele.docx');
+   - Remplacement unitaire ou en boucle des variables :
+     $template->setValue('nom_etudiant', $etudiant['nom']);
+     $template->setValue('matricule', $etudiant['matricule']);
+   - Remplacement de blocs répétitifs (tableaux de notes, listes d'UE) :
+     $template->cloneRow('ue_code', count($notes_etudiant));
+     // Boucle pour valoriser les lignes clonées
+   - Enregistrement du document final temporaire au format .docx.
+
+D. Stratégie de rendu PDF (Sans LibreOffice) :
+   Puisque le serveur mutualisé ne dispose d'aucun binaire CLI système installé
+   (pas de LibreOffice / Soffice pour exécuter une commande headless), le rendu
+   PDF doit obligatoirement s'appuyer sur des solutions PHP pures :
+   - Option 1 (Recommandée pour mise en page simple) :
+     Utiliser le convertisseur interne de PHPWord configuré avec le driver mPDF
+     ou Dompdf :
+     \PhpOffice\PhpWord\Settings::setPdfRendererName(\PhpOffice\PhpWord\Settings::PDF_RENDERER_MPDF);
+     \PhpOffice\PhpWord\Settings::setPdfRendererPath('/chemin/vendor/mpdf/mpdf');
+     $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWordObject, 'PDF');
+     $pdfWriter->save('/chemin/document.pdf');
+   - Option 2 (Pour un contrôle graphique absolu) :
+     Générer un template intermédiaire en HTML/CSS reprenant fidèlement les
+     informations puis le passer directement à mPDF ou Dompdf.
+
+--------------------------------------------------------------------------------
+3. CHANTIER SÉCURITÉ : RÉÉCRITURE, CHIFFREMENT ET MASQUAGE DES URLS
+--------------------------------------------------------------------------------
+
+A. Objectif :
+   Éliminer l'affichage des IDs bruts de la base de données (ex: id=1402) et les
+   extensions de fichiers (.php) dans la barre d'adresse pour empêcher le vol
+   de documents par simple incrémentation d'index.
+
+B. Volet 1 : Chiffrement symétrique des identifiants (PHP OpenSSL)
+   - Algorithme ciblé : AES-128-ECB ou AES-256-CBC (standard de sécurité).
+   - Utilisation d'une clé secrète serveur non publique.
+   - Les liens sont générés en chiffrant l'identifiant réel puis en le convertissant
+     dans un format compatible URL (base64 sans caractères interdits ou hexadécimal).
+   - Exemple de flux :
+     * ID réel : "1402" -> openssl_encrypt -> "a8b9c2409f"
+     * URL finale : /document/consulter/a8b9c2409f
+
+C. Volet 2 : Réécriture d'URL sans extension (.htaccess)
+   - Configuration d'Apache pour rediriger les chemins propres sans extension
+     vers les scripts PHP de traitement correspondants.
+   - Règle de routage générique à inclure :
+     RewriteEngine On
+     RewriteBase /
+     # Route pour la consultation de documents cryptés
+     RewriteRule ^document/consulter/([a-f0-9]+)$ consulter_document.php?token=$1 [L,QSA]
+     # Route pour le téléchargement sécurisé
+     RewriteRule ^document/telecharger/([a-f0-9]+)$ telecharger_document.php?token=$1 [L,QSA]
+
+D. Volet 3 : Décryptage et validation de sécurité par le contrôleur PHP
+   - Réception du paramètre `token` via la variable superglobale $_GET['token'].
+   - Décryptage à l'aide de la clé secrète serveur.
+   - Si le décryptage échoue (tentative d'altération du token), le script
+     renvoie immédiatement un code HTTP 403 (Accès Interdit) ou 404 personnalisé.
+   - Ajout optionnel d'un timestamp à l'intérieur de la charge utile cryptée
+     pour forcer le lien à expirer après 1 heure, 24 heures, etc.
+
+================================================================================
+FIN DU PLAN
+================================================================================

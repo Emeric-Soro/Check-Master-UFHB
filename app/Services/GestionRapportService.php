@@ -11,6 +11,7 @@ use InfoStage;
 use Entreprise;
 use EmailService;
 use NotificationService;
+use App\Support\DatabaseService;
 use CheckMaster\Services\Document\DocumentStorageService;
 
 require_once __DIR__ . '/../config/database.php';
@@ -61,12 +62,15 @@ class GestionRapportService
     /** @var EmailService */
     private $emailService;
 
+    private DatabaseService $dbService;
+
     /**
      * @param \PDO $db Connexion à la base de données
      */
     public function __construct($db)
     {
         $this->db = $db;
+        $this->dbService = new DatabaseService($db);
         $this->rapportModel = new RapportEtudiant($db);
         $this->etudiant = new Etudiant($db);
         $this->auditLog = new AuditLog($db);
@@ -84,9 +88,10 @@ class GestionRapportService
     private function getStudentAcademicYearId($num_etu): ?int
     {
         try {
-            $stmt = $this->db->prepare('SELECT i.id_annee_acad FROM inscriptions i JOIN etudiants e ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) WHERE (e.num_carte_etud = ? OR e.num_ident_etud = ?) ORDER BY i.date_inscription DESC, i.num_versement DESC LIMIT 1');
-            $stmt->execute([(string) $num_etu, (string) $num_etu]);
-            $value = $stmt->fetchColumn();
+            $value = $this->dbService->scalar(
+                'SELECT i.id_annee_acad FROM inscriptions i JOIN etudiants e ON (i.num_carte_etud = e.num_carte_etud OR i.num_carte_etud = e.num_ident_etud) WHERE (e.num_carte_etud = :num OR e.num_ident_etud = :num) ORDER BY i.date_inscription DESC, i.num_versement DESC LIMIT 1',
+                [':num' => (string) $num_etu]
+            );
             return is_numeric($value) ? (int) $value : null;
         } catch (\Throwable $e) {
             error_log('Erreur getStudentAcademicYearId: ' . $e->getMessage());
@@ -861,9 +866,9 @@ class GestionRapportService
     {
         // Cherche d'abord dans les paramètres de configuration
         try {
-            $stmt = $this->db->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'MODELE_RAPPORT_URL' LIMIT 1");
-            $stmt->execute();
-            $url = $stmt->fetchColumn();
+            $url = $this->dbService->scalar(
+                "SELECT setting_value FROM app_settings WHERE setting_key = 'MODELE_RAPPORT_URL' LIMIT 1"
+            );
             if ($url && $url !== '') {
                 return $url;
             }

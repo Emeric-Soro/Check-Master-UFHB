@@ -61,6 +61,7 @@ $editBaseUrl = '?page=redaction_compte_rendu&id_CR=';
             'search_value' => $search,
             'limit' => $perPage,
             'allowed_limits' => $allowedLimits,
+            'selection_ui' => 'thead',
             'can_delete' => canDelete(),
             'can_view' => canView(),
             'print_title' => 'Archives comptes-rendus',

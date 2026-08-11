@@ -503,7 +503,7 @@ class EvaluationDossiersService
         try {
             $membresCommission = new \CommissionValidationMembre($this->db);
             if (!$membresCommission->estVotantActif((int) $id_utilisateur)) {
-                return ['success' => false, 'message' => 'Vous êtes en lecture seule : vous n\'êtes pas membre votant actif de la commission.'];
+                return ['success' => false, 'message' => 'Vous êtes en lecture seule : vous n\'êtes pas membre actif de la commission.'];
             }
             $this->ensureWritableRapport($id_rapport, 'une evaluation de commission');
             $idEvaluateur = (int) $id_utilisateur;

@@ -1394,182 +1394,14 @@ class ParametreService
             ];
         }
 
-        $table = (string) $config['table'];
-        $idColumn = (string) $config['id_column'];
-        $idParam = (string) ($config['id_param'] ?? $idColumn);
-        $idPostKey = (string) ($config['id_post_key'] ?? $idColumn);
-        $fields = is_array($config['fields'] ?? null) ? $config['fields'] : [];
-        $requiredFields = is_array($config['required_fields'] ?? null) ? $config['required_fields'] : [];
-        $boolFields = is_array($config['bool_fields'] ?? null) ? $config['bool_fields'] : [];
-        $intFields = is_array($config['int_fields'] ?? null) ? $config['int_fields'] : [];
-        $nullableFields = is_array($config['nullable_fields'] ?? null) ? $config['nullable_fields'] : [];
-        $allowManualId = !empty($config['allow_manual_id']);
-        $allowIdUpdate = !empty($config['allow_id_update']);
-        $orderBy = (string) ($config['order_by'] ?? $idColumn . ' DESC');
-        $entity = (string) ($config['audit_entity'] ?? $table);
-        $addButton = (string) ($config['add_button'] ?? ('btn_add_' . $action));
-        $editButton = (string) ($config['edit_button'] ?? ('btn_modifier_' . $action));
-
-        $itemAModifier = null;
-        $messageErreur = '';
-        $messageSuccess = '';
-
-        if (!$this->tableExists($table)) {
-            return [
-                'item_a_modifier' => null,
-                'listeReferentiel' => [],
-                'messageErreur' => "La table '{$table}' n'existe pas dans la base de données.",
-                'messageSuccess' => '',
-            ];
-        }
-
-        if (isset($post['submit_delete_multiple']) && isset($post['selected_ids']) && is_array($post['selected_ids'])) {
-            $success = true;
-            $sql = "DELETE FROM {$this->quoteIdentifier($table)} WHERE {$this->quoteIdentifier($idColumn)} = ?";
-            $stmt = $this->db->prepare($sql);
-
-            foreach ($post['selected_ids'] as $id) {
-                if (!$stmt->execute([$id])) {
-                    $success = false;
-                    break;
-                }
-            }
-
-            if ($success) {
-                $messageSuccess = 'Éléments supprimés avec succès.';
-                $this->auditLog->logSuppression($userId, $entity, 'Succès');
-            } else {
-                $messageErreur = 'Erreur lors de la suppression.';
-                $this->auditLog->logSuppression($userId, $entity, 'Erreur');
-            }
-        } elseif (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (isset($post[$addButton]) || isset($post[$editButton]))) {
-            $isUpdate = isset($post[$editButton]);
-            $data = [];
-
-            foreach ($fields as $field) {
-                $fieldName = (string) $field;
-
-                if (in_array($fieldName, $boolFields, true)) {
-                    $rawBool = $post[$fieldName] ?? null;
-                    if ($rawBool === null) {
-                        $data[$fieldName] = 0;
-                    } else {
-                        $boolValue = is_string($rawBool) ? strtolower(trim($rawBool)) : (string) $rawBool;
-                        $data[$fieldName] = in_array($boolValue, ['1', 'true', 'on', 'yes', 'oui'], true) ? 1 : 0;
-                    }
-                    continue;
-                }
-
-                $value = $post[$fieldName] ?? null;
-                if (is_string($value)) {
-                    $value = trim($value);
-                }
-                if (in_array($fieldName, $nullableFields, true) && $value === '') {
-                    $value = null;
-                }
-                if (in_array($fieldName, $intFields, true) && $value !== null && $value !== '') {
-                    $value = (int) $value;
-                }
-                $data[$fieldName] = $value;
-            }
-
-            foreach ($requiredFields as $required) {
-                $requiredName = (string) $required;
-                if (!array_key_exists($requiredName, $data) || $data[$requiredName] === null || $data[$requiredName] === '') {
-                    $messageErreur = 'Veuillez renseigner tous les champs obligatoires.';
-                    break;
-                }
-            }
-
-            if ($messageErreur === '') {
-                try {
-                    if ($isUpdate) {
-                        $currentId = trim((string) ($post[$idPostKey] ?? ''));
-                        if ($currentId === '') {
-                            throw new Exception('Identifiant de modification invalide.');
-                        }
-
-                        $updateData = $data;
-                        if (!$allowIdUpdate) {
-                            unset($updateData[$idColumn]);
-                        }
-                        if (empty($updateData)) {
-                            throw new Exception('Aucune donnée à mettre à jour.');
-                        }
-
-                        $setParts = [];
-                        $params = [];
-                        foreach ($updateData as $column => $value) {
-                            $paramName = ':u_' . $column;
-                            $setParts[] = $this->quoteIdentifier((string) $column) . ' = ' . $paramName;
-                            $params[$paramName] = $value;
-                        }
-                        $params[':current_id'] = $currentId;
-
-                        $sql = "UPDATE {$this->quoteIdentifier($table)}
-                                SET " . implode(', ', $setParts) . "
-                                WHERE {$this->quoteIdentifier($idColumn)} = :current_id";
-                        $stmt = $this->db->prepare($sql);
-
-                        if ($stmt->execute($params)) {
-                            $messageSuccess = 'Élément modifié avec succès.';
-                            $this->auditLog->logModification($userId, $entity, 'Succès');
-                        } else {
-                            $messageErreur = 'Erreur lors de la modification.';
-                            $this->auditLog->logModification($userId, $entity, 'Erreur');
-                        }
-                    } else {
-                        $insertData = $data;
-                        if (!$allowManualId) {
-                            unset($insertData[$idColumn]);
-                        }
-
-                        $insertData = array_filter(
-                            $insertData,
-                            static fn($value) => $value !== null
-                        );
-
-                        if (empty($insertData)) {
-                            throw new Exception('Aucune donnée à enregistrer.');
-                        }
-
-                        $columns = array_keys($insertData);
-                        $placeholders = array_map(static fn($col) => ':i_' . $col, $columns);
-                        $params = [];
-                        foreach ($columns as $col) {
-                            $params[':i_' . $col] = $insertData[$col];
-                        }
-
-                        $sql = "INSERT INTO {$this->quoteIdentifier($table)}
-                                (" . implode(', ', array_map([$this, 'quoteIdentifier'], $columns)) . ")
-                                VALUES (" . implode(', ', $placeholders) . ")";
-                        $stmt = $this->db->prepare($sql);
-
-                        if ($stmt->execute($params)) {
-                            $messageSuccess = 'Élément ajouté avec succès.';
-                            $this->auditLog->logCreation($userId, $entity, 'Succès');
-                        } else {
-                            $messageErreur = 'Erreur lors de l\'ajout.';
-                            $this->auditLog->logCreation($userId, $entity, 'Erreur');
-                        }
-                    }
-                } catch (Throwable $e) {
-                    $messageErreur = 'Erreur base de données: ' . $e->getMessage();
-                    $this->auditLog->logModification($userId, $entity, 'Erreur');
-                }
-            }
-        }
-
-        if (isset($get[$idParam]) && trim((string) $get[$idParam]) !== '') {
-            $itemAModifier = $this->fetchReferentielRow($table, $idColumn, $get[$idParam]);
-        }
-
-        $result = [
-            'item_a_modifier' => $itemAModifier,
-            'listeReferentiel' => $this->fetchReferentielList($table, $orderBy),
-            'messageErreur' => $messageErreur,
-            'messageSuccess' => $messageSuccess,
-        ];
+        // CRUD générique délégué à ReferentielCrudService (Phase 2).
+        // Comportement identique à l'historique (mêmes clés de sortie, mêmes messages).
+        $crud = new \App\Services\ReferentielCrudService(
+            new \App\Support\DatabaseService($this->db),
+            $this->db,
+            $this->auditLog
+        );
+        $result = $crud->handle($config, $post, $get, $userId);
 
         if ($action === 'maitre_stage') {
             $result['listeEntreprisesRef'] = $this->fetchReferentielOptions('entreprises', 'id_entreprise', 'lib_long_entreprise', 'lib_long_entreprise ASC');
@@ -2514,25 +2346,6 @@ class ParametreService
         return $prefix . 'id_critere AS code_critere';
     }
 
-    private function fetchReferentielRow(string $table, string $idColumn, $id): ?object
-    {
-        $sql = "SELECT * FROM {$this->quoteIdentifier($table)}
-                WHERE {$this->quoteIdentifier($idColumn)} = ?
-                LIMIT 1";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([$id]);
-        $row = $stmt->fetch(PDO::FETCH_OBJ);
-
-        return $row !== false ? $row : null;
-    }
-
-    private function fetchReferentielList(string $table, string $orderBy): array
-    {
-        $sql = "SELECT * FROM {$this->quoteIdentifier($table)} ORDER BY {$orderBy}";
-        $stmt = $this->db->query($sql);
-        return $stmt ? $stmt->fetchAll(PDO::FETCH_OBJ) : [];
-    }
-
     private function fetchReferentielOptions(string $table, string $idColumn, string $labelColumn, string $orderBy = ''): array
     {
         if (!$this->tableExists($table)) {
@@ -2811,6 +2624,44 @@ class ParametreService
                 'query'       => 'SELECT num_soutenance AS id FROM programmer_soutenance ORDER BY num_soutenance DESC LIMIT 1',
             ],
             [
+                'type'        => 'pv_ecrits',
+                'title'       => 'PV des épreuves écrites M2/S1',
+                'description' => 'Procès-verbal des UE M2/S1 avec sessions normale et de rattrapage.',
+                'stage'       => 'Évaluations M2/S1 -> génération du PV des épreuves écrites',
+                'generator'   => 'PvEpreuvesEcritesGeneratorService',
+                'source'      => 'app/Services/Document/PvEpreuvesEcritesGeneratorService.php',
+                'query'       => null,
+            ],
+            [
+                'type'        => 'autorisation_soutenance',
+                'title'       => 'Autorisation de soutenance',
+                'description' => 'Demande d’autorisation avec stage, encadrement, avis et signatures.',
+                'stage'       => 'Candidature soutenance -> autorisation de soutenance',
+                'generator'   => 'SoutenanceFormPdfService',
+                'source'      => 'app/Services/Document/SoutenanceFormPdfService.php',
+                'query'       => null,
+            ],
+            [
+                'type'        => 'suivi_encadrement',
+                'variant'     => 'suivi_directeur',
+                'title'       => 'Suivi — directeur de mémoire',
+                'description' => 'Fiche de suivi des rendez-vous avec le directeur de mémoire.',
+                'stage'       => 'Encadrement -> suivi des rendez-vous',
+                'generator'   => 'SoutenanceFormPdfService',
+                'source'      => 'app/Services/Document/SoutenanceFormPdfService.php',
+                'query'       => null,
+            ],
+            [
+                'type'        => 'suivi_encadrement',
+                'variant'     => 'suivi_encadreur',
+                'title'       => 'Suivi — encadreur pédagogique',
+                'description' => 'Fiche de suivi des rendez-vous avec l’encadreur pédagogique.',
+                'stage'       => 'Encadrement -> suivi des rendez-vous',
+                'generator'   => 'SoutenanceFormPdfService',
+                'source'      => 'app/Services/Document/SoutenanceFormPdfService.php',
+                'query'       => null,
+            ],
+            [
                 'type'        => 'bulletin',
                 'title'       => 'Bulletin de notes',
                 'description' => 'Bulletin de notes etudiant au format PDF.',
@@ -2886,6 +2737,9 @@ class ParametreService
             $previewId = $template['sample_id'] ?? '__template__';
             $template['preview_url'] = '?page=docviewer&action=catalogue_preview&type='
                 . rawurlencode($template['type']) . '&id=' . rawurlencode($previewId);
+            if (!empty($template['variant'])) {
+                $template['preview_url'] .= '&variant=' . rawurlencode((string) $template['variant']);
+            }
             // Le téléchargement reste réservé à un document réellement stocké.
             $template['download_url'] = $template['sample_id'] !== null
                 ? '?page=docviewer&type=' . rawurlencode($template['type']) . '&id=' . rawurlencode($template['sample_id']) . '&action=download'

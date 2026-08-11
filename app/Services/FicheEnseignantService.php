@@ -13,6 +13,7 @@ use Grade;
 use Fonction;
 use Specialite;
 use Jury;
+use App\Support\DatabaseService;
 
 /**
  * Service d'agrégation des données pour la Fiche Enseignante Complète.
@@ -24,6 +25,8 @@ class FicheEnseignantService
 {
     /** @var \PDO */
     private \PDO $pdo;
+
+    private DatabaseService $dbService;
 
     /** @var Enseignant */
     private Enseignant $enseignantModel;
@@ -43,6 +46,7 @@ class FicheEnseignantService
     public function __construct(?\PDO $pdo = null)
     {
         $this->pdo = $pdo ?: \Database::getConnection();
+        $this->dbService = new DatabaseService($this->pdo);
         $this->enseignantModel = new Enseignant($this->pdo);
         $this->gradeModel = new Grade($this->pdo);
         $this->fonctionModel = new Fonction($this->pdo);
@@ -161,14 +165,14 @@ class FicheEnseignantService
     private function getHistoriqueGrades(string $idEnseignant): array
     {
         try {
-            $sql = "SELECT a.id_grade, g.lib_grade, a.date_grade
-                    FROM avoir a
-                    JOIN grade g ON g.id_grade = a.id_grade
-                    WHERE a.id_enseignant = :id
-                    ORDER BY a.date_grade DESC";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':id' => $idEnseignant]);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            return $this->dbService->select(
+                "SELECT a.id_grade, g.lib_grade, a.date_grade
+                 FROM avoir a
+                 JOIN grade g ON g.id_grade = a.id_grade
+                 WHERE a.id_enseignant = :id
+                 ORDER BY a.date_grade DESC",
+                [':id' => $idEnseignant]
+            );
         } catch (\PDOException $e) {
             error_log('FicheEnseignantService::getHistoriqueGrades: ' . $e->getMessage());
             return [];
@@ -184,14 +188,14 @@ class FicheEnseignantService
     private function getFonctionsOccupees(string $idEnseignant): array
     {
         try {
-            $sql = "SELECT o.id_fonction, f.lib_fonction, o.date_occupation
-                    FROM occuper o
-                    JOIN fonction f ON f.id_fonction = o.id_fonction
-                    WHERE o.id_enseignant = :id
-                    ORDER BY o.date_occupation DESC";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':id' => $idEnseignant]);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            return $this->dbService->select(
+                "SELECT o.id_fonction, f.lib_fonction, o.date_occupation
+                 FROM occuper o
+                 JOIN fonction f ON f.id_fonction = o.id_fonction
+                 WHERE o.id_enseignant = :id
+                 ORDER BY o.date_occupation DESC",
+                [':id' => $idEnseignant]
+            );
         } catch (\PDOException $e) {
             error_log('FicheEnseignantService::getFonctionsOccupees: ' . $e->getMessage());
             return [];
@@ -207,10 +211,10 @@ class FicheEnseignantService
     private function getTypeEnseignantLibelle(int $idType): string
     {
         try {
-            $sql = "SELECT libelle FROM type_enseignant WHERE id_type_enseignant = :id";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':id' => $idType]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $row = $this->dbService->selectOne(
+                "SELECT libelle FROM type_enseignant WHERE id_type_enseignant = :id",
+                [':id' => $idType]
+            );
             return $row ? (string) ($row['libelle'] ?? '') : '';
         } catch (\PDOException $e) {
             error_log('FicheEnseignantService::getTypeEnseignantLibelle: ' . $e->getMessage());
@@ -227,23 +231,23 @@ class FicheEnseignantService
     private function getJuryHistory(string $idEnseignant): array
     {
         try {
-            $sql = "SELECT
-                        ej.num_soutenance,
-                        ej.id_qualite_jury,
-                        qj.lib_role,
-                        ps.date_soutenance,
-                        ps.num_etud,
-                        ps.theme_soutenance,
-                        ev.note AS note_attribuee
-                    FROM enseignant_jury ej
-                    JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
-                    JOIN programmer_soutenance ps ON ps.num_soutenance = ej.num_soutenance
-                    LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND CAST(ev.num_jury AS CHAR) = ps.num_soutenance
-                    WHERE ej.id_enseignant = :id
-                    ORDER BY ps.date_soutenance DESC, ps.num_soutenance ASC";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':id' => $idEnseignant]);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            return $this->dbService->select(
+                "SELECT
+                    ej.num_soutenance,
+                    ej.id_qualite_jury,
+                    qj.lib_role,
+                    ps.date_soutenance,
+                    ps.num_etud,
+                    ps.theme_soutenance,
+                    ev.note AS note_attribuee
+                FROM enseignant_jury ej
+                JOIN qualite_jury qj ON qj.id_role_jury = ej.id_qualite_jury
+                JOIN programmer_soutenance ps ON ps.num_soutenance = ej.num_soutenance
+                LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND CAST(ev.num_jury AS CHAR) = ps.num_soutenance
+                WHERE ej.id_enseignant = :id
+                ORDER BY ps.date_soutenance DESC, ps.num_soutenance ASC",
+                [':id' => $idEnseignant]
+            );
         } catch (\PDOException $e) {
             error_log('FicheEnseignantService::getJuryHistory: ' . $e->getMessage());
             return [];
@@ -259,22 +263,22 @@ class FicheEnseignantService
     private function getEncadrements(string $idEnseignant): array
     {
         try {
-            $sql = "SELECT
-                        r.id_rapport,
-                        r.theme_rapport,
-                        r.date_redaction_rapport,
-                        r.statut_rapport,
-                        a.role,
-                        r.num_etu,
-                        CONCAT(e.nom_etu, ' ', e.prenom_etu) AS nom_etudiant
-                    FROM affecter a
-                    JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
-                    JOIN etudiants e ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
-                    WHERE a.id_enseignant = :id
-                    ORDER BY r.date_redaction_rapport DESC, a.role ASC";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':id' => $idEnseignant]);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+            return $this->dbService->select(
+                "SELECT
+                    r.id_rapport,
+                    r.theme_rapport,
+                    r.date_redaction_rapport,
+                    r.statut_rapport,
+                    a.role,
+                    r.num_etu,
+                    CONCAT(e.nom_etu, ' ', e.prenom_etu) AS nom_etudiant
+                FROM affecter a
+                JOIN rapport_etudiants r ON r.id_rapport = a.id_rapport
+                JOIN etudiants e ON (e.num_carte_etud = r.num_etu OR e.num_ident_etud = r.num_etu)
+                WHERE a.id_enseignant = :id
+                ORDER BY r.date_redaction_rapport DESC, a.role ASC",
+                [':id' => $idEnseignant]
+            );
         } catch (\PDOException $e) {
             error_log('FicheEnseignantService::getEncadrements: ' . $e->getMessage());
             return [];
@@ -301,15 +305,15 @@ class FicheEnseignantService
 
         try {
             // Compter les soutenances par rôle
-            $sql = "SELECT
-                        ej.id_qualite_jury,
-                        COUNT(DISTINCT ej.num_soutenance) AS total
-                    FROM enseignant_jury ej
-                    WHERE ej.id_enseignant = :id
-                    GROUP BY ej.id_qualite_jury";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':id' => $idEnseignant]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $rows = $this->dbService->select(
+                "SELECT
+                    ej.id_qualite_jury,
+                    COUNT(DISTINCT ej.num_soutenance) AS total
+                FROM enseignant_jury ej
+                WHERE ej.id_enseignant = :id
+                GROUP BY ej.id_qualite_jury",
+                [':id' => $idEnseignant]
+            );
 
             $totalSoutenances = 0;
             foreach ($rows as $row) {
@@ -332,23 +336,24 @@ class FicheEnseignantService
             $stats['nb_soutenances'] = $totalSoutenances;
 
             // Note moyenne attribuée
-            $sqlNote = "SELECT ROUND(AVG(ev.note), 2) AS moyenne
-                        FROM enseignant_jury ej
-                        JOIN programmer_soutenance ps ON ps.num_soutenance = ej.num_soutenance
-                        LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND CAST(ev.num_jury AS CHAR) = ps.num_soutenance
-                        WHERE ej.id_enseignant = :id";
-            $stmtNote = $this->pdo->prepare($sqlNote);
-            $stmtNote->execute([':id' => $idEnseignant]);
-            $noteRow = $stmtNote->fetch(\PDO::FETCH_ASSOC);
+            $noteRow = $this->dbService->selectOne(
+                "SELECT ROUND(AVG(ev.note), 2) AS moyenne
+                 FROM enseignant_jury ej
+                 JOIN programmer_soutenance ps ON ps.num_soutenance = ej.num_soutenance
+                 LEFT JOIN evaluer ev ON ev.num_etudiant = ps.num_etud AND CAST(ev.num_jury AS CHAR) = ps.num_soutenance
+                 WHERE ej.id_enseignant = :id",
+                [':id' => $idEnseignant]
+            );
             $stats['note_moyenne'] = $noteRow ? (float) ($noteRow['moyenne'] ?? 0) : 0;
 
             // Compter les encadrements (affecter)
-            $sqlEnc = "SELECT COUNT(DISTINCT a.id_rapport) AS total
-                       FROM affecter a
-                       WHERE a.id_enseignant = :id";
-            $stmtEnc = $this->pdo->prepare($sqlEnc);
-            $stmtEnc->execute([':id' => $idEnseignant]);
-            $stats['nb_encadrements_rapports'] = (int) $stmtEnc->fetchColumn();
+            $stats['nb_encadrements_rapports'] = (int) $this->dbService->scalar(
+                "SELECT COUNT(DISTINCT a.id_rapport) AS total
+                 FROM affecter a
+                 WHERE a.id_enseignant = :id",
+                [':id' => $idEnseignant],
+                0
+            );
 
         } catch (\PDOException $e) {
             error_log('FicheEnseignantService::getStatsEnseignant: ' . $e->getMessage());
@@ -367,37 +372,34 @@ class FicheEnseignantService
     {
         try {
             // On cherche l'utilisateur qui a le même login que le mail de l'enseignant
-            $sql = "SELECT id_utilisateur, nom_utilisateur, login_utilisateur, statut_utilisateur,
-                           id_type_utilisateur, id_GU
-                    FROM utilisateur
-                    WHERE login_utilisateur = :login
-                    LIMIT 1";
-            $stmt = $this->pdo->prepare($sql);
-
-            // Récupérer d'abord l'email de l'enseignant
-            $ensSql = "SELECT mail_enseignant, nom_enseignant, prenom_enseignant FROM enseignants WHERE id_enseignant = :id";
-            $ensStmt = $this->pdo->prepare($ensSql);
-            $ensStmt->execute([':id' => $idEnseignant]);
-            $ens = $ensStmt->fetch(\PDO::FETCH_ASSOC);
+            $ens = $this->dbService->selectOne(
+                "SELECT mail_enseignant, nom_enseignant, prenom_enseignant FROM enseignants WHERE id_enseignant = :id",
+                [':id' => $idEnseignant]
+            );
 
             if (!$ens || empty($ens['mail_enseignant'])) {
                 return null;
             }
 
-            $stmt->execute([':login' => $ens['mail_enseignant']]);
-            $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $user = $this->dbService->selectOne(
+                "SELECT id_utilisateur, nom_utilisateur, login_utilisateur, statut_utilisateur,
+                        id_type_utilisateur, id_GU
+                 FROM utilisateur
+                 WHERE login_utilisateur = :login
+                 LIMIT 1",
+                [':login' => $ens['mail_enseignant']]
+            );
 
             if (!$user) {
                 // Essayer aussi avec une recherche par nom/prénom
-                $sql2 = "SELECT id_utilisateur, nom_utilisateur, login_utilisateur, statut_utilisateur,
-                                id_type_utilisateur, id_GU
-                         FROM utilisateur
-                         WHERE nom_utilisateur LIKE :nom
-                         LIMIT 1";
-                $stmt2 = $this->pdo->prepare($sql2);
-                $nomPattern = '%' . ($ens['nom_enseignant'] ?? '') . '%';
-                $stmt2->execute([':nom' => $nomPattern]);
-                $user = $stmt2->fetch(\PDO::FETCH_ASSOC);
+                $user = $this->dbService->selectOne(
+                    "SELECT id_utilisateur, nom_utilisateur, login_utilisateur, statut_utilisateur,
+                            id_type_utilisateur, id_GU
+                     FROM utilisateur
+                     WHERE nom_utilisateur LIKE :nom
+                     LIMIT 1",
+                    [':nom' => '%' . ($ens['nom_enseignant'] ?? '') . '%']
+                );
             }
 
             return $user ?: null;

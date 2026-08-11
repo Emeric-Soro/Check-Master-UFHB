@@ -37,8 +37,11 @@ if (!class_exists('Database', false)) {
                 $tz      = \CheckMaster\Core\AppConfig::dbTimezone();
 
                 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-                $pdo = new PDO($dsn, $user, $pass);
-                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                $pdo = new PDO($dsn, $user, $pass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+                ]);
                 $pdo->exec("SET time_zone = '$tz'");
 
                 self::$instance = $pdo;

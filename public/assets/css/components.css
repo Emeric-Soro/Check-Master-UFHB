@@ -7993,3 +7993,101 @@ form .cm-grid-auto {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================================
+   TOOLBAR UNIFIED - SOURCE DE VÉRITÉ FINALE
+   Une seule ligne, sans débordement ni scroll horizontal.
+   Charge en dernier dans components.css ; les overrides spécifiques
+   (layout.php inline, compact-forms) reprennent ces mêmes valeurs.
+   ============================================================================ */
+.cm-toolbar.cm-toolbar--unified {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-left,
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-center,
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-right {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  gap: 0.4rem !important;
+  white-space: nowrap !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-left {
+  flex: 0 1 auto !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-center {
+  flex: 0 1 auto !important;
+  width: clamp(10rem, 20vw, 15rem) !important;
+  min-width: 10rem !important;
+  max-width: 15rem !important;
+  justify-content: flex-start !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-right {
+  flex: 1 1 auto !important;
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+  overflow: hidden !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar__search-wrap,
+.cm-toolbar.cm-toolbar--unified .cm-toolbar-field-lg {
+  width: 100% !important;
+  min-width: 10rem !important;
+  max-width: 15rem !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-toolbar__actions-group {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  flex: 0 0 auto !important;
+}
+
+.cm-toolbar.cm-toolbar--unified .cm-btn {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 1100px) {
+  .cm-toolbar.cm-toolbar--unified .cm-btn[data-cm-toolbar-action] span {
+    display: none !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .cm-toolbar.cm-toolbar--unified {
+    gap: 0.35rem !important;
+  }
+  .cm-toolbar.cm-toolbar--unified .cm-toolbar-center {
+    width: 9rem !important;
+    min-width: 9rem !important;
+    max-width: 9rem !important;
+  }
+  .cm-toolbar.cm-toolbar--unified .cm-toolbar__control span {
+    display: none !important;
+  }
+  .cm-toolbar.cm-toolbar--unified .cm-toolbar__search-wrap,
+  .cm-toolbar.cm-toolbar--unified .cm-toolbar-field-lg {
+    min-width: 8rem !important;
+    max-width: 9rem !important;
+  }
+}

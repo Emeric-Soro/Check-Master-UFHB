@@ -42,6 +42,7 @@ class DocViewerController extends BaseController
 
     private const ALLOWED_TYPES = [
         'rapport', 'recu', 'memoire', 'pv_commission', 'pv_final',
+        'pv_ecrits', 'autorisation_soutenance', 'suivi_encadrement',
         'planning', 'bulletin', 'compte_rendu', 'fiche_inscription',
     ];
 
@@ -81,6 +82,7 @@ class DocViewerController extends BaseController
 
         $type = trim((string) ($_GET['type'] ?? ''));
         $id   = trim((string) ($_GET['id']   ?? ''));
+        $variant = trim((string) ($_GET['variant'] ?? ''));
 
         if ($type === '' || $id === '') {
             http_response_code(400);
@@ -91,7 +93,7 @@ class DocViewerController extends BaseController
         // L'aperçu du catalogue est toujours un rendu fictif et éphémère.
         // Il ne doit ni lire un document réel, ni créer de fichier ou de ligne
         // document_genere, ni déclencher de notification.
-        $pdfBytes = $this->generateCataloguePreview($type, $id);
+        $pdfBytes = $this->generateCataloguePreview($type, $id, $variant);
         if ($pdfBytes !== null) {
             $filename = 'apercu_' . preg_replace('/[^a-z0-9_-]/i', '_', $type) . '.pdf';
             header('Content-Type: application/pdf');
@@ -283,7 +285,7 @@ class DocViewerController extends BaseController
      *
      * @return string|null Contenu PDF binaire
      */
-    private function generateCataloguePreview(string $type, string $id): ?string
+    private function generateCataloguePreview(string $type, string $id, string $variant = ''): ?string
     {
         try {
             $pdfGenerator = $this->getPdfGenerator();
@@ -294,6 +296,9 @@ class DocViewerController extends BaseController
                 'pv_commission' => $this->getPvCommissionGenerator()->generatePreview(),
                 'pv_final'      => $this->getPvFinalGenerator()->generatePreview(),
                 'planning'      => $this->getPlanningGenerator()->generatePreview(),
+                'pv_ecrits'     => $this->generateM2S1TemplatePreview($pdfGenerator, 'pv_ecrits'),
+                'autorisation_soutenance' => $this->generateM2S1TemplatePreview($pdfGenerator, 'autorisation_soutenance'),
+                'suivi_encadrement' => $this->generateM2S1TemplatePreview($pdfGenerator, $variant === 'suivi_directeur' ? 'suivi_directeur' : 'suivi_encadreur'),
                 'bulletin'      => $this->generateBulletinPreview($pdfGenerator),
                 'compte_rendu'  => $this->generateCompteRenduPreview($pdfGenerator),
                 'fiche_inscription' => $this->generateFicheInscriptionPreview($pdfGenerator),
@@ -304,6 +309,26 @@ class DocViewerController extends BaseController
             error_log('[DocViewerController::cataloguePreview] Rendu fictif impossible pour ' . $type . ': ' . $e->getMessage());
             return null;
         }
+    }
+
+    private function generateM2S1TemplatePreview(PdfGeneratorService $pdfGenerator, string $type): string
+    {
+        $pdf = $pdfGenerator->createDocument('P', 'A4', 'Modèle M2/S1', 'CheckMaster UFRMI');
+        $pdf->AddPage();
+        $title = match ($type) {
+            'pv_ecrits' => 'PROCÈS-VERBAL DES ÉPREUVES ÉCRITES — M2/S1',
+            'autorisation_soutenance' => 'DEMANDE D’AUTORISATION DE SOUTENANCE',
+            'suivi_directeur' => 'FICHE DE SUIVI — DIRECTEUR DE MÉMOIRE',
+            default => 'FICHE DE SUIVI — ENCADREUR PÉDAGOGIQUE',
+        };
+        $content = match ($type) {
+            'pv_ecrits' => '<div class="section"><b>Étudiant :</b> KOUASSI Jean-Baptiste &nbsp;&nbsp; <b>Matricule :</b> CM-2026-00042<br/><b>Statut :</b> Nouveau &nbsp;&nbsp; <b>Année :</b> 2025-2026</div><h3>ÉPREUVES ÉCRITES — M2/S1</h3><table><thead><tr><th>Code UE</th><th>Intitulé</th><th colspan="3">Session normale</th><th colspan="3">Rattrapage</th></tr><tr><th></th><th></th><th>Note</th><th>Crédits</th><th>Total</th><th>Note</th><th>Crédits</th><th>Total</th></tr></thead><tbody><tr><td>UE-M2-01</td><td>Unité d’enseignement exemple</td><td>15,00</td><td>4</td><td>3,00</td><td>—</td><td>4</td><td>—</td></tr><tr><td colspan="2"><b>TOTAL / MOYENNE</b></td><td colspan="3"><b>15,00 / 20</b></td><td colspan="3">—</td></tr></tbody></table><h3>SOUTENANCE DU MÉMOIRE</h3><div class="box">Sujet du mémoire : ................................................................................................<br/><br/>Résultat final : ....................................................................................................</div><div class="signature">Composition et signatures du jury :<br/><br/>................................................................................................</div>',
+            'autorisation_soutenance' => '<div class="box"><b>Nom et prénoms :</b> KOUASSI Jean-Baptiste<br/><b>Niveau :</b> Master 2 &nbsp;&nbsp; <b>Option :</b> MIAGE / GI<br/><b>Année académique :</b> 2025-2026 &nbsp;&nbsp; <b>Contact :</b> etudiant@exemple.ci</div><h3>INFORMATIONS DU STAGE ET DU MÉMOIRE</h3><table><tr><td><b>Entreprise d’accueil</b></td><td>Entreprise exemple</td></tr><tr><td><b>Période de stage</b></td><td>01/01/2026 au 30/06/2026</td></tr><tr><td><b>Thème</b></td><td>Thème du mémoire</td></tr><tr><td><b>Maître de stage</b></td><td>Nom du maître de stage</td></tr></table><h3>AVIS ET SIGNATURES</h3><table><tr><th>Maître de stage</th><th>Encadreur pédagogique</th><th>Directeur de mémoire</th></tr><tr><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr></table>',
+            'suivi_directeur', 'suivi_encadreur' => '<div class="box"><b>Étudiant :</b> KOUASSI Jean-Baptiste<br/><b>Matricule :</b> CM-2026-00042<br/><b>Année académique :</b> 2025-2026</div><h3>SUIVI — ' . ($type === 'suivi_directeur' ? 'DIRECTEUR DE MÉMOIRE' : 'ENCADREUR PÉDAGOGIQUE') . '</h3><table><thead><tr><th>N°</th><th>Date du rendez-vous</th><th>Signature de l’impétrant</th><th>Signature de l’encadrant</th></tr></thead><tbody><tr><td>1</td><td>................................</td><td class="blank"></td><td class="blank"></td></tr><tr><td>2</td><td>................................</td><td class="blank"></td><td class="blank"></td></tr><tr><td>3</td><td>................................</td><td class="blank"></td><td class="blank"></td></tr></tbody></table><p>Fait à Abidjan, le ................................</p>',
+        };
+        $html = '<style>body{font-family:dejavusans;font-size:9pt;color:#1f2937}.title{text-align:center;font-size:15pt;font-weight:bold;margin-bottom:14px}.box,.section{border:0.5pt solid #64748b;padding:8px;margin-bottom:10px}.section,h3{background-color:#e8eef5;padding:6px;margin-top:10px}table{width:100%;border-collapse:collapse}th,td{border:0.4pt solid #64748b;padding:5px;text-align:center;vertical-align:middle}th{background-color:#dbe5ef}.blank{height:30px}.signature{margin-top:18px}</style><div class="title">' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</div>' . $content;
+        $pdfGenerator->writeHtml($pdf, $html);
+        return (string) $pdf->Output('', 'S');
     }
 
     /**

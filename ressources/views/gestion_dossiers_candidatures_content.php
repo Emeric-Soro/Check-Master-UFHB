@@ -223,6 +223,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
             'search_value' => $_GET['search'] ?? '',
             'limit' => $perPage,
             'limit_options' => $allowedLimits,
+            'selection_ui' => 'thead',
             'can_delete' => canDelete(),
             'can_view' => canView(),
         ]); ?>
@@ -235,9 +236,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                 <input type="checkbox" id="cmCheckAllCandidatures" class="cm-checkbox"
                                     aria-label="Sélectionner toutes les lignes">
                             </th>
-                            <th class="cm-data-table__th">N° Carte</th>
-                            <th class="cm-data-table__th">Nom &amp; Prénom</th>
-                            <th class="cm-data-table__th">Promotion</th>
+                            <th class="cm-data-table__th">Étudiants</th>
                             <th class="cm-data-table__th">Moy. M1</th>
                             <th class="cm-data-table__th">Moy. M2</th>
                             <th class="cm-data-table__th">Montant versé</th>
@@ -250,7 +249,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                         <?php if (empty($rowsPage)): ?>
                             <?php cm_component('ui/empty-state', [
                                 'in_table' => true,
-                                'colspan' => 10,
+                                'colspan' => 8,
                                 'title' => '',
                                 'message' => 'Aucun dossier de candidature en attente pour l\'année sélectionnée.',
                             ]); ?>
@@ -267,18 +266,23 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                     data-row-id="<?php echo (int) $row['id_rapport']; ?>"
                                     data-search="<?php echo htmlspecialchars($searchBlob, ENT_QUOTES, 'UTF-8'); ?>"
                                     data-status="<?php echo htmlspecialchars(strtolower((string) $row['cand_status']), ENT_QUOTES, 'UTF-8'); ?>"
-                                    data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>">
+                                    data-date="<?php echo htmlspecialchars($dateCandIso, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-num-etu="<?php echo htmlspecialchars((string) $row['num_etu'], ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-nom-complet="<?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-promotion="<?php echo htmlspecialchars((string) $row['promotion'], ENT_QUOTES, 'UTF-8'); ?>">
                                     <td class="cm-data-table__td is-checkbox">
                                         <input type="checkbox" class="cm-checkbox cm-row-checkbox">
                                     </td>
-                                    <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) $row['num_etu'], ENT_QUOTES, 'UTF-8'); ?>
-                                    </td>
-                                    <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?>
-                                    </td>
-                                    <td class="cm-data-table__td">
-                                        <?php echo htmlspecialchars((string) $row['promotion'], ENT_QUOTES, 'UTF-8'); ?>
+                                    <td class="cm-data-table__td" style="line-height: 1.4; padding: 0.75rem 1rem;">
+                                        <div style="font-weight: 700; color: var(--cm-primary-dark, #12395c); font-size: 0.95rem; margin-bottom: 0.15rem;">
+                                            <?php echo htmlspecialchars((string) $row['nom_complet'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                        <div style="color: #7c8e9a; font-size: 0.82rem;">
+                                            Matricule : <strong style="color: #374151; font-weight: 700;"><?php echo htmlspecialchars((string) $row['num_etu'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        </div>
+                                        <div style="color: #7c8e9a; font-size: 0.82rem;">
+                                            Promotion : <strong style="color: #374151; font-weight: 700;"><?php echo htmlspecialchars((string) $row['promotion'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        </div>
                                     </td>
                                     <td class="cm-data-table__td">
                                         <?php echo $row['m1'] !== null ? htmlspecialchars(number_format((float) $row['m1'], 2), ENT_QUOTES, 'UTF-8') : '-'; ?>
@@ -305,7 +309,7 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
                                 </tr>
                                 <tr id="cmCandDetail_<?php echo (int) $row['id_rapport']; ?>"
                                     class="cm-cand-detail-row cm-hidden">
-                                    <td class="cm-data-table__td" colspan="10">
+                                    <td class="cm-data-table__td" colspan="8">
                                         <div class="cm-grid-4">
                                             <div><strong>Date
                                                     Cand.</strong><br><?php echo !empty($row['date_candidature']) ? htmlspecialchars(date('d/m/Y', strtotime((string) $row['date_candidature'])), ENT_QUOTES, 'UTF-8') : '-'; ?>
@@ -579,15 +583,23 @@ $paginationBaseUrl = '?page=gestion_dossiers_candidatures&limit_candidatures=' .
         const exportBtn = document.getElementById('cmExportCandidatures');
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                const headers = ['N°C', 'N° Etud.', 'Nom & Prenom', 'Niveau', 'M1', 'M2', 'Verse', 'Reste', 'Statut paiement'];
+                const headers = ['Matricule', 'Nom & Prénom', 'Promotion', 'Moy. M1', 'Moy. M2', 'Montant versé', 'Reste', 'Statut paiement'];
                 const lines = [headers.join(';')];
                 document.querySelectorAll('.cm-cand-main-row').forEach(function (row) {
                     if (row.style.display === 'none') {
                         return;
                     }
-                    const cells = Array.from(row.querySelectorAll('td')).slice(1, 10);
-                    const values = cells.map(function (cell) {
-                        return '"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"';
+                    const numEtu = row.getAttribute('data-num-etu') || '';
+                    const nomComplet = row.getAttribute('data-nom-complet') || '';
+                    const promotion = row.getAttribute('data-promotion') || '';
+                    const cells = Array.from(row.querySelectorAll('td')).slice(2, 7); // M1, M2, Verse, Reste, Statut paiement
+                    const values = [
+                        '"' + numEtu.replace(/"/g, '""') + '"',
+                        '"' + nomComplet.replace(/"/g, '""') + '"',
+                        '"' + promotion.replace(/"/g, '""') + '"'
+                    ];
+                    cells.forEach(function (cell) {
+                        values.push('"' + (cell.textContent || '').trim().replace(/"/g, '""') + '"');
                     });
                     lines.push(values.join(';'));
                 });

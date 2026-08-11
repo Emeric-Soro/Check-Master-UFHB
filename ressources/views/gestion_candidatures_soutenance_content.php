@@ -134,6 +134,13 @@ endif; ?>
 }
 </style>
 
+<div class="cm-card cm-mb-md cm-candidatures-submenu">
+    <div class="cm-card__body cm-flex cm-flex-wrap cm-flex-gap-sm">
+        <a class="cm-btn is-primary is-sm" href="?page=gestion_candidatures"><i class="fas fa-folder-open" aria-hidden="true"></i> Dossiers de candidatures</a>
+        <a class="cm-btn is-light is-sm" href="?page=gestion_candidatures&action=evaluations_m2_s1"><i class="fas fa-table-list" aria-hidden="true"></i> Évaluations M2/S1</a>
+    </div>
+</div>
+
 <!-- Filtres -->
 <div class="cm-cand-filters">
     <div class="cm-cand-search">
